@@ -187,10 +187,26 @@ async def set_volume(args: dict) -> str:
     done = await _forward("audio_volume", {"level": target}, _pc_audio_volume)
     if not done.get("ok"):
         return str(done.get("out") or "I couldn't change the volume, sir.")
-    if target == 0:
-        return "Muted, sir."
+
+    # 04.R1 — say what it IS, not what was asked for. This used to report `target`, which is the
+    # number Afon sent rather than the number the machine ended on: Windows rounds to its own
+    # steps, a device can clamp, and an endpoint that has gone away accepts the write and changes
+    # nothing. Reporting the request as the result is the media-control version of announcing a
+    # send that never left, and the owner's only way to catch it is to listen and disagree.
+    after = await _forward("audio_volume", {}, _pc_audio_volume)
+    actual = int(after.get("now") or 0) if after.get("ok") else None
+    if actual is None:
+        actual = target      # the read-back failed, not the write — say the requested level plainly
+
     what = f" for '{playing.label}'" if playing else ""
-    return f"Volume{what} is at {target}%, sir."
+    if actual == 0:
+        return "Muted, sir."
+    if abs(actual - target) > 2:
+        # Not a warning for its own sake: "I set it to 40" when it sits at 100 is the difference
+        # between a working volume control and one the owner stops trusting.
+        return (f"It's at {actual}%{what}, sir — I asked for {target}%, and that's where it "
+                "settled.")
+    return f"Volume{what} is at {actual}%, sir."
 
 
 SCHEMAS = [

@@ -1,7 +1,11 @@
 """Dump the live tool registry as markdown — single source of truth for the docs site.
 
-Run: .venv/Scripts/python.exe bench/dump_tools.py > website/app/_tools.generated.md
-Keeps the docs' tool list from drifting from the code (the registry IS the spec).
+Run: uv run python bench/dump_tools.py > website/app/_tools.generated.md
+     uv run python bench/dump_tools.py --json > website/app/tools/tools.generated.json
+
+Keeps the docs' tool list from drifting from the code (the registry IS the spec). Nothing runs this
+automatically, which is exactly how the site came to advertise 80 tools while the registry held 152 —
+so test_website_claims.py now fails when the generated file and the registry disagree.
 """
 
 from __future__ import annotations

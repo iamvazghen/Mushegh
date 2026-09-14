@@ -967,8 +967,28 @@ cannot own the turn.
       becomes one instruction naming what to fix, and the SECOND failure on the same tool in the
       same turn stops the loop and tells the owner instead. Per turn, not per session: the same tool
       failing on two unrelated turns is two honest mistakes.
-- [ ] 03.R3 Chaining: a result that obviously feeds another (search→open, contact→message) chains in
-      one turn, not across two. *gate:* new `test_tool_chaining.py`
+- [x] 03.R3 Chaining: a result that obviously feeds another (search→open, contact→message) chains in
+      one turn, not across two. *gate:* new `test_tool_chaining.py` (29)
+      *done 2026-09-14:* `brain/chaining.py`. "Text Anna I'm running late" is one instruction to the
+      owner and two steps to the machine: work out what "Anna" means on Telegram, then send to it.
+      The second step was getting the literal string `"Anna"` — a display name handed to Telethon,
+      and to SMTP, where it is not an address at all.
+      The model is supposed to call `resolve_contact` first, and sometimes does. What comes back is
+      **prose**: "Anna: email a@b.c, Telegram @anna_k, sir." So even when it chains correctly it has
+      to parse a sentence to find the handle, and that is the actual reason the chain does not
+      close — step one's output is not step two's input. Asking the model to try harder does not fix
+      a data-shape problem, so the substitution happens in code: one contact, three channels, and
+      the tool about to run decides which target is the right one. A table rather than a guess from
+      the field name, because `send_telegram` and `send_email` both take `to` and need completely
+      different values out of the same person.
+      Three rules keep it from doing harm. **Only a bare name is touched** — `@handle`, an address,
+      a number, a chat id and "Saved Messages" pass through untouched, because an owner who types an
+      address means that address. **Ambiguity never guesses**: two Annas, or nobody by that name, or
+      a known person with no number, returns the contact book's own question instead of a
+      substitution — an outward message to the wrong person is not recoverable by apologising
+      afterwards. And it resolves **before the confirm gate**, so the owner approves the address it
+      will really go to; confirming "Anna" and sending to `@anna_k` is a confirmation of something
+      other than the act. Fails open: an unreadable contact book leaves the call exactly as it was.
 - [x] 03.R4 Dead-tool sweep: every tool not fired in 90 days is either exercised by a bench case or
       retired. *gate:* `test_tool_usage.py` [03.R4] (24) + `test_tool_error_handling.py` (82)
       *done 2026-09-14:* `ToolUsage.stale()` answers the question the sweep actually asks. `unused()`
@@ -1094,8 +1114,28 @@ after idle is not a reconnect · verify-after-act only where the check is cheape
       the gate now asserts the stub agrees with the class it stands for.
 
 **Raise**
-- [ ] 04.R1 Verify-after-act: an action that can be checked (app opened, volume set) is checked, and
-      the answer reports the *verified* state. *gate:* `test_pc_verify.py`
+- [x] 04.R1 Verify-after-act: an action that can be checked (app opened, volume set) is checked, and
+      the answer reports the *verified* state. *gate:* `test_pc_verify.py` [04.R1] (35)
+      *done 2026-09-14:* the task names two examples, and both were wrong in the same way — the
+      answer described the request rather than the result.
+      **Volume** read the level, computed a target, wrote it, and then said the *target* out loud.
+      Windows rounds to its own steps, a device can clamp, and an output that has gone away accepts
+      the write and changes nothing; in all three cases Afon reported a number that was not true,
+      and the owner's only way to catch it was to listen and disagree. It now reads the level BACK
+      and says what it measured — and when the gap is more than a couple of points it says both
+      numbers, because "I set it to 40" while it sits at 100 is the difference between a volume
+      control that works and one he stops trusting.
+      **A launch** was declared unverifiable by `_verify_effect`'s own docstring while a KILL was
+      verified — with the same `tasklist` probe. That asymmetry was never a decision: `Popen`
+      returning is not evidence that anything started, so "Launched Notepad, sir" was said whether
+      or not it had. The probe now runs after a launch too.
+      The evidence is genuinely asymmetric, though, and the wording follows it rather than
+      pretending otherwise: FINDING the image name proves the app is running, while not finding it
+      proves very little — "word" runs as `WINWORD.EXE`, a store app has no image name at all, and
+      a heavy app is still loading a second later. So a positive probe reports verified and a
+      negative one reports **nothing**, because a false "it didn't start" sends the owner to look at
+      a window that is already open, which is worse than not checking. A kill keeps the opposite
+      rule, where absence IS the proof.
 - [ ] 04.R2 Named targets resolve to the right machine when more than one is online (laptop, VPS,
       phone). *gate:* `test_device_handoff.py` extended.
 - [ ] 04.R3 Window and focus awareness — "close that" resolves to the foreground app.
@@ -4484,8 +4524,8 @@ green, `E` = elite green.
 |---|---|---|---|---|---|
 | S01 | Brain / Core Intelligence | structured badly | 3/3 | 4/4 | 0/3 |
 | S02 | LLM Integration | complete for now | 3/3 | 3/3 | 0/1 |
-| S03 | Tool Utilization | complete for now | 4/4 | 3/6 | 0/1 |
-| S04 | Device Control | floor green | 4/4 | 0/3 | 0/1 |
+| S03 | Tool Utilization | complete for now | 4/4 | 4/6 | 0/1 |
+| S04 | Device Control | floor green | 4/4 | 1/3 | 0/1 |
 | S05 | Browser Control | floor green | 3/3 | 0/3 | 0/1 |
 | S06 | Document Creation | half-built | 3/3 | 0/3 | 0/1 |
 | S07 | Session & Context | floor green | 3/3 | 0/3 | 0/1 |
@@ -4533,7 +4573,7 @@ green, `E` = elite green.
 | S49 | Fabrication Control | parked by decision | 0/3 | 0/0 | 0/0 |
 | S50 | Legacy Continuity | half-built | 3/3 | 0/3 | 0/1 |
 
-**Totals: 151 of 157 floor tasks green, 10 of 161 raise tasks, 0 of 52 elite tasks — 161 of 370.**
+**Totals: 151 of 157 floor tasks green, 12 of 161 raise tasks, 0 of 52 elite tasks — 163 of 370.**
 
 > The **424 engineering-days** figure at the top of this document, and the per-system `Effort F/R/E`
 > columns, predate the four raises added on 2026-09-12 (03.R5, 03.R6, 31.R5, 31.R6). They are

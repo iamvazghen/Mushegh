@@ -461,6 +461,15 @@ _BAD_ARGS_GIVE_UP = (
     "plainly that you could not do that part, in one sentence, and carry on with the rest."
 )
 
+#: 03.R3 — the chain could not be closed, so the turn ends on a question instead of a send. The
+#: wording is the contact book's own ("I have more than one 'Anna', sir"), passed through rather
+#: than re-worded here, so the owner is told the specific thing that is missing.
+_CHAIN_ASK = (
+    "TOOL CALL HELD — nothing has been sent. Say exactly this to the owner, in one sentence, and "
+    "then stop: {question} Do not guess a recipient, do not pick the likeliest one, and do not say "
+    "you have sent anything."
+)
+
 _WORK_INTENT_NUDGE = (
     "This is a multi-step research-and-write-up request. Call work_on_task to do it in the BACKGROUND "
     "(it researches and drafts, then reports back) and tell the owner you're on it — do NOT try to "
@@ -1656,6 +1665,20 @@ class AfonAgent:
                 args = json.loads(c["arguments"] or "{}")
             except json.JSONDecodeError:
                 args = {}
+            # 03.R3 — "text Anna I'm late" is one instruction and two steps: work out what "Anna"
+            # means on THIS channel, then send. The second step used to receive the literal string
+            # "Anna" — a display name handed to Telethon, or to SMTP, where it is not an address at
+            # all. Resolved here, in code, because the model's alternative is to call
+            # `resolve_contact` and then parse its PROSE for a handle.
+            # Before the confirm gate on purpose: the owner must be asked to approve the address it
+            # will really go to, not the name he happened to use.
+            args, chain_q = self._resolve_chain(name, args)
+            if chain_q:
+                logger.info(f"chain held: {name} -> {chain_q}")
+                outcomes[idx] = {"name": name, "result": _CHAIN_ASK.format(question=chain_q),
+                                 "ok": False, "args": args, "blocked": True}
+                continue
+
             if confirm_required(name, args) and not self._confirm_granted:
                 self._pending_confirm = {"name": name, "args": args}
                 blocked = (
@@ -1765,6 +1788,21 @@ class AfonAgent:
                 self._confirm_granted = False
                 self._pending_confirm = None
         return [{"name": o["name"], "result": str(o["result"]), "ok": o["ok"]} for o in outcomes]
+
+    def _resolve_chain(self, name: str, args: dict) -> tuple[dict, str]:
+        """03.R3 — substitute a bare recipient name with the right target for that channel.
+
+        Fail-OPEN, like `_check_args`: if the contact book cannot be read the call goes out exactly
+        as it would have before this existed. A resolver that can block a send because its own
+        lookup broke is worse than no resolver.
+        """
+        try:
+            from afon.brain.chaining import resolve_recipient
+
+            return resolve_recipient(name, args)
+        except Exception as e:  # noqa: BLE001
+            logger.debug(f"chain resolve skipped for {name} ({type(e).__name__})")
+            return args, ""
 
     def _check_args(self, name: str, args: dict) -> tuple[dict, str]:
         """03.R2 — schema check before dispatch. Fail-OPEN: an unreadable schema runs the call.

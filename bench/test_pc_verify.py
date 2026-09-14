@@ -152,5 +152,113 @@ async def run_linkdown():
 
 asyncio.run(run_linkdown())
 
+def test_launch_and_volume_are_verified() -> None:
+    """04.R1 — the two cases `_verify_effect` used to decline, and the answer that was a wish."""
+    print("\n[04.R1] a launch is verified by the same probe that verifies a kill")
+    from afon.edge.pc_agent import _image_name
+
+    for given, want in [("notepad", "notepad.exe"), ("chrome.exe", "chrome.exe"),
+                        ("C:/Program Files/X/code.exe", "code.exe"), ('"notepad"', "notepad.exe")]:
+        check(_image_name(given) == want, f"_image_name({given!r}) -> {_image_name(given)!r}")
+    check(_image_name("") == "", "an empty app name produces no image name")
+
+    real = pc._proc_running
+    try:
+        pc._proc_running = lambda _n: True
+        check(pc._verify_effect("open_app", {"app": "notepad"}) == "verified — it's running",
+              "a launch whose process is found reports verified")
+        # The evidence is asymmetric and the wording follows it: finding the image name proves it
+        # runs; NOT finding it proves very little ("word" runs as WINWORD.EXE, a store app has no
+        # image name, a heavy app is still loading). A false "it didn't start" sends the owner to
+        # look at a window that is already open, which is worse than saying nothing.
+        pc._proc_running = lambda _n: False
+        check(pc._verify_effect("open_app", {"app": "notepad"}) is None,
+              "a launch the probe cannot find reports NOTHING, not a warning")
+        check(pc._verify_effect("process_op", {"action": "start", "name": "notepad"}) is None,
+              "the same rule covers process_op start")
+        pc._proc_running = lambda _n: True
+        check(pc._verify_effect("process_op", {"action": "start", "name": "notepad"})
+              == "verified — it's running", "...and verifies it when the probe does find it")
+        # A kill is the opposite shape and must not have changed.
+        check(pc._verify_effect("process_op", {"action": "kill", "name": "notepad"})
+              == "WARNING: still running after kill",
+              "a kill still WARNS when the process survives — absence is the proof there")
+        check(pc._verify_effect("open_url", {"url": "http://x"}) is None,
+              "a URL open is still unverifiable, and says so by staying silent")
+    finally:
+        pc._proc_running = real
+
+
+def test_volume_reports_what_it_measured() -> None:
+    print("\n[04.R1] the volume answer is a reading, not the number that was requested")
+    import asyncio as _a
+
+    from afon.brain.tools import audioout as A
+    from afon.brain.playback import Playing
+
+    real_fwd, real_cur = A._forward, None
+    import afon.brain.playback as _pb
+    real_cur = _pb.current
+
+    async def _fake_current():
+        return Playing(where="desktop", label="something")
+
+    state = {"now": 30}
+
+    def make_forward(settles_at):
+        async def _fwd(op, args, _local):
+            if args.get("level") is None:
+                return {"ok": True, "now": state["now"]}
+            state["now"] = settles_at(int(args["level"]))
+            return {"ok": True, "now": state["now"]}
+        return _fwd
+
+    try:
+        _pb.current = _fake_current
+        A.current = _fake_current
+
+        # The honest case: it lands where it was asked to.
+        state["now"] = 30
+        A._forward = make_forward(lambda want: want)
+        out = _a.run(A.set_volume({"level": 40}))
+        check("40%" in out, f"a volume that lands is reported plainly: {out!r}")
+
+        # The case this exists for: Windows rounds, a device clamps, an endpoint that has gone away
+        # accepts the write and changes nothing. Reporting the REQUEST as the result is the
+        # media-control version of announcing a send that never left.
+        state["now"] = 100
+        A._forward = make_forward(lambda _want: 100)
+        out = _a.run(A.set_volume({"level": 40}))
+        check("100%" in out, f"the answer reports what it MEASURED: {out!r}")
+        check("40" in out, f"...and says what it asked for, so the gap is visible: {out!r}")
+
+        # A read-back that fails must not invent a reading.
+        state["now"] = 30
+
+        reads = {"n": 0}
+
+        async def _write_ok_read_dead(op, args, _local):
+            # The FIRST read works (set_volume needs the current level to compute a target); the
+            # read-BACK afterwards is the one that dies. That is the realistic shape: the endpoint
+            # goes away between the write and the confirmation.
+            if args.get("level") is None:
+                reads["n"] += 1
+                if reads["n"] == 1:
+                    return {"ok": True, "now": 30}
+                return {"ok": False, "out": "no endpoint"}
+            return {"ok": True}
+
+        A._forward = _write_ok_read_dead
+        out = _a.run(A.set_volume({"level": 55}))
+        check("55%" in out, f"an unreadable level falls back to the requested one: {out!r}")
+    finally:
+        A._forward = real_fwd
+        _pb.current = real_cur
+        A.current = real_cur
+
+
+test_launch_and_volume_are_verified()
+test_volume_reports_what_it_measured()
+
 print(f"=== {_ok}/{_ok + _fail} checks passed ===")
 sys.exit(1 if _fail else 0)

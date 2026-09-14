@@ -114,7 +114,14 @@ async def test_confirm_gate() -> None:
     # "the camera again". What this function is testing is the GATE, not the camera; the camera
     # path has its own coverage in test_camera.py.
     agent._face_second_factor = lambda name, args: _none()
-    calls = [{"id": "1", "name": "send_email", "arguments": '{"to":"anna","body":"late"}'}]
+    # 03.R3 — a BARE NAME is now resolved to a real address before the confirm gate sees the call,
+    # and a name the contact book cannot place is held with a question of its own. That is the right
+    # order (you cannot meaningfully confirm a send to an address that does not exist), but it means
+    # this fixture has to say which gate it is testing. The confirm-gate checks below use an
+    # ADDRESSABLE recipient, so they exercise the confirm tier and nothing else; the chain gate gets
+    # its own check immediately after.
+    calls = [{"id": "1", "name": "send_email",
+              "arguments": '{"to":"anna@example.com","body":"late"}'}]
 
     agent._confirm_granted = False
     msgs: list[dict] = []
@@ -128,6 +135,21 @@ async def test_confirm_gate() -> None:
     check("confirm gate RUNS send_email after a grant", len(sent) == 1)
     check("grant consumed (one yes = one action)",
           agent._confirm_granted is False and agent._pending_confirm is None)
+
+    # ...and the earlier gate: an unplaceable name never reaches the confirm tier, because there is
+    # nothing coherent to confirm. It must also not silently send to the literal string "anna".
+    sent.clear()
+    agent._confirm_granted = True
+    msgs2: list[dict] = []
+    await agent._execute_calls(msgs2, [{"id": "9", "name": "send_email",
+                                        "arguments": '{"to":"anna","body":"late"}'}])
+    held = [m.get("content", "") for m in msgs2 if m.get("role") == "tool"]
+    check("an unplaceable recipient is HELD before the confirm gate, not sent",
+          not sent and any("TOOL CALL HELD" in c for c in held))
+    check("...and the owner is asked for the address rather than told it went",
+          any("contact for" in c for c in held))
+    agent._confirm_granted = False
+    agent._pending_confirm = None
 
     msgs3: list[dict] = []
     await agent._execute_calls(msgs3, [{"id": "2", "name": "get_time", "arguments": "{}"}])

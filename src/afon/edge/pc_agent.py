@@ -141,7 +141,39 @@ def _verify_effect(op: str, args: dict) -> str | None:
             return "verified — it's gone" if not os.path.exists(path) else "WARNING: still present after delete"
     if op == "process_op" and args.get("action") == "kill" and args.get("name"):
         return "verified — not running" if not _proc_running(args["name"]) else "WARNING: still running after kill"
+    # 04.R1 — a launch was "best-effort" while a kill was verified, using the same probe. The
+    # asymmetry was never a decision; `Popen` returning is not evidence that anything started, and
+    # "Launched Notepad, sir" was said whether or not it had.
+    #
+    # The evidence is asymmetric, though, and the wording follows it: FINDING the image name proves
+    # it is running, while NOT finding it proves very little — "word" runs as WINWORD.EXE, a store
+    # app has no image name at all, and a heavy app is still loading a second later. So a positive
+    # probe reports verified and a negative one reports NOTHING rather than a warning. A false
+    # "WARNING: it didn't start" on an app that did is worse than no verification, because the owner
+    # goes to look.
+    if op in ("open_app", "process_op") and (args.get("app") or args.get("name")):
+        if op == "process_op" and args.get("action") != "start":
+            return None
+        if _proc_running(_image_name(args.get("app") or args.get("name") or "")):
+            return "verified — it's running"
+        return None
     return None
+
+
+def _image_name(app: str) -> str:
+    """The Windows image name a launch argument most likely produces.
+
+    ponytail: basename + `.exe`, which is right for the apps the owner actually names ("notepad",
+    "chrome", "C:/…/code.exe"). It is deliberately not a lookup table of friendly names, because a
+    wrong guess here costs nothing — `_verify_effect` treats a miss as "cannot tell", not as a
+    failure — while a table would need maintaining for every app anyone ever installs.
+    """
+    import os
+
+    base = os.path.basename((app or "").strip().strip('"').replace("\\", "/").rstrip("/"))
+    if not base:
+        return ""
+    return base if base.lower().endswith(".exe") else f"{base}.exe"
 
 
 async def _run_op(op: str, args: dict) -> tuple[bool, str]:

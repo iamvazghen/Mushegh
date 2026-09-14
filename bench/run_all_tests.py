@@ -159,6 +159,9 @@ TESTS = [
      "test_skill_docs_resolve.py", "offline", ["checks passed ==="]),
     ("Roadmap docs (J5.1): one canonical roadmap, and no doc cites a path that isn't in the tree",
      "test_doc_paths.py", "offline", ["checks passed ==="]),
+    ("Docs site: no page claims a setting nothing reads, a file that is not there, or a tool count "
+     "the registry disagrees with (SKIPs when website/ is absent)",
+     "test_website_claims.py", "offline", ["checks passed ==="]),
     ("Layering (J8.4): base layers import nothing upward, edge<->brain crossings are declared, no cycles",
      "test_layering.py", "offline", ["checks passed ==="]),
     ("Routing manifest (J8.2): the dispatch tables reach the graph, and a rebuild can't drop them",
@@ -295,6 +298,9 @@ TESTS = [
     ("01.R1/01.R2: the five intent classes are explicit and measured, and an ambiguous turn asks "
      "ONE question instead of guessing \u2014 and never the same one twice",
      "test_intent_classes.py", "offline", ["checks passed ==="]),
+    ("03.R3: chaining — a bare recipient name resolves to the right target for THAT channel in the "
+     "same turn, before the confirm gate, and asks rather than guessing",
+     "test_tool_chaining.py", "offline", ["checks passed ==="]),
     ("B6: clause routing — each clause of a multi-intent turn asks for its own tool, not just the first",
      "test_clause_routing.py", "offline", ["checks passed ==="]),
     ("B6: clause completion — a compound request fires every tool its plan names, on BOTH response paths",
