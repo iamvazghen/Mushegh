@@ -103,7 +103,18 @@ def main() -> None:
             _settings.presence_poll_seconds = 60
             _settings.presence_db_path = str(_Path(d) / "presence.sqlite")
             tracker = Presence()
-            base = _time.time() - 6 * 3600
+            # Anchored to 01:00 on the OWNER's today rather than six hours back. The assertions
+            # are about `screen_time(0)` — one day, measured on the owner's clock — and a relative
+            # offset walks over midnight, so this failed for the first six hours of every day and
+            # passed for the other eighteen. It must be the owner's zone and not the machine's:
+            # `_day_bounds` reads USER_TZ, and the brain runs UTC on a VPS the owner does not live
+            # in. Timestamps later than now are fine; the day window has no upper clamp.
+            from datetime import datetime as _d
+
+            from afon.brain.presence import _tz as _owner_tz
+
+            base = _d.now(_owner_tz()).replace(hour=1, minute=0, second=0,
+                                               microsecond=0).timestamp()
             # A 60s cadence, matching the setting, then a three-hour hole, then two more.
             rows = [(base + i * 60, "code.exe", 0) for i in range(4)]
             rows += [(base + 3 * 3600 + i * 60, "code.exe", 0) for i in range(2)]

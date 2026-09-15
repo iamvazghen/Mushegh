@@ -165,11 +165,78 @@ def _candidates(text: str) -> list[str]:
     return uniq
 
 
+#: Said out loud when the subject changes. These are the owner's own words for it, and they are
+#: worth trusting: someone who says "anyway, different question" has told you the previous thread is
+#: closed more clearly than any heuristic could infer.
+_TOPIC_BREAK_RE = re.compile(
+    r"\b(?:anyway|anyhow|different (?:question|thing|topic)|new (?:question|topic|subject)|"
+    r"changing the subject|unrelated|on another note|forget (?:that|it|all that)|"
+    r"never ?mind that|moving on|something else)\b",
+    re.I,
+)
+
+#: Words too common to mark a subject. A shared "the" is not a shared topic.
+_SEGMENT_NOISE = frozenset({
+    "the", "and", "for", "with", "that", "this", "from", "you", "your", "can", "could", "would",
+    "please", "afon", "what", "when", "where", "which", "about", "into", "just", "now", "then",
+    "did", "does", "was", "were", "have", "has", "are", "how", "why", "any", "all", "one", "some",
+    "get", "got", "tell", "give", "make", "want", "need", "know", "think", "like", "good",
+})
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]{3,}", (text or "").lower())
+            if w not in _SEGMENT_NOISE}
+
+
+def _refers_back(text: str) -> bool:
+    """Does this turn point at something earlier? Then it cannot be the start of a new subject."""
+    return bool(_PRONOUN_RE.search(text) or _ORDINAL_RE.search(text) or _LAST_RE.search(text))
+
+
+def current_segment(history: list[dict] | None) -> list[dict]:
+    """07.R2 — the tail of the conversation that belongs to the subject in play.
+
+    A working window is a rolling N turns, not a thread. Ask about `notes.md`, spend six turns on
+    the weather, then say "open it" and the resolver walks back past the weather and binds to
+    `notes.md` — confidently, and wrongly. The owner has moved on; the history has not.
+
+    Two ways a segment starts, and the restraint in the second one is the whole design:
+
+    * the owner **says so** — "anyway", "different question", "forget that";
+    * a user turn introduces an entirely new subject (no content word in common with the segment so
+      far) **and refers to nothing** — no pronoun, no ordinal, no "the last one".
+
+    That second condition is what makes cutting safe. A turn carrying a referring expression is
+    precisely the turn that needs the older context, so it can never be treated as a boundary; a
+    turn that refers to nothing cannot be harmed by starting fresh at it. Without that guard the
+    segmentation would cut exactly where binding matters, which is worse than not segmenting.
+    """
+    history = history or []
+    start = 0
+    seen: set[str] = set()
+    for i, msg in enumerate(history):
+        if msg.get("role") != "user" or not isinstance(msg.get("content"), str):
+            continue
+        text = msg["content"]
+        if _TOPIC_BREAK_RE.search(text):
+            start, seen = i, _words(text)
+            continue
+        words = _words(text)
+        if seen and words and not (words & seen) and not _refers_back(text):
+            start, seen = i, words
+            continue
+        seen |= words
+    return history[start:]
+
+
 def resolve(text: str, history: list[dict] | None = None) -> Reference | None:
     """Bind one reference in `text`, or return None. Never raises; never guesses between two."""
     if not text or not isinstance(text, str):
         return None
-    history = history or []
+    # 07.R2 — only the current subject is in scope. A pronoun may not reach across a change of
+    # subject, however recent the older turn happens to be.
+    history = current_segment(history)
 
     # --- ordinals into the most recent list Afon produced -------------------------------------
     items: list[str] = []

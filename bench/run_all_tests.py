@@ -241,7 +241,8 @@ TESTS = [
     # 21.F3 — replays the clock-sensitive tests across 6 awkward dates and 4 timezones. It was
     # manual-only until 2026-09-12, and a gate nobody runs is not a gate: registering it caught a
     # real bug the same day. ~60s, parallel; the cost is process startup, not the tests.
-    ("Clock robustness (21.F3): the date-sensitive tests replayed across 6 days and 4 timezones",
+    ("Clock robustness (21.F3): the date-sensitive tests replayed across 6 days, 4 timezones and "
+     "2 times of day",
      "check_date_robustness.py", "offline", ["no clock-dependent failures"]),
     ("Health agreement (J3.6): when a component is broken, no surface reports it healthy",
      "test_health_agreement.py", "offline", ["checks passed ==="]),

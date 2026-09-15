@@ -470,6 +470,23 @@ _CHAIN_ASK = (
     "you have sent anything."
 )
 
+#: 07.R3 — "pick that back up". Anchored to the whole utterance so "carry on with the shopping
+#: list" stays an ordinary request rather than a resume of something unrelated.
+_RESUME_RE = re.compile(
+    r"^\s*(?:please\s+)?(?:carry on|go on|continue|keep going|finish (?:that|it)|"
+    r"you were saying|as you were|and then\??|what were you saying)"
+    r"[\s.,!?]*$",
+    re.I,
+)
+
+#: What the model is told when he is asked to carry on and there is nothing held. Saying "carry on
+#: with what?" is right; inventing a thread to continue is the failure this prevents.
+_NOTHING_TO_RESUME = (
+    "He asked you to carry on, but nothing of yours was interrupted. Do not invent a thread to "
+    "continue and do not repeat your last answer: ask him in one short sentence what he wants you "
+    "to pick up."
+)
+
 _WORK_INTENT_NUDGE = (
     "This is a multi-step research-and-write-up request. Call work_on_task to do it in the BACKGROUND "
     "(it researches and drafts, then reports back) and tell the owner you're on it — do NOT try to "
@@ -763,7 +780,11 @@ class AfonAgent:
         self._clarified: set[str] = set()
         #: 03.R2 — tools already given one argument-repair THIS turn. Reset per turn, not per
         #: session: the same tool failing on two unrelated turns is two honest mistakes.
-        self._repaired: set[str] = set()    # 03.R5: groups the budget refused THIS turn
+        self._repaired: set[str] = set()
+        #: 07.R3 — the turn a barge-in cut off: what he asked, and how far Afon got saying it.
+        #: One slot, not a stack: "carry on" means the thing you just interrupted, and a queue of
+        #: half-finished answers is a thing nobody asked for and nobody would remember.
+        self._interrupted: dict[str, str] | None = None    # 03.R5: groups the budget refused THIS turn
         # Which language the conversation is in. Built lazily on the first mirror-mode turn so a
         # single-language deployment never pays for it.
         self._lang_tracker: lang.LanguageTracker | None = None
@@ -806,6 +827,10 @@ class AfonAgent:
         # 01.R2 — `_resolve_reference` above is the one thing that can supply an antecedent, and
         # it declines when the reference is ambiguous, so its verdict IS the context signal: a
         # bound "it" is an ordinary command, an unbound one is a question waiting to be asked.
+        # 07.R3 — asked to pick something up when nothing was interrupted.
+        if _RESUME_RE.match((user_text or "").strip()) and not self._interrupted:
+            messages.append({"role": "system", "content": _NOTHING_TO_RESUME})
+
         ambiguous = classify(user_text, has_context=self._reference is not None) == "ambiguous"
         if ambiguous:
             key = " ".join((user_text or "").lower().split())
@@ -1947,9 +1972,11 @@ class AfonAgent:
         the next replay (AUDIT #7). The ``finally`` records a short placeholder so that never happens.
         """
         self._stream_done = False
+        said_chunks: list[str] = []          # 07.R3 — what actually reached him before a cut
         with turn_trace.turn(user_text, streamed=True), _turn_situation():  # 01.F3 / 27.F1
             try:
                 async for chunk in self._respond_stream_impl(user_text, on_progress):
+                    said_chunks.append(chunk)
                     yield chunk
                 # 41.F2 — the same admission the blocking path makes, as one more spoken sentence.
                 # It has to come from the finished reply rather than per chunk: a URL can be split
@@ -1964,11 +1991,55 @@ class AfonAgent:
                 turn_trace.note_answer(said + note)   # 45.F3
             finally:
                 if not self._stream_done:
-                    self._history.append({"role": "assistant", "content": "(interrupted)"})
+                    # 07.R3 — an interrupted turn used to be recorded as the bare word
+                    # "(interrupted)", which loses both halves of what "carry on" needs: what he
+                    # asked for, and how far the answer got. The transcript now keeps what he
+                    # actually heard, and the turn is held so it can be finished on request.
+                    partial = "".join(said_chunks).strip()
+                    self._history.append({
+                        "role": "assistant",
+                        "content": f"{partial} (interrupted)" if partial else "(interrupted)",
+                    })
                     self._trim()
+                    self._interrupted = {"ask": user_text, "said": partial}
+                else:
+                    self._interrupted = None
+
+    async def _resume_interrupted(self, user_text: str):
+        """07.R3 — finish the turn a barge-in cut off. Yields the rest, or nothing if there is none.
+
+        Reuses the chain's own continuation: what he already heard is handed back as an assistant
+        turn with an instruction to continue from exactly there, and any echoed opening is trimmed,
+        because a model told not to repeat itself still tends to restate the last few words.
+        """
+        held = self._interrupted
+        self._interrupted = None          # one resume per interruption, whatever happens next
+        if not held or not (held.get("said") or "").strip():
+            return
+        self._history.append({"role": "user", "content": user_text})
+        try:
+            rest = await self._llm._finish_broken_stream(
+                [self._system, {"role": "user", "content": held["ask"]}], held["said"])
+        except Exception as e:  # noqa: BLE001 — a failed resume is an answer, never a crash
+            logger.warning(f"resume failed: {type(e).__name__}: {e}")
+            rest = ""
+        if not rest:
+            rest = "I'd lost the thread there, sir — say it again and I'll pick it up."
+        self._history.append({"role": "assistant", "content": rest})
+        self._trim()
+        self._stream_done = True
+        yield rest
 
     async def _respond_stream_impl(self, user_text: str, on_progress: Callable | None = None):
         """Streaming body — see ``respond_stream`` for the cancellation guard."""
+        # 07.R3 — "carry on" is not a request for the tool loop; it is a request for the REST of the
+        # last one. Checked before anything else, and only when there is something held to finish.
+        if (_RESUME_RE.match((user_text or "").strip())
+                and self._interrupted and (self._interrupted.get("said") or "").strip()):
+            async for piece in self._resume_interrupted(user_text):
+                yield piece
+            return
+
         self._begin_turn(user_text)
         if _catastrophic(user_text):
             self._refuse_catastrophic(user_text)   # records user + a hard refusal

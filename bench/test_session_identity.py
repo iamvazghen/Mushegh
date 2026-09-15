@@ -212,6 +212,89 @@ def main() -> None:
           "the owner's session snapshot was neither written nor deleted",
           f"before={real_before} after={real_after}")
 
+    print("\n[07.R1] session summaries are retrievable by DATE and by TOPIC")
+    import tempfile as _tf
+    from datetime import datetime as _dt
+
+    from afon.brain.memory import MemoryStore as _MS
+
+    with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _td:
+        st = _MS(Path(_td))
+        st.journal_append("The owner asked about the flat viewing and Afon booked it.",
+                          _dt(2026, 9, 10, 9, 0))
+        st.journal_append("Discussed the Ausbildung application deadline.", _dt(2026, 9, 11, 9, 0))
+        st.journal_append("Fixed the boiler timer.", _dt(2026, 9, 12, 9, 0))
+
+        check(st.journal_days() == ["2026-09-10", "2026-09-11", "2026-09-12"],
+          "every journalled day is enumerable",
+          str(st.journal_days()))
+        check("boiler" in st.read_journal(_dt(2026, 9, 12)),
+          "a past day reads back in full")
+        check(st.read_journal(_dt(2026, 9, 9)) == "",
+          "a day with nothing is empty rather than the wrong day's entries")
+
+        hits = st.search_journal("flat")
+        check(len(hits) == 1 and hits[0][0] == "2026-09-10",
+          "a topic finds the day it was discussed",
+          str(hits))
+        check(bool(hits) and len(hits[0]) == 2 and hits[0][0].count("-") == 2,
+          "...and returns the date with the line, because 'when' is half the answer")
+        check(st.search_journal("submarine") == [],
+          "a topic nobody mentioned returns nothing, not the newest entry")
+        check(len(st.search_journal("")) == 3,
+          "an empty query is 'what have we been doing' — the recent lines")
+        check(st.search_journal("")[0][0] == "2026-09-12",
+          "newest first, so the answer starts with what he most likely means")
+        check(st.search_journal("the") == st.search_journal(""),
+          "a word every entry contains is not a topic",
+          "matching on noise finds everything and means nothing")
+        # The header line is not an entry: it would come back as "Journal — 2026-09-10".
+        check(all(not line.lower().startswith("journal") for _d, line in st.search_journal("")),
+          "the day's header is never returned as a summary")
+
+    print("\n[07.R1] the tool asks the store the question the owner actually asked")
+    import asyncio as _aio
+
+    from afon.brain.tools import memory as _mem
+
+    _real = _mem.STORE
+    with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _td2:
+        st2 = _MS(Path(_td2))
+        st2.journal_append("The owner asked about the flat viewing.", _dt(2026, 9, 10, 9, 0))
+        _mem.STORE = st2
+        try:
+            out = _aio.run(_mem.read_journal({"date": "2026-09-10"}))
+            check("flat viewing" in out,
+          "a named date returns that day",
+          out[:80])
+            out = _aio.run(_mem.read_journal({"about": "flat"}))
+            check("flat viewing" in out,
+          "a topic searches every day",
+          out[:80])
+            out = _aio.run(_mem.read_journal({"about": "submarine"}))
+            check("nothing in my journal" in out.lower(),
+          "an unknown topic says so instead of returning the latest day",
+          out[:90])
+            out = _aio.run(_mem.read_journal({"date": "last tuesday"}))
+            check("can't read" in out.lower(),
+          "a day it cannot parse asks for a real one rather than guessing",
+          out[:90])
+            # The description has always offered "what did we do yesterday"; for a long time the
+            # code ignored its arguments entirely and returned today, which is worse than refusing
+            # because a real journal entry comes back and nothing looks wrong.
+            out = _aio.run(_mem.read_journal({"date": "yesterday"}))
+            check("nothing in my journal for" in out.lower() or "flat viewing" in out,
+          "'yesterday' resolves against the clock, not to the newest file",
+          out[:90])
+        finally:
+            _mem.STORE = _real
+
+    from afon.brain.tools import schemas_by_name as _by_name
+    _sch = _by_name(["read_journal"])[0]["function"]
+    check({"date", "about"} <= set(_sch["parameters"]["properties"]),
+          "the schema advertises the date and topic it now honours",
+          str(list(_sch["parameters"]["properties"])))
+
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     sys.exit(1 if failed else 0)
 

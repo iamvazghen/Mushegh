@@ -108,10 +108,60 @@ async def forget(args: dict) -> str:
         return tool_error("forget", e)
 
 
+#: Words for a day, resolved against the owner's clock rather than parsed as a date.
+_WHEN_WORDS = {"today": 0, "yesterday": 1, "the day before yesterday": 2}
+
+
+def _journal_date(text: str):
+    """A date the owner named, or None. Accepts YYYY-MM-DD and the two words people actually say."""
+    from datetime import datetime, timedelta
+
+    t = (text or "").strip().lower()
+    if not t:
+        return None
+    if t in _WHEN_WORDS:
+        return datetime.now() - timedelta(days=_WHEN_WORDS[t])
+    try:
+        return datetime.strptime(t[:10], "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
 async def read_journal(args: dict) -> str:
+    """07.R1 — by date, by topic, or the most recent.
+
+    This used to ignore its arguments and always return the newest file, while its own description
+    offered "what did we do yesterday". A tool that answers a different question from the one asked
+    is worse than one that refuses: what comes back is a real journal entry, so nothing looks wrong.
+    """
     if not settings.memory_enabled:
         return "My journal is switched off right now, sir."
     try:
+        about = (args.get("about") or args.get("topic") or args.get("query") or "").strip()
+        when_raw = (args.get("date") or args.get("when") or args.get("day") or "").strip()
+
+        if when_raw:
+            when = _journal_date(when_raw)
+            if when is None:
+                return (f"I can't read '{when_raw}' as a day, sir — give me a date like 2026-09-14, "
+                        "or say today or yesterday.")
+            text = STORE.read_journal(when)
+            if not text:
+                return f"Nothing in my journal for {when:%A %d %B}, sir."
+            if not about:
+                return text
+            keep = [ln for ln in text.splitlines()
+                    if ln.strip().startswith("- ") and about.lower() in ln.lower()]
+            return ("\n".join(keep) if keep
+                    else f"Nothing about '{about}' on {when:%A %d %B}, sir.")
+
+        if about:
+            hits = STORE.search_journal(about)
+            if not hits:
+                return (f"I have nothing in my journal about '{about}', sir. It may have been "
+                        "before I started keeping one, or we never got to it.")
+            return "\n".join(f"{d}: {line}" for d, line in hits)
+
         text = STORE.read_journal()
         return text or "My journal is empty so far, sir."
     except Exception as e:  # noqa: BLE001
@@ -193,10 +243,21 @@ SCHEMAS = [
         "function": {
             "name": "read_journal",
             "description": (
-                "Read your most recent daily journal — a summary of recent sessions — for continuity "
-                "('what did we do yesterday / recently')."
+                "Read the daily journal of past sessions. No arguments = the most recent day; "
+                "`date` for a specific day ('2026-09-14', 'yesterday'); `about` to search every "
+                "day for a topic. Use for 'what did we do yesterday', 'what have we said about "
+                "the flat', 'remind me what we decided last week'."
             ),
-            "parameters": {"type": "object", "properties": {}, "required": []},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date": {"type": "string",
+                             "description": "A day: YYYY-MM-DD, 'today' or 'yesterday'."},
+                    "about": {"type": "string",
+                              "description": "A topic to search the journal for."},
+                },
+                "required": [],
+            },
         },
     },
 ]

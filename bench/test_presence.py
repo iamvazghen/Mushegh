@@ -38,6 +38,22 @@ def check(name: str, ok: bool, detail: str = "") -> None:
         print(f"  [FAIL] {name}  {detail}")
 
 
+def _owner_day_start(hour: int) -> float:
+    """A timestamp at `hour` o'clock on the OWNER's today, as an epoch second.
+
+    Mirrors `presence._day_bounds`, which is the code under test: it takes the day from
+    `datetime.now(USER_TZ)`, not from the machine's timezone. A fixture that builds its samples
+    from the machine's day lands outside the window whenever the two zones straddle midnight —
+    routinely, since the brain runs UTC on a VPS and the owner does not.
+    """
+    from afon.brain.presence import _tz
+
+    from datetime import datetime as _d
+
+    start = _d.now(_tz()).replace(hour=hour, minute=0, second=0, microsecond=0)
+    return start.timestamp()
+
+
 async def main() -> None:
     from afon.config import settings
     settings.presence_poll_seconds = 60      # each active sample = 60s of screen time
@@ -52,13 +68,23 @@ async def main() -> None:
     act.PRESENCE = p  # the tools resolve PRESENCE from this module binding
 
     now = time.time()
+    # Anchored to a fixed hour of TODAY rather than to "six minutes ago". The assertions are about
+    # `screen_time(0)` — one local day — and a relative offset walks backwards over midnight, so
+    # this used to fail for the first few minutes after 00:00 and pass again by breakfast. 21.F3
+    # replays the clock-sensitive tests across awkward dates for exactly this class of defect;
+    # this one was reachable by the ordinary suite, just rarely.
+    #
+    # Timestamps in the future are fine here: `screen_time` selects by local-day bounds with no
+    # upper clamp, and `current()` returns the last RECORDED sample rather than the newest one, so
+    # "what is he doing now" still follows call order.
+    day_base = _owner_day_start(8)      # 08:00 on the owner's today, whenever the suite runs
 
     print("[1] ingest snapshots + screen-time aggregation by app/category")
     # Spaced ONE POLL APART, which is what the poller does. They used to share a single timestamp,
     # which only worked because screen time was `sample count x the configured poll interval` — the
     # estimate 34.F2 replaced. Credit is now the real interval between samples, so a fixture where
     # six readings happen at the same instant correctly yields no time at all.
-    base = now - 360
+    base = day_base
     for i in range(3):
         p.record("chrome", "YouTube - something", 2.0, ts=base + i * 60)   # active browsing
     for i in range(3, 5):
@@ -76,16 +102,26 @@ async def main() -> None:
     rep = p.report(0)
     check("report gives a total", "active about 5m" in rep, rep)
     check("report names top apps", "chrome" in rep and "Code" in rep, rep)
-    p.record("Code", "writing tests", 1.0, ts=now)                 # latest = active coding
+    p.record("Code", "writing tests", 1.0, ts=base + 6 * 60)       # latest = active coding
     check("current_line names the active app", "Code" in p.current_line(), p.current_line())
-    p.record("chrome", "afk", 500.0, ts=now)                       # latest = idle
+    p.record("chrome", "afk", 500.0, ts=base + 7 * 60)             # latest = idle
     check("current_line reports idle when away", "idle" in p.current_line().lower(), p.current_line())
 
     print("\n[3] ingest() parses raw snapshot JSON; junk is ignored")
     check("valid json ingested", p.ingest('{"app":"vlc","title":"movie","idle":0.5}'))
     check("empty '{}' ignored", not p.ingest("{}"))
     check("garbage ignored", not p.ingest("not json"))
-    check("vlc counts as media", p.screen_time(0)["categories"].get("media") == 60)
+    # The mapping is asserted directly, and the aggregate only for presence. `ingest` stamps its
+    # row with the clock, so where that row SORTS among the fixture depends on the hour the suite
+    # runs: land it before the day's block and its credit becomes the gap to the rest of the day,
+    # land it after and it is the final sample credited one typical interval. Pinning the exact
+    # number made this check a clock reading rather than a category test.
+    from afon.brain.presence import _category
+
+    check("vlc maps to the media category", _category("vlc") == "media", _category("vlc"))
+    check("...and the ingested sample reaches today's screen time",
+          p.screen_time(0)["categories"].get("media", 0) >= 60,
+          str(p.screen_time(0)["categories"]))
 
     print("\n[4] privacy off-switch")
     check("enabled by default", p.enabled)

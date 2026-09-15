@@ -76,14 +76,28 @@ TESTS = [
     "test_presence.py",
     "test_relational.py",
     "test_day_shape.py",
+    "test_phase12_utility.py",   # 34.F2 screen-time windows — one of the two midnight casualties
 ]
 
 
-def run(test: str, when: str = "", zone: str = "") -> tuple[bool, str]:
+#: Times of day, for the axis the other two could not reach. A fixture that builds "today" from a
+#: relative offset ("six hours ago", "six minutes ago") and then asserts on one local day walks
+#: backwards over midnight and fails only in the small hours. Two of them were doing exactly that,
+#: and the suite happened to run at 00:01 one night, which is the same luck this file exists to
+#: replace. Both ends of the day, because the symmetric bug reaches forwards.
+CLOCKS: list[tuple[str, str]] = [
+    ("00:03", "just after midnight: a backwards offset lands on yesterday"),
+    ("23:57", "just before it: a forwards offset lands on tomorrow"),
+]
+
+
+def run(test: str, when: str = "", zone: str = "", clock: str = "") -> tuple[bool, str]:
     env = dict(os.environ)
-    if when:
-        env["AFON_FAKE_TODAY"] = when
+    if when or clock:
+        env["AFON_FAKE_TODAY"] = when or DATES[0][0]
         env["PYTHONPATH"] = str(FAKETIME) + os.pathsep + env.get("PYTHONPATH", "")
+    if clock:
+        env["AFON_FAKE_CLOCK"] = clock
     if zone:
         env["AFON_USER_TZ"] = zone
     try:
@@ -120,24 +134,29 @@ def _axis(label: str, cases: list[tuple[str, str]], kwarg: str,
 
 def main() -> int:
     dates = list(DATES) + [(d, "supplied on the command line") for d in sys.argv[1:]]
-    total = len(TESTS) * (len(dates) + len(ZONES))
-    print(f"Replaying {len(TESTS)} clock-sensitive tests across {len(dates)} days "
-          f"and {len(ZONES)} timezones ({total} runs).\n")
-    # ponytail: four workers, not eight. Eight thrashed — these tests import the whole tool
-    # registry, and four concurrent copies of that is already most of the machine's memory. A
-    # replay that stalls for ten minutes is a replay that gets deleted.
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    total = len(TESTS) * (len(dates) + len(ZONES) + len(CLOCKS))
+    print(f"Replaying {len(TESTS)} clock-sensitive tests across {len(dates)} days, "
+          f"{len(ZONES)} timezones and {len(CLOCKS)} times of day ({total} runs).\n")
+    # ponytail: three workers, not four and certainly not eight. These tests import the whole tool
+    # registry, so each worker is a few hundred megabytes, and this gate runs INSIDE the suite —
+    # the runner and this process are already resident before the first worker starts. At four, the
+    # suite died here twice with a spawn failure once a third axis took the matrix from 110 runs to
+    # 132; standalone it was fine, which is the tell. A replay that stalls for ten minutes is a
+    # replay that gets deleted, and one that takes the suite down with it is worse.
+    with ThreadPoolExecutor(max_workers=3) as pool:
         failures = _axis("date", dates, "when", pool)
         print()
         failures += _axis("tz", ZONES, "zone", pool)
+        print()
+        failures += _axis("clock", CLOCKS, "clock", pool)
     print()
     if failures:
         print(f"=== {len(failures)} clock-dependent failure(s) ===")
         for f in failures:
             print(f"  {f}")
         return 1
-    print(f"=== no clock-dependent failures across {len(dates)} days "
-          f"and {len(ZONES)} timezones ===")
+    print(f"=== no clock-dependent failures across {len(dates)} days, "
+          f"{len(ZONES)} timezones and {len(CLOCKS)} times of day ===")
     return 0
 
 

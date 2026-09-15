@@ -583,6 +583,55 @@ class MemoryStore:
         days = sorted(self.journal_dir.glob("*.md"))
         return days[-1].read_text(encoding="utf-8", errors="ignore").strip() if days else ""
 
+    def journal_days(self) -> list[str]:
+        """Every date that has a journal, oldest first, as YYYY-MM-DD."""
+        if not self.journal_dir.is_dir():
+            return []
+        return sorted(p.stem for p in self.journal_dir.glob("*.md") if len(p.stem) == 10)
+
+    def search_journal(self, query: str = "", *, days: int = 60,
+                       limit: int = 12) -> list[tuple[str, str]]:
+        """07.R1 — session summaries retrievable by TOPIC: ``[(date, line)]``, newest first.
+
+        The summaries were being written at close and were then reachable only as "today's file".
+        `read_journal`'s own description offered "what did we do yesterday" and the code could not
+        answer it, which is the kind of gap nobody reports because the answer it gives instead is
+        plausible.
+
+        Keyword matching on the summary lines, deliberately: they are one sentence each and already
+        contain the nouns the owner will use ("the flat", "the Ausbildung form"). An embedding index
+        over a few hundred one-line summaries would be a second store to keep in step with the first,
+        for a corpus small enough to scan. An empty query returns the most recent lines, which is
+        what "remind me what we've been doing" means.
+        """
+        wanted = {w for w in re.findall(r"[a-z0-9]{3,}", (query or "").lower())
+                  if w not in _JOURNAL_NOISE}
+        out: list[tuple[str, str]] = []
+        for date in reversed(self.journal_days()[-max(1, days):]):
+            path = self.journal_dir / f"{date}.md"
+            try:
+                lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            except OSError:
+                continue
+            for line in lines:
+                line = line.strip()
+                if not line.startswith("- "):
+                    continue          # the "# Journal — date" header is not an entry
+                if wanted and not (wanted & set(re.findall(r"[a-z0-9]{3,}", line.lower()))):
+                    continue
+                out.append((date, line[2:].strip()))
+                if len(out) >= limit:
+                    return out
+        return out
+
+
+#: Words every journal line contains, so matching on them finds everything and means nothing.
+_JOURNAL_NOISE = frozenset({
+    "the", "and", "for", "with", "that", "this", "from", "his", "her", "them", "afon", "owner",
+    "asked", "wanted", "said", "told", "did", "was", "were", "had", "has", "about", "what",
+    "which", "after", "then", "into", "out", "over", "one", "two", "some", "any", "all",
+})
+
 
 # A process-wide default store (the repo's memory/ dir).
 STORE = MemoryStore()

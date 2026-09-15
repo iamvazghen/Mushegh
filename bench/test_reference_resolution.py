@@ -154,6 +154,49 @@ def main() -> None:
     check('{"role": "system", "content": self._reference.note()}' in src,
           "the binding travels as a separate system note beside it")
 
+    print("\n[07.R2] a reference may not reach across a change of subject")
+    from afon.brain.references import current_segment
+
+    notes = [{"role": "user", "content": "read notes.md"},
+             {"role": "assistant", "content": "Done."}]
+    check(getattr(resolve("summarise it", notes), "antecedent", None) == "notes.md",
+          "within one subject, a pronoun still binds")
+
+    # The failure this exists for: the working window is a rolling N turns, not a thread. Without
+    # segmentation the resolver walks back past six turns of weather and binds "it" to notes.md —
+    # confidently, and wrongly, because the owner moved on and the history did not.
+    said_break = notes + [
+        {"role": "user", "content": "anyway, different question — what's the weather"},
+        {"role": "assistant", "content": "Mild and dry."},
+    ]
+    check(resolve("summarise it", said_break) is None,
+          "after the owner says the subject changed, the older thread is out of scope",
+          "'anyway, different question' is the clearest signal there is")
+    check(len(current_segment(said_break)) < len(said_break),
+          "...and the segment really did shrink")
+
+    new_subject = notes + [
+        {"role": "user", "content": "what's the capital of Japan"},
+        {"role": "assistant", "content": "Tokyo."},
+    ]
+    ref = resolve("summarise it", new_subject)
+    check(getattr(ref, "antecedent", None) != "notes.md",
+          "an unrelated new question also starts a segment", str(ref))
+
+    # The guard that makes cutting safe: a turn that REFERS to something can never be a boundary,
+    # because that is exactly the turn needing the older context.
+    follow_up = notes + [{"role": "user", "content": "open it"},
+                         {"role": "assistant", "content": "Opened."}]
+    check(len(current_segment(follow_up)) == len(follow_up),
+          "a referring turn never starts a new segment",
+          "cutting here would break the binding it exists to serve")
+    check(getattr(resolve("summarise it", follow_up), "antecedent", None) == "notes.md",
+          "...so a later pronoun still reaches the antecedent")
+
+    check(current_segment([]) == [], "an empty history segments to nothing, without raising")
+    check(len(current_segment([{"role": "assistant", "content": "Hello."}])) == 1,
+          "a history with no user turns is left whole")
+
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     sys.exit(1 if failed else 0)
 

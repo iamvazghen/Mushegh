@@ -1373,12 +1373,48 @@ close, not per turn · topic segmentation so recall does not drag unrelated turn
       measures the rules, not the language.
 
 **Raise**
-- [ ] 07.R1 Session summaries written at close, retrievable by date and topic.
-      *gate:* `test_session_identity.py` [summary persisted]
-- [ ] 07.R2 Topic segmentation inside a long session so recall does not drag in unrelated turns.
-      *gate:* `test_reference_resolution.py` [topic boundary]
-- [ ] 07.R3 Interruption and resumption: an interrupted turn can be resumed by "carry on".
-      *gate:* `test_streaming.py` extended (interruption path already at 27/27).
+- [x] 07.R1 Session summaries written at close, retrievable by date and topic.
+      *gate:* `test_session_identity.py` [07.R1] (51)
+      *done 2026-09-14:* the summaries were already being written at close — what was missing is
+      the whole second half of the sentence. `read_journal` **ignored its arguments entirely** and
+      always returned the newest file, while its own description offered "what did we do
+      yesterday". That is worse than refusing: a real journal entry comes back, so nothing looks
+      wrong, and the owner is told about Tuesday when he asked about last week.
+      `MemoryStore.search_journal` answers by topic and `read_journal` now takes `date` and `about`.
+      Keyword matching over the summary lines, deliberately: they are one sentence each and already
+      contain the nouns he will use ("the flat", "the Ausbildung form"). An embedding index over a
+      few hundred one-line summaries would be a second store to keep in step with the first, for a
+      corpus small enough to scan. A day it cannot parse asks for a real one rather than guessing,
+      and a topic nobody mentioned says so rather than falling back to the latest day — the
+      fallback was the bug.
+- [x] 07.R2 Topic segmentation inside a long session so recall does not drag in unrelated turns.
+      *gate:* `test_reference_resolution.py` [07.R2] (22)
+      *done 2026-09-14:* a working window is a rolling N turns, not a thread. Ask about `notes.md`,
+      spend six turns on the weather, then say "open it": the resolver walked back past the weather
+      and bound to `notes.md` — confidently, and wrongly. The owner had moved on; the history had
+      not.
+      `references.current_segment` cuts the history at a change of subject, and `resolve` only ever
+      sees the current segment. Two ways a segment starts: the owner **says so** ("anyway",
+      "different question", "forget that"), or a user turn introduces an entirely new subject — no
+      content word in common with the segment — **and refers to nothing**.
+      That second condition is the whole design. A turn carrying a pronoun or an ordinal is exactly
+      the turn that needs the older context, so it can never be a boundary; a turn that refers to
+      nothing cannot be harmed by starting fresh at it. Without that guard, segmentation would cut
+      precisely where binding matters, which is worse than not segmenting at all.
+- [x] 07.R3 Interruption and resumption: an interrupted turn can be resumed by "carry on".
+      *gate:* `test_streaming.py` [07.R3] (65)
+      *done 2026-09-14:* a barge-in recorded the assistant turn as the bare word `(interrupted)`,
+      which throws away both halves of what a resume needs: what he asked for, and how far the
+      answer got. "Carry on" then produced either a fresh answer to nothing or a confident
+      restatement of what he had already heard.
+      The turn is now held — the request and the text he actually heard — and the transcript keeps
+      the partial rather than a placeholder. Resuming reuses 02.R3's continuation for the same
+      reason it was built: what he heard is a perfectly good assistant turn to hand the next pass,
+      and the echoed opening a model tends to restate is trimmed off.
+      One slot, not a stack: "carry on" means the thing you just interrupted, and a queue of
+      half-finished answers is something nobody asked for and nobody would remember. Asked to carry
+      on with nothing held, he asks what to pick up — inventing a thread to continue is the failure
+      that would have been easiest to ship.
 
 **Elite**
 - [ ] 07.E1 A conversation started on the phone, continued at the desk, closed by voice — one
@@ -2324,7 +2360,8 @@ routines read from one file, not recomputed.
       objects; re-parsing `list_events`' spoken sentence would have been a second date parser to
       keep in step with the first.
 - [x] 21.F3 Date and time handling is robust across timezones and phrasings.
-      *gate:* `check_date_robustness.py` (now in `run_all_tests.py`), `test_weather_when.py`
+      *gate:* `check_date_robustness.py` (now in `run_all_tests.py`, 12 tests × 12 clock cases),
+      `test_weather_when.py`
       *done 2026-09-12:* the replay existed but covered only dates, and was reachable only by
       typing its name — a gate nobody runs is not a gate. Added a timezone axis over UTC, a large
       negative offset, a large positive one and a half-hour offset, and registered it in the suite.
@@ -2335,6 +2372,33 @@ routines read from one file, not recomputed.
       the afternoon from the same machine as the reader. "Today" now means the owner's day.
       The replay runs both axes through a thread pool: ten minutes serially is long enough that a
       gate gets skipped, and the cost is entirely process startup.
+      *extended 2026-09-15 — a third axis, and a defect in the shim itself:* the replay moved the
+      calendar and the timezone and never the **time of day**, so a whole class stayed out of
+      reach. Two presence fixtures built "today" from a relative offset (`now - 360`,
+      `time.time() - 6*3600`) and then asserted on one local day — which walks backwards over
+      midnight, so both failed for a window every night and passed for the rest of the day.
+      `test_presence.py` was already on this list and still could not be caught. Found because the
+      suite happened to run at 00:01, which is the same luck this file exists to replace.
+      `AFON_FAKE_CLOCK=HH:MM` now moves the clock, expressed as a fixed DELTA rather than a pinned
+      hour — a pinned clock stops advancing inside the minute and a test measuring a duration would
+      measure zero. `time.localtime`/`gmtime` move with it: shifting one clock and not the other
+      leaves the process disagreeing with itself about which day it is, which is the exact defect
+      class this shim exists to expose.
+      Fixing the fixtures exposed the layer under it. They anchored to the MACHINE's timezone while
+      the code under test takes its day from the owner's (`_day_bounds` reads `USER_TZ`), which the
+      timezone axis caught at once. And fixing THAT exposed the real one: the shim computed its
+      epoch offset in whole days, so faking 31 December (CET) from a September day (CEST) left
+      `datetime.now()` reading 00:20 on the 31st while `time.time()` read 23:20 on the 30th — an
+      hour apart. A row stamped with one clock and filtered by the other falls outside its own day.
+      The shim's own comment warns that mixing two clocks "breaks in a way that looks like a
+      product bug and is not"; it was doing precisely that, on two of the six dates it replays.
+      The offset now goes through `.timestamp()`, which applies the local rules for that date and
+      carries the DST hour with it.
+      Verified by reverting one fixture under the new axis: 26 of 32 with the old code, green with
+      the fix. The matrix is 6 days × 4 timezones × 2 times of day over 12 tests, and the pool
+      dropped from four workers to three — at four, the larger matrix took the whole suite down
+      with a spawn failure while passing standalone, which is the tell that it was memory and not
+      logic.
 
 **Raise**
 - [ ] 21.R1 Time-blocking proposals for committed work, offered not imposed.
@@ -4528,7 +4592,7 @@ green, `E` = elite green.
 | S04 | Device Control | floor green | 4/4 | 1/3 | 0/1 |
 | S05 | Browser Control | floor green | 3/3 | 0/3 | 0/1 |
 | S06 | Document Creation | half-built | 3/3 | 0/3 | 0/1 |
-| S07 | Session & Context | floor green | 3/3 | 0/3 | 0/1 |
+| S07 | Session & Context | floor green | 3/3 | 3/3 | 0/1 |
 | S08 | Voice Enrollment | weak | 1/2 | 0/3 | 0/1 |
 | S09 | Face Enrollment | not enrolled | 1/2 | 0/3 | 0/1 |
 | S10 | Voice Recognition | structured badly | 3/3 | 0/3 | 0/1 |
@@ -4573,7 +4637,7 @@ green, `E` = elite green.
 | S49 | Fabrication Control | parked by decision | 0/3 | 0/0 | 0/0 |
 | S50 | Legacy Continuity | half-built | 3/3 | 0/3 | 0/1 |
 
-**Totals: 151 of 157 floor tasks green, 12 of 161 raise tasks, 0 of 52 elite tasks — 163 of 370.**
+**Totals: 151 of 157 floor tasks green, 15 of 161 raise tasks, 0 of 52 elite tasks — 166 of 370.**
 
 > The **424 engineering-days** figure at the top of this document, and the per-system `Effort F/R/E`
 > columns, predate the four raises added on 2026-09-12 (03.R5, 03.R6, 31.R5, 31.R6). They are

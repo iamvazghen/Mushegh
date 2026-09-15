@@ -246,12 +246,84 @@ async def test_midstream_break_is_continued() -> None:
     check("...and still does not restart", "RESTARTED" not in kept, repr(kept))
 
 
+async def test_interrupted_turn_resumes() -> None:
+    """07.R3 — "carry on" finishes the answer a barge-in cut off.
+
+    An interrupted turn used to be recorded as the bare word "(interrupted)", which throws away
+    both halves of what a resume needs: what he asked for, and how far the answer got. Asking Afon
+    to carry on then produced either a fresh answer to nothing, or a confident restatement of
+    something he had already heard.
+    """
+    print("\n[6] 07.R3 — an interrupted turn is held, and 'carry on' finishes it")
+    from afon.brain.agent import _NOTHING_TO_RESUME, _RESUME_RE, AfonAgent
+
+    for phrase in ("carry on", "go on", "continue", "keep going", "finish that",
+                   "you were saying", "and then?"):
+        check(f"{phrase!r} reads as a resume", bool(_RESUME_RE.match(phrase)))
+    # Anchored to the whole utterance on purpose: these name their own subject, so they are
+    # ordinary requests and must not hijack a held turn.
+    for phrase in ("carry on with the shopping list", "continue the report to Anna",
+                   "go on holiday planning"):
+        check(f"{phrase!r} is an ordinary request, not a resume",
+              not _RESUME_RE.match(phrase))
+
+    # A deliberately tool-free utterance: this is testing the interruption path, and a request that
+    # routes to a real tool would answer from the owner's actual data instead of the script.
+    agent = AfonAgent()
+    agent._llm = FakeLLM([[("text", "The first thing is the boiler. "),
+                           ("text", "The second is the letter. "),
+                           ("text", "The third is…")]])
+    gen = agent.respond_stream("tell me a story about the sea")
+    first = await gen.__anext__()
+    await gen.aclose()                       # barge-in mid-answer
+
+    check("the first sentence reached him", first.startswith("The first thing"), repr(first))
+    check("the cut turn is held, not discarded", agent._interrupted is not None)
+    check("...along with what he actually asked for",
+          (agent._interrupted or {}).get("ask") == "tell me a story about the sea")
+    check("...and how far the answer got", "boiler" in (agent._interrupted or {}).get("said", ""))
+    check("the transcript keeps what he heard, not just '(interrupted)'",
+          "boiler" in str(agent._history[-1].get("content", "")),
+          str(agent._history[-1])[:100])
+
+    # Resuming asks the chain to continue from what was already spoken — the same mechanism a
+    # mid-stream provider break uses (02.R3), for the same reason: what he heard is a perfectly
+    # good assistant turn to hand the next pass.
+    handed: dict = {}
+
+    async def fake_finish(messages, said):
+        handed["said"] = said
+        handed["ask"] = messages[-1]["content"]
+        return " The second is the letter to the landlord."
+
+    agent._llm._finish_broken_stream = fake_finish
+    out = "".join([c async for c in agent.respond_stream("carry on")])
+    check("the resume continues rather than restarting",
+          out.strip().startswith("The second"), repr(out[:70]))
+    check("the continuation is handed what he already heard",
+          handed.get("said", "").startswith("The first thing"), str(handed)[:90])
+    check("...and the original question, so it knows what it is finishing",
+          "story about the sea" in str(handed.get("ask", "")), str(handed.get("ask"))[:70])
+    check("one resume per interruption — the slot is cleared", agent._interrupted is None)
+
+    # Carrying on with nothing held must not invent a thread to continue.
+    agent2 = AfonAgent()
+    agent2._interrupted = None
+    plan = await agent2._prepare_turn("carry on")
+    check("'carry on' with nothing interrupted asks him what to pick up",
+          any(_NOTHING_TO_RESUME in str(m.get("content", "")) for m in plan.messages))
+    check("...and the instruction says not to invent one",
+          "do not invent" in _NOTHING_TO_RESUME.lower())
+
+
 async def main() -> None:
     await test_plain_answer()
     await test_tool_then_stream()
     await test_no_double_failover_midstream()
     await test_cancelled_stream_no_dangling_user()
     await test_midstream_break_is_continued()
+    await test_interrupted_turn_resumes()
+    await test_interrupted_turn_resumes()
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:
         sys.exit(1)
