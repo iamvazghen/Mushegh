@@ -207,8 +207,17 @@ class BrainServer:
                 reply = await self._agent.respond(text)
             except Exception as e:  # noqa: BLE001 — never 500 the phone; always speak something
                 logger.warning(f"/talk turn failed: {type(e).__name__}: {e}")
-                reply = ("I'm having trouble reaching my reasoning right now, sir — "
-                         "give me a moment and try again.")
+                # 02.E1 — the sentence is chosen from WHAT failed, not one blanket apology. The old
+                # wording ("I'm having trouble reaching my reasoning") was a claim about the models
+                # and it was also what the owner heard for a KeyError in a tool, which sent him to
+                # the wrong log at 3am. `outage.spoken_for` separates the models being down from a
+                # single model going quiet from Afon being at fault.
+                try:
+                    from afon.brain import outage
+
+                    reply = outage.spoken_for(e)
+                except Exception:  # noqa: BLE001
+                    reply = "Something went wrong on my side, sir, and it is written down."
         audio = await synthesize(reply)
         return audio, reply, text
 
@@ -226,6 +235,19 @@ class BrainServer:
             await self._send(
                 ws, StreamEvent(session_id=msg.session_id, kind=StreamKind.lifecycle, delta="ready")
             )
+            # 23.R2 — hand the edge what it needs to stay useful if this link drops. On connect
+            # rather than on request, because the edge cannot ask once the brain is unreachable.
+            # Fail-quiet: a missing scheduler must never cost the session its hello.
+            try:
+                from afon.brain.scheduler import SCHEDULER
+                from afon.shared.protocol import Digest
+
+                rows = [{"id": jid, "name": name, "next": nxt}
+                        for jid, name, nxt in SCHEDULER.list_reminders()[:8]]
+                await self._send(ws, Digest(session_id=msg.session_id, generated=time.time(),
+                                            reminders=rows))
+            except Exception as e:  # noqa: BLE001
+                logger.debug(f"digest not sent ({type(e).__name__})")
             return
 
         if isinstance(msg, Barge):
@@ -665,6 +687,31 @@ async def serve(host: str | None = None, port: int | None = None) -> None:
     except Exception as e:  # noqa: BLE001
         logger.warning(f"reliability probe not scheduled: {e}")
 
+    # D-88/D-89 — the executor toolchain maintains itself: a 24h version check that installs and
+    # PROVES each update with a ping, and a 168h Jev-led review of what each CLI is missing. The
+    # weekly one is advisory and installs nothing. Both fail-quiet; neither blocks startup.
+    if settings.toolchain_autoupdate_enabled:
+        try:
+            from apscheduler.triggers.interval import IntervalTrigger
+            from afon.brain._scheduled_jobs import (_fire_toolchain_review,
+                                                    _fire_toolchain_update)
+
+            sched = SCHEDULER._ensure()  # noqa: SLF001 — scheduler is single-instance
+            # `jitter` matters more than it looks: four CLIs all updating at a fixed minute is also
+            # four npm registry calls at a fixed minute, and a release that lands badly would land
+            # badly on every host that copied this schedule.
+            sched.add_job(_fire_toolchain_update, trigger=IntervalTrigger(hours=24, jitter=1800),
+                          id="toolchain-daily-update", name="toolchain daily update check",
+                          misfire_grace_time=21600, coalesce=True, replace_existing=True)
+            sched.add_job(_fire_toolchain_review, trigger=IntervalTrigger(hours=168, jitter=3600),
+                          id="toolchain-weekly-review", name="toolchain weekly improvement review",
+                          misfire_grace_time=86400, coalesce=True, replace_existing=True)
+            logger.info("toolchain: 24h update check and 168h improvement review scheduled")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"toolchain jobs not scheduled: {e}")
+    else:
+        logger.info("toolchain auto-update is off (AFON_TOOLCHAIN_AUTOUPDATE_ENABLED)")
+
     # T12 — nightly Composio catalog refresh (03:15, before memory backup, so the morning briefing
     # sees any new tools added overnight). Triggers a `_fire_composio_catalog_refresh` task.
     try:
@@ -901,6 +948,23 @@ def _serve_client_http(
                 return
             # Phase 5.3 — ambient HUD state (objectives / working-on / awaiting-approval / presence).
             # Auth-gated like /metrics (it reveals what he's doing); open on a loopback-only brain.
+            # 45.F4 — the unattended-review surface: every action Afon took without the owner,
+            # grouped by the correlation id that 31.F5 guarantees, with its actor and outcome.
+            # Same auth as /hud.json: it reveals what he has been doing.
+            if self._route() == "/review.json":
+                if not _post_authorized(self):
+                    self.send_error(401, "unauthorized")
+                    return
+                import json as _json
+
+                from afon.brain.review import review_snapshot
+                body = _json.dumps(review_snapshot(), indent=2).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if self._route() == "/hud.json":
                 if not _post_authorized(self):
                     self.send_error(401, "unauthorized")

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from enum import Enum
 
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,14 +64,34 @@ class Settings(BaseSettings):
     user_tz: str = "UTC"
 
     # --- Provider selection (the knobs that define a deployment) -------------------------
-    # Cloud is the PRIMARY for quality/latency; if it can't be built (missing key, engine not
-    # installed, construction error) we automatically fall back to the LOCAL engine so the voice
-    # pipeline always comes up (see edge/stt.py + edge/tts.py, voice_local_fallback below).
-    #   * STT: Deepgram (cloud) -> Whisper (local). Deepgram can't do Armenian/Ukrainian — if you
-    #     speak those TO Afon, set AFON_STT_PROVIDER=whisper (local auto-detects all six).
-    #   * TTS: ElevenLabs (cloud) -> Piper (local).
+    # LOCAL is the primary (D-17). The reasoning is a 3am argument: latency and privacy
+    # dominate, a stranger needs no paid account and no API key to get a voice, and a decision
+    # made for "which sounds better in a demo" is the wrong default for a house that must speak
+    # with the network down. Cloud is the OPT-IN for when the quality is worth the egress.
+    # If a provider can't be built (missing key, engine not installed) the local counterpart
+    # comes up instead of the pipeline dying (see edge/stt.py + edge/tts.py).
+    #   * STT: Deepgram (cloud) -> Whisper (local). Deepgram's nova-3 `multi` model covers
+    #     en/es/fr/de/ru but NOT Ukrainian, so Ukrainian speech does not fail — it comes back as
+    #     plausible Russian, the language detector agrees with it, and Afon answers confidently in
+    #     the wrong language. That is a real defect and it is why the owner wants Whisper (D-78).
+    #
+    #     It stays `deepgram` anyway, because the alternative was measured on this machine on
+    #     2026-10-04 rather than assumed: `whisper_model=base` (the FAST size) on this CPU gives a
+    #     MEAN of 3.00s per utterance, p95 3.95s, real-time factor 1.39 — it transcribes more
+    #     slowly than the owner speaks, and the D-35 budget allows 1800ms mean. So the honest
+    #     position is that neither provider is acceptable alone: fast-but-wrong on Ukrainian, or
+    #     correct-but-1.7x-over-budget everywhere. The fix is to route by language (Deepgram for the
+    #     five it hears, Whisper only for the one it cannot) — see 18.R7. That is the owner's call,
+    #     so this default stays where the measurement says it can live until he makes it.
     stt_provider: STTProvider = STTProvider.deepgram
-    tts_provider: TTSProvider = TTSProvider.elevenlabs
+    tts_provider: TTSProvider = TTSProvider.piper
+    # The TTS half of D-17 is INTENTIONALLY still `piper`, and the owner's own deployment overrides
+    # it with ElevenLabs. That is the charter working, not failing: D-17 says cloud is the opt-in
+    # for when the quality is worth the egress, and for a man who speaks French, English, German,
+    # Ukrainian and Russian it plainly is. The local engines are English-only as wired — a single
+    # `piper_voice` model, and Kokoro pinned to Language.EN — so "local" here would be "local
+    # English", which is not the requirement. D-78 records why, so the default is not later flipped
+    # back by someone reading D-17 without reading this.
     # When a CLOUD provider above can't be constructed, fall back to its local counterpart instead of
     # failing the whole pipeline. The local fallback engines need the `local-voice` extra installed.
     voice_local_fallback: bool = True
@@ -80,6 +101,44 @@ class Settings(BaseSettings):
     tts_affect_enabled: bool = True
     stt_fallback_provider: STTProvider = STTProvider.whisper
     llm_backend: LLMBackend = LLMBackend.freellmapi   # Afon's OWN reasoning model
+
+    # --- Typed judgment (TypeSafe Jev) -------------------------------------------------
+    # Jev owns contextual option selection, never authorization. Destructive confirmation,
+    # privacy, emergency and governor rules remain deterministic code. The unprefixed alias is
+    # TypeSafe's documented key name; AFON_TYPESAFE_API_KEY is accepted for deployment symmetry.
+    # With no key this tier is absent and no request is made.
+    typesafe_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TYPESAFE_API_KEY", "AFON_TYPESAFE_API_KEY"),
+    )
+    # --- The owner's own book summarizer (D-86) -----------------------------------------
+    # The SDK reads these from the environment itself; the brain declares them here anyway,
+    # because 36.F5 says a credential has exactly one home and `check_public_clean` enforces it.
+    # Reading os.environ in a tool module would make every unconfigured install depend on a
+    # fallback nobody reviewed. Afon only needs to know WHETHER they are set, to report
+    # readiness honestly - it never forwards them anywhere (the SDK's own SKILL.md forbids the
+    # key reaching a browser or client).
+    bookroom_llm_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("GEMINI_API_KEY", "BOOKROOM_LLM_API_KEY",
+                                      "AFON_BOOKROOM_LLM_API_KEY"),
+    )
+    bookroom_jev_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("BOOKROOM_JEV_API_KEY", "AFON_BOOKROOM_JEV_API_KEY"),
+    )
+    jev_enabled: bool = True
+    jev_model: str = "jev-latest"
+    jev_endpoint: str = "https://api.typesafe.ai/v1/systemone"
+    jev_timeout_seconds: float = 8.0
+    # Arbitration — the brain's own ambiguity, not a question for the owner. It sits on the voice
+    # hot path, so it gets a far smaller budget than the service timeout: past ~400ms the owner
+    # has moved on and the deterministic trigger match is the better answer. 0 disables arbitration
+    # and restores the pre-2026-10-03 behaviour, where the model chose among the candidate groups.
+    jev_arbitration_timeout_seconds: float = 0.4
+    # Compact local provenance only: stable option/result IDs, timing and outcome. No prompt text.
+    # Blank -> jev_judgments.jsonl under the state root.
+    jev_judgment_log_path: str | None = None
 
     # --- Wake word ----------------------------------------------------------------------
     wake_word_enabled: bool = True
@@ -417,6 +476,10 @@ class Settings(BaseSettings):
     # it is one setting because a store that follows the CODE forks the moment the code is copied,
     # which is exactly how the laptop and the VPS ended up remembering different owners.
     state_dir: str | None = None         # blank = ~/.afon
+    # There is no `postgres_dsn` setting any more. The staged S30 adapters were removed on
+    # 2026-10-04 (D-02, M02): SQLite in WAL mode is the store, and a credential that cannot
+    # select a backend is a credential that only looks like an option. The runtime never read
+    # it, so nothing needed migrating — it was a switch wired to nothing.
 
     # --- Background task queue (status-keeping) -------------------------------------------------
     # Long work (a fleet delegation) runs in the background and is tracked here so Afon can answer
@@ -458,7 +521,6 @@ class Settings(BaseSettings):
     # Rebuild the system-prompt learned-digest every N turns so facts learned mid-session (by the
     # background reviewer) surface without waiting for a brain restart (the digest was startup-frozen).
     memory_digest_refresh_every_turns: int = 8
-    redis_url: str | None = None        # L4 hot-cache (Phase 9b); blank = no cache (graceful)
     # L5 semantic recall (Phase 9c): rank learned facts by MEANING, not just keywords, so "how are my
     # bunnies?" finds "rabbit farm". Powers the explicit `recall` tool (auto-recall stays keyword-only
     # for hot-path speed). ON by default but fully GRACEFUL: it uses a local `sentence-transformers`
@@ -593,6 +655,29 @@ class Settings(BaseSettings):
     # Cap on how many steps the co-pilot's background worker takes per execution (bounded work loop).
     copilot_max_steps: int = 6
 
+    # --- The autonomy governor (36.F6) ------------------------------------------------
+    # Each bounded worker run has its own step and wall-clock budget. These bound the RUNS: one
+    # shared rolling window across every autonomous path, enforced in code before a step executes.
+    # The failure this exists to stop has already happened on this owner's infrastructure - a
+    # heartbeat loop sent ~2,500 messages and burned ~565M tokens, one in-budget iteration at a
+    # time - so these are deliberately hard limits, not advisory ones. See brain/governor.py.
+    # Generous enough that ordinary use never meets them; tight enough that a runaway stops within
+    # a window instead of within a billing cycle.
+    # 04.R4 - the shell's blast radius. Empty means `<state_dir>/shell`. The directory is the
+    # real bound; the command scan is a tripwire (see tools/system.py). Network off by default.
+    shell_workdir: str = ""
+    shell_allow_network: bool = False
+
+    # 44.R4 - when the model hedges about a write that is NOT in the confirm tier, ask instead
+    # of proceeding. An off switch is kept because an unrealistic gate is a gate that gets
+    # disabled, and this one has not yet met a real week.
+    escalate_on_low_confidence: bool = True
+
+    autonomy_max_calls: int = 200          # tool + model calls per window, across ALL autonomous runs
+    autonomy_max_usd: float = 2.0          # estimated spend per window (unpriced models counted, not free)
+    autonomy_max_seconds: float = 3600.0   # total autonomous wall-clock per window
+    autonomy_window_hours: float = 24.0    # the window itself; the ledger rolls over when it expires
+
     # --- System control (files / processes / PowerShell) --------------------------------
     # Afon can manage the local machine: create/delete files & folders, list/kill/start
     # processes, and run PowerShell (optionally elevated, which raises a Windows UAC prompt).
@@ -614,6 +699,14 @@ class Settings(BaseSettings):
     # common dev action by voice. Blank = the tool degrades to a spoken "not configured" note.
     github_token: str | None = None
     github_repo: str | None = None               # e.g. "iamvazghen/OpenAfon"
+
+    # --- The executor toolchain (D-88, D-89) --------------------------------------------
+    # Claude Code, Codex, MiniMax Code and OpenClaw are kept current by a 24h job that installs a
+    # new version and PROVES it with a ping, rolling back where npm allows. ON by the owner's
+    # explicit instruction (2026-10-06) — an unattended update is a host mutation, so it is a
+    # setting that can be turned off rather than behaviour baked in. The same flag carries the
+    # 168h improvement review, which installs nothing and only reports.
+    toolchain_autoupdate_enabled: bool = True
 
     # --- Local interactive browser (visible window, persistent login) -------------------
     # A real Chromium Afon drives with Playwright: open windows, click, type (incl.
@@ -685,6 +778,25 @@ class Settings(BaseSettings):
     interventions_enabled: bool = False
     intervention_lead_minutes: int = 10          # fire when a commitment starts within this many min
     intervention_urgency: float = 0.9            # > context_override (interrupts), < quiet_override
+    # 14.R4 — goal deviation. The ONLY path from a stated goal to an interruption: discretionary
+    # time (media/gaming) sustained while a goal's deadline is inside the window. Its urgency is
+    # computed in brain/goal_deviation.py from a deterministic ladder, and can reach 0.94 - above
+    # context_override (so it may interrupt a film) and below quiet_override (so it never wakes him).
+    # OFF by default like interventions: the owner arms it once he trusts the rest.
+    goal_deviation_enabled: bool = False
+    goal_deviation_min_minutes: int = 25         # discretionary stretch before a moment is judged
+    goal_deviation_deadline_days: int = 7        # only deadlines inside this create pressure
+    # Every judged moment is logged with its reason, voiced or NOT - silence produces no evidence, so
+    # the held moments are the only record that this source is working rather than merely quiet.
+    # Blank -> goal_deviation_log.jsonl under the state root.
+    goal_deviation_log_path: str | None = None
+    # 23.R2 — the brain's digest (upcoming reminders), cached on the edge so an outage can
+    # still be answered instead of only held. Blank -> degraded_digest.json under the state root.
+    degraded_digest_path: str | None = None
+    # 23.R4 — where the edge holds turns it heard during an outage, to answer on reconnect.
+    # On disk, not in memory: a crash mid-outage is the failure that most needs the promise
+    # kept. Blank -> offline_queue.jsonl under the state root.
+    offline_queue_path: str | None = None
     # Where "what's the weather" and the morning briefing default to when no place is named.
     home_location: str | None = None
 

@@ -35,3 +35,50 @@ async def _fire_composio_catalog_refresh() -> None:
         logger.info(f"composio catalog nightly refresh: {total} tools cached")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"composio catalog refresh failed: {type(e).__name__}: {e}")
+
+
+@ticks("toolchain-daily-update")
+async def _fire_toolchain_update() -> None:
+    """Every 24h — new versions for the four managed CLIs, installed and proved (D-88).
+
+    Reports only when something changed or broke. A daily "nothing happened" is an interruption
+    bought with no information (D-29, D-34), so a quiet run is silent by design.
+    """
+    try:
+        from afon.brain.toolchain import daily_update_check, report
+
+        states = await daily_update_check()
+        line = report(states)
+        if not line:
+            logger.info("toolchain: nothing to update")
+            return
+        broke = any(s.broke for s in states)
+        logger.info(f"toolchain: {line}")
+        from afon.brain.scheduler import _emit_proactive
+
+        # A break is worth hearing about; a clean update is worth a note, not a spoken interruption.
+        await _emit_proactive(line, 0.80 if broke else 0.40, "Afon — toolchain")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"toolchain daily update failed: {type(e).__name__}: {e}")
+
+
+@ticks("toolchain-weekly-review")
+async def _fire_toolchain_review() -> None:
+    """Every 168h — Jev ranks what each CLI is missing, and each CLI is asked too (D-89).
+
+    Advisory only. Nothing is installed, enabled or permitted by this job; it produces a report the
+    owner answers.
+    """
+    try:
+        from afon.brain.toolchain import review_report, weekly_improvement_review
+
+        proposals = await weekly_improvement_review()
+        line = review_report(proposals)
+        if not line:
+            return
+        logger.info("toolchain: weekly improvement review written")
+        from afon.brain.scheduler import _emit_proactive
+
+        await _emit_proactive(line, 0.42, "Afon — weekly toolchain review")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"toolchain weekly review failed: {type(e).__name__}: {e}")

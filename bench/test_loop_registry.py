@@ -54,6 +54,8 @@ LOOP_SITES: dict[str, str] = {
     "server.py::_fire_reliability_probe": "reliability-health-probe",
     "server.py::_fire_composio_catalog_refresh": "composio-catalog-refresh",
     "server.py::tg_bridge.run": "telegram-bridge",
+    "server.py::_fire_toolchain_update": "toolchain-daily-update",
+    "server.py::_fire_toolchain_review": "toolchain-weekly-review",
 }
 
 #: site key -> why it is NOT a background loop. Every one of these is work that starts, finishes and

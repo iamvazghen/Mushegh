@@ -87,6 +87,18 @@ DECLARED: tuple[Loop, ...] = (
     Loop("composio-catalog-refresh", "re-cache the Composio tool catalogue overnight",
          "cron", DAY, "daily at 03:15", 60_000,
          "unschedule the job", "afon.brain._scheduled_jobs"),
+    # D-88/D-89. Both are unattended HOST mutations or paid reads, which is exactly the class
+    # 31.F4 exists for: the gate caught them running unseen, with no period, budget, kill switch or
+    # HUD row. The budgets are generous on purpose - an npm install and three model pings are
+    # minutes of real work, and a budget tighter than the job is a false alarm every week.
+    Loop("toolchain-daily-update", "check Claude Code, Codex, MiniMax Code and OpenClaw for a new "
+         "release, install it, and prove it with a ping that must answer pong",
+         "cron", DAY, "every 24h (+/-30min jitter)", 1_200_000,
+         "AFON_TOOLCHAIN_AUTOUPDATE_ENABLED=false", "afon.brain._scheduled_jobs"),
+    Loop("toolchain-weekly-review", "ask Jev, and each CLI itself, what one addition would reduce "
+         "its friction - proposals only, nothing is installed",
+         "cron", 7 * DAY, "every 168h (+/-1h jitter)", 900_000,
+         "AFON_TOOLCHAIN_AUTOUPDATE_ENABLED=false", "afon.brain._scheduled_jobs"),
     Loop("presence-poller", "sample the laptop's foreground window so context knows the situation",
          "poller", None, "every settings.presence_poll_seconds", 2_000,
          "PRESENCE.pause() / stop tracking", "afon.brain.presence"),
