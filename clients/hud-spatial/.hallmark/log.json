@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "date": "2026-10-03",
+      "brief": "Owner-operated, voice-addressable real-life assistant HUD with no persistent chrome beyond search and movable canvases.",
+      "audience": "The owner during real voice-driven work",
+      "use": "Afon opens, moves, focuses, searches, explains, backgrounds, restores, and populates canvases",
+      "tone": "Austere, technical, minimal glass-cockpit",
+      "macrostructure": "Workbench",
+      "theme": "Midnight",
+      "enrichment": "none",
+      "overrides": ["No navigation or footer by explicit owner requirement", "Local IBM Plex instead of external Inter", "Bounded spatial grid instead of horizontal dashboard scroll"],
+      "slop_test": "Applicable gates 1-58 passed after rendered 320px and 1440px inspection; no marketing hero/nav/footer gates were activated.",
+      "critique": {"purpose": 4, "hierarchy": 4, "editing": 4, "specificity": 5, "restraint": 4, "visual_quality": 4}
+    }
+  ]
+}

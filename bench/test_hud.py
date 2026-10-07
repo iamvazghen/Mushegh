@@ -88,6 +88,15 @@ class FakePresence:
         return self._line
 
 
+class FakeJudgments:
+    def snapshot(self):
+        return {
+            "provider": "typesafe", "enabled": True, "configured": True,
+            "available": True, "model": "jev-test", "calls": 3, "errors": 0,
+            "latest": {"kind": "explicit_options", "selected_id": "option_2"},
+        }
+
+
 class Boom:
     """A source whose every access raises — proves per-section fail-quiet."""
 
@@ -112,6 +121,7 @@ def main() -> None:
         tasks=FakeTasks([FakeTask("research competitor pricing", elapsed="4m", note="reading 3 sites")]),
         approvals=FakeApprovals([FakeApproval("send_email(to=bob@x.com)", origin="objective:party-map")]),
         presence=FakePresence("Right now you're in VS Code, sir."),
+        judgments=FakeJudgments(),
     )
     check("has a generated timestamp", isinstance(d.get("generated"), str) and "T" in d["generated"])
     check("presence carried through", d["presence"].startswith("Right now"))
@@ -126,6 +136,9 @@ def main() -> None:
           and d["awaiting_approval"][0]["origin"] == "objective:party-map")
     check("systems block present", d["systems"]["brain"] == "online" and "llm" in d["systems"])
     check("fallbacks is an int count", isinstance(d["systems"]["fallbacks"], int))
+    check("compact Jev status is present without decision prose",
+          d["systems"]["judgment"]["model"] == "jev-test"
+          and d["systems"]["judgment"]["latest"]["selected_id"] == "option_2")
 
     print("\n[2] empty snapshot is clean, not crashy")
     e = hud_snapshot(objectives=FakeBook([]), tasks=FakeTasks([]),

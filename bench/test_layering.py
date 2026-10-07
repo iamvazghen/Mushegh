@@ -275,7 +275,10 @@ def recall_facade() -> None:
           f"{[ln for ln, ok in probes if not ok]} — a writable connection there is a second store "
           f"owner, and it would create the very file it is being asked whether to delete")
 
-    stores = ["coaching", "graph", "presence", "semantic", "tasks"]
+    # "graph" is deliberately absent: the relation layer was removed on 2026-10-04 (D-26, M04).
+    # Listing a module that no longer exists here would fail on the file read, not on a layering
+    # rule — and a store that is gone cannot own a state root.
+    stores = ["coaching", "presence", "semantic", "tasks"]
     routed = [s for s in stores
               if "from afon.brain.dbconn import connect"
               in (root / "brain" / f"{s}.py").read_text(encoding="utf-8")]

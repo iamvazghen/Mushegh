@@ -33,6 +33,8 @@ from afon.brain.intent_router import (           # 01.R1 — one place decides w
 )
 from afon.config import settings
 from afon.brain.llm import LLMClient
+from afon.brain.judgment import JUDGMENTS, DecisionVerdict, clarity_question, manner_note
+from afon.brain.never_store import NeverStoreRefused
 from afon.brain.tools import (
     core_tool_schemas,
     group_tool_schemas,
@@ -75,6 +77,30 @@ def _turn_situation():
     # 30ms context budget even though it runs on every turn.
     with situation(perceive(PRESENCE), MODES) as s:
         yield s
+
+
+def _speak_attribution(reply: str) -> str:
+    """45.R2 — name where the answer came from, in one short spoken clause.
+
+    Deliberately a SEPARATE function from `_own_sources` above, and the reason is a property that
+    `bench/test_citations.py` already asserts: **a reply with no links is never touched.** That
+    function is the honesty seam — it speaks only when the model claimed a source Afon never opened,
+    and appending an attribution to it would make a sourced-but-unlinked reply change shape, which
+    the existing gate forbids on purpose. The two are different questions anyway: "that link is
+    mine, not a source" is an admission, and "this came from your calendar" is provenance. Folding
+    one into the other would lose both.
+
+    So the attribution lives here, and `spoken()` returns "" on an empty ledger — a reply Afon
+    thought up himself is not dressed up with a source, because an owner who has been told "from
+    the web" about a memory stops believing the phrase.
+    """
+    try:
+        from afon.brain import citations
+
+        return reply + citations.spoken()
+    except Exception as e:  # noqa: BLE001 — provenance bookkeeping never costs a turn
+        logger.debug(f"attribution skipped ({type(e).__name__})")
+        return reply
 
 
 def _own_sources(reply: str) -> str:
@@ -299,6 +325,13 @@ class TurnPlan(NamedTuple):
     multi_intent: bool
     work_intent: bool
     clause_plan: list[str]
+    judgment: DecisionVerdict | None
+    #: Set when the turn gave no clear decision indication and the reply is a question rather
+    #: than an answer (D-74). Non-empty means: say exactly this, call no tool, stop.
+    clarify: str = ""
+    #: The turn assessment, for tracing and for the reply-shaping note. Never None in practice
+    #: on a non-chatter turn when the service is configured.
+    signals: Any = None
 
 
 def _completion_force(clause_plan: list[str], seen_tools: set[str],
@@ -873,6 +906,22 @@ class AfonAgent:
         if lang_note:
             messages.append({"role": "system", "content": lang_note})
 
+        # 14.R5: explicit owner-supplied alternatives are the first Jev-owned decision seam. This
+        # happens after emergency/refusal handling (the callers own those) and before recall/tool
+        # routing, because neither a generative model nor a tool catalogue should influence which
+        # option is selected. An unavailable Jev verdict is still returned: the response path asks
+        # rather than silently handing the choice back to the LLM.
+        tr = turn_trace.current()
+        correlation_id = tr.turn_id if tr is not None else ""
+        with turn_trace.stage("judgment"):
+            judgment = await JUDGMENTS.consider(user_text, correlation_id=correlation_id)
+        if judgment is not None:
+            if tr is not None:
+                tr.set_intent("decision")
+                tr.note_prompt([], [])
+                tr.add_ms("prepare", (time.monotonic() - _prep_started) * 1000)
+            return TurnPlan(messages, [], False, None, False, False, False, [], judgment)
+
         recall_note = await self._recall_note(user_text)   # auto-RAG (ephemeral, not stored)
         if recall_note:
             messages.append({"role": "system", "content": recall_note})
@@ -883,7 +932,49 @@ class AfonAgent:
         if world_note:
             messages.append({"role": "system", "content": world_note})
 
-        turn_tools = self._tools_for_turn(user_text)
+        # One bounded Jev call for the whole turn (D-72, D-74): route, clarity, urgency and tone
+        # together, because three sequential calls would spend three budgets and could disagree
+        # with each other. Few or no candidates and no clarity question means no call at all, so
+        # the common turn still pays nothing. Chatter is skipped outright — there is nothing to
+        # route and nobody to read a register.
+        #
+        # The route question is skipped on a compound request: a multi-intent turn legitimately
+        # needs several groups at once, and the clause plan below is what steers those. Urgency
+        # and clarity still apply, because a compound request can just as easily be unclear.
+        signals = None
+        groups = groups_for_text(user_text)
+        if not _is_pure_chat(user_text):
+            with turn_trace.stage("turn_assessment"):
+                signals = await JUDGMENTS.assess_turn(
+                    user_text, groups=groups, arbitrate=not multi_intent,
+                    ask_clarity=True,
+                    correlation_id=tr.turn_id if tr is not None else "",
+                )
+
+        # Ask instead of guessing when the OWNER's request gave no clear decision indication —
+        # Jev said the object or the intent was not stated. Two things deliberately do NOT
+        # trigger a question: a failed assessment (that is our outage, not his vagueness), and a
+        # route the distribution would not stand behind. The second is the system's uncertainty
+        # rather than his, and the answer is to give the model the full surface below, not to
+        # ask him to choose between words he has never used.
+        needs_clarity = bool(
+            signals is not None
+            and signals.needs_clarification
+            and signals.outcome == "decided"
+        )
+        if needs_clarity:
+            question = clarity_question()
+            if tr is not None:
+                tr.set_intent("clarify")
+            self._history.append({"role": "assistant", "content": question})
+            return TurnPlan(messages, [], False, None, False, False, False, [],
+                            None, question, signals)
+
+        preferred = signals.group if signals is not None and signals.routed else None
+        turn_tools = self._tools_for_turn(user_text, preferred_group=preferred)
+        note = manner_note(signals)
+        if note:
+            messages.append({"role": "system", "content": note})
         # B1: narrow to the one right tool on a high-precision single intent so a forced call
         # cannot mis-select or fabricate. Deliberately skipped on multi-intent — those need the
         # full surface, and the per-clause plan below is how they get steered instead.
@@ -917,10 +1008,65 @@ class AfonAgent:
             tr.add_ms("prepare", (time.monotonic() - _prep_started) * 1000)
 
         return TurnPlan(messages, turn_tools, narrowed, forced_name, force_first,
-                        multi_intent, work_intent, clause_plan)
+                        multi_intent, work_intent, clause_plan, None)
 
-    def _tools_for_turn(self, user_text: str) -> list[dict[str, Any]]:
-        """Core surface + any lazy group this turn activates (or is still warm from last turn)."""
+    async def _verbalize_judgment(self, verdict: DecisionVerdict) -> str:
+        """Let the LLM phrase a Jev verdict without giving it a decision to make.
+
+        Only the selected option reaches this call; the original question and losing alternatives
+        do not. The exact required prefix is validated. A model that omits or changes it is replaced
+        with a deterministic sentence, so prompt disobedience cannot reverse the typed choice.
+        """
+        if not verdict.decided or not verdict.selected_text:
+            return (
+                "Jev's decision service is unavailable, so I haven't chosen between those options. "
+                "Ask me to retry, or explicitly tell me to proceed without a recommendation."
+            )
+        confidence = verdict.confidence
+        confidence_text = f"{confidence:.0%}" if confidence is not None else "not reported"
+        prefix = f"Jev selected: {verdict.selected_text}."
+        fallback = f"{prefix} Reported confidence: {confidence_text}."
+        prompt = [
+            {
+                "role": "system",
+                "content": (
+                    "You only verbalize a decision already made by TypeSafe Jev. Do not choose, "
+                    "compare alternatives, invent reasoning, or suggest a different result. Return "
+                    "one concise sentence beginning with the exact required prefix."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Required prefix: {prefix}\nReported confidence: {confidence_text}. "
+                    "Briefly state this result."
+                ),
+            },
+        ]
+        tr = turn_trace.current()
+        if tr is not None:
+            tr.note_prompt(prompt, [])
+        try:
+            msg = await self._llm.complete(prompt)
+            reply = _clean_reply(msg.content or "")
+        except Exception as exc:  # noqa: BLE001 - wording failure must not erase a valid verdict
+            logger.warning(f"Jev verdict verbalization failed: {type(exc).__name__}")
+            return fallback
+        if not reply.casefold().startswith(prefix.casefold()):
+            logger.warning("Jev verdict verbalization changed or omitted the selected option")
+            return fallback
+        return reply
+
+    def _tools_for_turn(self, user_text: str, *, preferred_group: str | None = None) -> list[dict[str, Any]]:
+        """Core surface + any lazy group this turn activates (or is still warm from last turn).
+
+        ``preferred_group`` is a Jev arbitration result (see ``JUDGMENTS.arbitrate``). It is
+        honoured only if the deterministic trigger match still offers that group this turn —
+        Jev picks among what the router surfaced, so it can never introduce a group the router
+        did not. The groups it did not pick are not deleted, disabled or remembered as wrong:
+        they were simply not armed by THIS utterance, and their own triggers still arm them
+        whenever the owner next asks for them.
+        """
         for g in self._group_ttl:                # decay previous activations by one turn
             self._group_ttl[g] -= 1
         # Pure chatter (greeting/thanks/joke/opinion) needs no tool — carry NONE so the ~10k-token tool
@@ -932,6 +1078,17 @@ class AfonAgent:
             self._tools = []
             return []
         fresh = groups_for_text_ranked(user_text)   # strongest match first
+        if preferred_group and preferred_group in fresh:
+            # The winner leads alone, so it is measured against the catalogue budget on its own.
+            # If its tools do not fit, the candidates stand: "Jev chose" must never mean "the
+            # owner got LESS than the deterministic path would have given him", and a turn that
+            # advertises nothing is a worse turn than one that advertises the loser's tools.
+            solo = list(self._core_tools)
+            solo_extra = group_tool_schemas(preferred_group)
+            if preferred_group == "coding":
+                solo_extra = [*solo_extra, IMPROVE_CODE_SCHEMA]
+            if turn_trace.catalogue_tokens(solo + solo_extra) <= CATALOGUE_TOKEN_BUDGET:
+                fresh = [preferred_group]
         for g in fresh:                          # (re)arm groups the utterance calls for
             self._group_ttl[g] = 2               # this turn + one follow-up
         self._group_ttl = {g: ttl for g, ttl in self._group_ttl.items() if ttl > 0}
@@ -1352,7 +1509,8 @@ class AfonAgent:
                 )
             else:
                 worker = TaskWorker(self._llm, self._registry, self._worker_tools(),
-                                    max_steps=settings.copilot_max_steps)
+                                    max_steps=settings.copilot_max_steps,
+                                    actor="afon:copilot")
                 result = await worker.run(objective, on_progress=on_progress)
             if todo_id is not None:  # link the outcome back onto the to-do before completion fires
                 try:
@@ -1436,7 +1594,11 @@ class AfonAgent:
         is guaranteed for all of them, including the ones that raise.
         """
         with turn_trace.turn(user_text, streamed=False), _turn_situation():
+            # 45.R2 — the honesty caveat first, then the attribution. Both append to the reply; with
+            # an empty ledger both are "", so a reply Afon thought up itself is passed through
+            # byte-identical, which is the property the existing citation gate asserts.
             reply = _own_sources(await self._respond_impl(user_text, on_progress))
+            reply = _speak_attribution(reply)
             turn_trace.note_answer(reply)      # 45.F3 — sources + confidence, before the row closes
             return reply
 
@@ -1455,6 +1617,22 @@ class AfonAgent:
         narrowed, forced_name, force_first = plan.narrowed, plan.forced_name, plan.force_first
         multi_intent, work_intent = plan.multi_intent, plan.work_intent
         clause_plan = plan.clause_plan
+
+        if plan.judgment is not None:
+            reply = await self._verbalize_judgment(plan.judgment)
+            self._history.append({"role": "assistant", "content": reply})
+            self._trim()
+            self._spawn_review()
+            return reply
+
+        if plan.clarify:
+            # The turn gave no clear decision indication, so the answer is a question (D-74).
+            # It was already appended to history by _prepare_turn; there is no tool to call and
+            # no second guess to make. Trimming and reviewing still run, because the owner WILL
+            # answer and that answer is the next turn's input.
+            self._trim()
+            self._spawn_review()
+            return plan.clarify
 
         # B5-lite: a narrowed zero-arg read needs no model round-trip — fire it and answer, guaranteed.
         if narrowed and forced_name in _ZERO_ARG_READS:
@@ -1700,6 +1878,15 @@ class AfonAgent:
             args, chain_q = self._resolve_chain(name, args)
             if chain_q:
                 logger.info(f"chain held: {name} -> {chain_q}")
+                # O2.5 — this branch blocks a call, so it must audit like every other exit from
+                # this seam. It did not, while pass 3 below states the invariant in a comment
+                # ("blocked calls were already audited in pass 1") - an unaudited hole in the one
+                # gate whose whole job is that there are none. `defer`, not `deny`: the action is
+                # not refused, it is waiting on the owner to say which "Anna" he meant.
+                audit.record(name, args, f"held: {chain_q}", ok=False,
+                             decision="defer", rule="chain_resolve:recipient_ambiguous",
+                             reasoning="the recipient could not be resolved to one target on this "
+                                       "channel, so the owner is asked before anything is sent")
                 outcomes[idx] = {"name": name, "result": _CHAIN_ASK.format(question=chain_q),
                                  "ok": False, "args": args, "blocked": True}
                 continue
@@ -1738,6 +1925,32 @@ class AfonAgent:
                     outcomes[idx] = {"name": name, "result": refusal, "ok": False,
                                      "args": args, "blocked": True}
                     continue
+            # 44.R4 — the grade the confirm tier cannot reach: this call is NOT classified
+            # destructive, and it is being made by a model that just said it was guessing. Jev
+            # p=0.64: *when the model is unsure it asks rather than proceeds, independent of
+            # whether the action is classified destructive.* Placed after the confirm gate so a
+            # gated action is never held twice, and skipped once the owner has affirmed — a "yes"
+            # answers the uncertainty as well as the permission.
+            if settings.escalate_on_low_confidence and not self._confirm_granted:
+                from afon.brain.proactive import low_confidence
+
+                unsure = low_confidence(name, args, said=assistant_content,
+                                        repaired=name in self._repaired)
+                if unsure:
+                    self._pending_confirm = {"name": name, "args": args}
+                    logger.info(f"low-confidence gate: held {name} — {unsure}")
+                    audit.record(name, args, f"held: low confidence — {unsure}", ok=False,
+                                 decision="defer", rule="low_confidence:model_was_unsure",
+                                 reasoning=f"{name} changes something and {unsure}, so it is put "
+                                           f"to the owner rather than guessed at")
+                    outcomes[idx] = {
+                        "name": name, "ok": False, "args": args, "blocked": True,
+                        "result": ("LOW_CONFIDENCE — do NOT say this is done. You were unsure: "
+                                   f"{unsure}. In one sentence, say what you were about to do and "
+                                   "ask him to confirm you understood. It runs only after he says yes."),
+                    }
+                    continue
+
             # 44.F4 — proceed-with-note: the grade between confirming and just doing it. The
             # action runs either way, so this is said on the way past rather than held for an
             # answer. Without it the only way to tell him something was to refuse, which is why
@@ -2066,6 +2279,22 @@ class AfonAgent:
             self._trim()
             self._spawn_review()
             self._stream_done = True
+
+        if plan.judgment is not None:
+            reply = await self._verbalize_judgment(plan.judgment)
+            spoken.append(reply)
+            yield reply
+            _finish(reply)
+            return
+
+        if plan.clarify:
+            # Same as the non-streaming twin: a question, streamed as a single sentence so TTS
+            # starts on it, then the turn is over. The history append already happened in
+            # _prepare_turn, so _finish is only trimming and reviewing.
+            spoken.append(plan.clarify)
+            yield plan.clarify
+            _finish(plan.clarify)
+            return
 
         # B5-lite: a narrowed zero-arg read fires deterministically — no model round-trip to dodge.
         if narrowed and forced_name in _ZERO_ARG_READS:
@@ -2404,7 +2633,15 @@ class AfonAgent:
             )
             summary = _clean_reply(msg.content or "")
             if summary:
-                STORE.journal_append(summary)
+                try:
+                    STORE.journal_append(summary)
+                except NeverStoreRefused as refused:
+                    # 37.R5 / D-24. The summary is a model's one-sentence account of a conversation
+                    # that may have contained exactly the content the never-store set names, so this
+                    # is the likeliest refusal in the system. It is caught HERE rather than left to
+                    # the outer `except` so that the self-improve step below still runs: a refused
+                    # journal line must not cost the owner the facts the reviewer finds.
+                    logger.warning(f"journal refused by D-24 ({refused.cls}); not written")
             if self._self_improve:
                 try:
                     from afon.brain.background_review import review_and_learn

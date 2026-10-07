@@ -91,7 +91,7 @@ async def run_code_self_improve(
     tools = [s for s in group_tool_schemas("coding") if s["function"]["name"] in _ALLOWED_TOOLS]
     steps = max_steps or settings.code_self_improve_max_steps
     worker = TaskWorker(llm, registry, tools, max_steps=steps, system=_SYSTEM,
-                        allow_confirmed=_PRE_AUTHORISED)
+                        allow_confirmed=_PRE_AUTHORISED, actor="afon:code_improve")
     logger.info(f"code self-improve: armed run on '{branch}' ({steps} steps) — {objective[:80]}")
     result = await worker.run(objective, on_progress=on_progress)
     return f"On branch '{branch}': {result}"

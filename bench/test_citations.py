@@ -134,9 +134,58 @@ async def main() -> None:
     C.record("not a url at all", via="x")
     check("junk in the ledger is ignored, not raised", True)
 
-    print("\n[7] 41.F3 — a task states its budget and says when it stopped early")
-    from afon.brain.worker import TaskWorker
+    print("\n[7] 45.R2 — the answer says where it came from, in short form")
+    from afon.brain.agent import _own_sources as _honesty, _speak_attribution
 
+    C.start()
+    check("SILENCE is the default: nothing read, nothing said",
+          _speak_attribution("It is 14 degrees, sir.") == "It is 14 degrees, sir.",
+          repr(_speak_attribution("It is 14 degrees, sir.")))
+    check("...and the clause itself is empty, so the seam adds nothing",
+          C.spoken() == "", repr(C.spoken()))
+
+    for url, want in (("https://calendar.google.com/calendar/u/1", "Your calendar, sir."),
+                      ("https://mail.google.com/mail/u/0", "Your mail, sir."),
+                      ("https://api.notion.so/v1/pages/x", "Notion, sir."),
+                      ("https://www.reuters.com/world/x", "The news, sir."),
+                      ("https://en.wikipedia.org/wiki/Thing", "The web, sir."),
+                      ("https://dovi.s3.amazonaws.com/notes/x", "The web, sir.")):
+        C.start()
+        C.record(url, via="tool")
+        got = _speak_attribution("Yes, sir.")
+        check(f"{url.split('/')[2]} -> {want!r}", got == f"Yes, sir. {want}", got)
+    check("the attribution is a SPOKEN clause, not a list of URLs",
+          "http" not in _speak_attribution("Yes, sir."), _speak_attribution("Yes, sir."))
+
+    C.start()
+    C.record("https://mail.google.com/mail/u/0", via="gmail")
+    C.record("https://calendar.google.com/calendar/u/1", via="calendar")
+    check("a turn that read two things names the most specific ONE, not both",
+          _speak_attribution("Yes, sir.") == "Yes, sir. Your calendar, sir.",
+          _speak_attribution("Yes, sir."))
+
+    C.start()
+    C.record("https://api.notion.so/v1/x", via="notion")
+    both = _honesty(_speak_attribution("Per https://madeup.invalid/x, yes sir."))
+    check("attribution and the honesty caveat COMPOSE rather than replacing each other",
+          "Notion, sir." in both and "didn't actually open" in both, both)
+    C.start()
+    check("...and with an empty ledger both are silent, so the reply is byte-identical",
+          _honesty(_speak_attribution("It's 14 degrees, sir.")) == "It's 14 degrees, sir.")
+
+    # The claim is WHERE the logic lives: the ledger owns provenance, the reply path owns speech.
+    # A first draft of this assertion searched for "def caveat()" and failed, because caveat takes
+    # a text argument — a string-shape test proving nothing about the thing it names.
+    cit_src = (Path(__file__).resolve().parents[1] / "src" / "afon" / "brain"
+               / "citations.py").read_text(encoding="utf-8")
+    check("the ledger owns the attribution, beside the honesty caveat it composes with",
+          "def spoken()" in cit_src and "def caveat(" in cit_src)
+    check("...and the reply path adds no attribution logic of its own, only a call",
+          "citations.spoken()" in (Path(__file__).resolve().parents[1] / "src" / "afon" / "brain"
+                                  / "agent.py").read_text(encoding="utf-8"))
+
+    print("\n[8] 41.F3 — a task states its budget and says when it stopped early")
+    from afon.brain.worker import TaskWorker
     said: list[str] = []
     llm = _LoopLLM(["use a tool", "use a tool", "Here is what I found."])
     w = TaskWorker(llm, {"t": _noop_tool}, tools=[], max_steps=2)

@@ -72,7 +72,7 @@ async def main() -> None:
     add("L1 digest (startup)", f"{digest_ms:.2f} ms", "<= 5 ms", grade(digest_ms, 2, 5))
 
     # --- 3. L4 cache hit speedup -------------------------------------------------------
-    cache = Cache(redis_url=None)
+    cache = Cache()
 
     async def slow() -> str:
         await asyncio.sleep(0.05)   # 50 ms "provider"

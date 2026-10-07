@@ -19,6 +19,7 @@ import httpx
 from loguru import logger
 
 from afon.config import settings
+from afon.brain.never_store import NeverStoreRefused
 
 
 class ErrorKind(str, Enum):
@@ -37,6 +38,7 @@ class ErrorKind(str, Enum):
     UNAVAILABLE = "unavailable"         # remote reachable and failing (5xx) — retry later
     NOT_FOUND = "not_found"             # the thing asked for is not there — retrying is pointless
     BAD_ARGS = "bad_args"               # WE called it wrong — a different call might work
+    REFUSED = "refused"                 # declined by policy, not by failure — 37.R5 / D-24
     UNKNOWN = "unknown"
 
 
@@ -62,6 +64,13 @@ class ToolResult(str):
 
 def classify_error(err: Exception) -> ErrorKind:
     """Map an exception to the taxonomy. Status codes first — they are the specific evidence."""
+    if isinstance(err, NeverStoreRefused):
+        # 37.R5 / D-24. A refusal is its own kind rather than `unknown`, because the caller's next
+        # move differs from every other failure: nothing is broken, retrying is pointless, and the
+        # audit line must say `refused` rather than `allow`. Mapping it to UNKNOWN would file a
+        # policy decision as an error and, worse, `tool_error`'s "I couldn't complete the ..."
+        # wording would tell the owner his assistant malfunctioned when it deliberately declined.
+        return ErrorKind.REFUSED
     if isinstance(err, httpx.HTTPStatusError):
         code = err.response.status_code
         if code in (401, 403):
@@ -215,6 +224,12 @@ HTTP_POLICIES: dict[str, HttpPolicy] = {
     "api.giphy.com": HttpPolicy(10.0, 1, "a GIF is a garnish — it should never hold up a reply"),
     "api.elevenlabs.io": HttpPolicy(60.0, 0, "synthesises and returns audio; a retry re-synthesises "
                                              "and costs characters twice"),
+    "api.typesafe.ai": HttpPolicy(
+        settings.jev_timeout_seconds,
+        0,
+        "typed contextual judgment: an outage asks the owner instead of retrying or silently "
+        "delegating the decision to a language model",
+    ),
 }
 
 #: Hosts whose policy depends on a configured URL rather than a fixed domain. Registered at

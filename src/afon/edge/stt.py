@@ -182,8 +182,9 @@ def _warn_language_gaps(provider: str) -> None:
     logger.warning(
         f"STT provider '{provider}' cannot transcribe: {', '.join(name_of(c) for c in gaps)}. "
         f"Speech in those will come back as a plausible-looking transcript in another language, "
-        f"not as an error. Set AFON_STT_PROVIDER=whisper (local, auto-detects all six, slower) "
-        f"or drop them from AFON_UNDERSTOOD_LANGUAGES."
+        f"not as an error. AFON_STT_PROVIDER=whisper is the DEFAULT and covers all six (D-78) — this "
+        f"warning means the deployment has opted back into {provider}, so either set it back or "
+        f"drop the missing languages from AFON_UNDERSTOOD_LANGUAGES."
     )
 
 

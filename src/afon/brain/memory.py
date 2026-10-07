@@ -3,7 +3,7 @@
 The static `memory/*.md` files are who the owner *is*; this is what Afon *learns* as they talk:
 one fact per note under `memory/learned/`, and a per-day journal under `memory/journal/` for
 continuity ("what did we do yesterday?"). Plain Markdown so it stays the source of truth, editable
-by hand, and later indexable by the Redis (L4) / vector (L5) accelerators without changing it.
+by hand, and later indexable by the in-process (L4) / vector (L5) accelerators without changing it.
 
 Recall is a lightweight keyword + recency scorer — good enough for "what do you know about the
 rabbit farm?" voice queries, and fast (no model, no network). Everything degrades gracefully: a
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -22,6 +23,7 @@ from pathlib import Path
 from loguru import logger
 
 from afon.config import settings
+from afon.brain.never_store import NeverStoreRefused, screen as _never_store_screen
 from afon.shared.paths import memory_dir
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
@@ -35,6 +37,62 @@ def _slug(text: str, max_words: int = 6) -> str:
 
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").strip().lower())
+
+
+def _dedupe_key(text: str) -> str:
+    """The key two facts must share to count as the SAME fact for 30.R1's dedup.
+
+    `_norm` plus punctuation stripped and the tail period dropped, because a learned fact and the
+    owner's hand-written vault note of the same thing differ in exactly that much ("the garage remote
+    is under the stairs." vs "the garage remote is under the stairs"). Nothing more aggressive: a
+    near-synonym is two different statements, and collapsing those would invent an agreement the
+    stores never had.
+    """
+    t = re.sub(r"[^\w\s]", "", _norm(text))
+    return t.strip()
+
+
+def _dedupe_across_layers(hits: list[dict], *, priority: dict[str, int]) -> list[dict]:
+    """30.R1 — one fact is one hit, however many layers hold it, and the layers say so.
+
+    Before this, `fused_recall` appended a hit per layer independently, so a fact Afon had learned
+    AND the owner had also written into the vault came back TWICE, as two equal-ranked rows from
+    "different" sources. Three consequences, and only the first is obvious:
+
+      1. it consumed the `limit`, so a genuinely cross-layer result was crowded out by repeats;
+      2. the model reads two rows as two corroborating sources — and since 45.R2 the number of
+         sources is spoken to the owner, so a duplicated fact inflates apparent agreement;
+      3. **if the two layers DISAGREE** — Afon learned a new value and the owner's hand-edited vault
+         note still carries the old one — the store returned both as equals. 30.R2's tombstone only
+         works WITHIN L1, because it is keyed on `subject`; across layers nothing reconciled them.
+         So "two versions, not a silent overwrite" was reachable through a door the supersession
+         rule does not cover.
+
+    The first two are fixed by dedup. The third is deliberately NOT: entries whose text differs are
+    left alone, because picking one would be exactly the silent overwrite the charter forbids, and
+    reconciling across layers needs a subject the layers may not agree on. Instead the surviving hit
+    carries `also_in`, so corroboration is *reported* rather than repeated — and a disagreement
+    stays visible as two rows, which is the honest answer to "I have two versions".
+    """
+    best: dict[str, dict] = {}
+    for i, h in enumerate(hits):
+        key = _dedupe_key(h.get("text", ""))
+        if not key:
+            best[f"__empty_{i}"] = dict(h)
+            continue
+        cur = best.get(key)
+        if cur is None:
+            best[key] = dict(h, also_in=[])
+            continue
+        keep_new = priority.get(h.get("layer", ""), 9) < priority.get(cur.get("layer", ""), 9)
+        winner, loser = (h, cur) if keep_new else (cur, h)
+        layers = {*winner.get("also_in", []), *loser.get("also_in", [])}
+        for side in (winner, loser):
+            if side.get("layer") and side["layer"] != winner.get("layer"):
+                layers.add(side["layer"])
+        winner["also_in"] = sorted(layers)
+        best[key] = winner
+    return list(best.values())
 
 
 # Function words carry no topical signal but match almost every stored fact ("the owner…"), which
@@ -90,11 +148,13 @@ def _iso(mtime: float) -> str:
 
 
 class LearnedNote:
-    __slots__ = ("path", "text", "tags", "created", "mtime", "source", "confidence")
+    __slots__ = ("path", "text", "tags", "created", "mtime", "source", "confidence",
+                 "subject", "superseded_by")
 
     def __init__(self, path: Path, text: str, tags: list[str], created: str,
                  mtime: float = 0.0, source: str = "legacy",
-                 confidence: float | None = None) -> None:
+                 confidence: float | None = None, subject: str = "",
+                 superseded_by: str = "") -> None:
         self.path = path
         self.text = text
         self.tags = tags
@@ -102,6 +162,11 @@ class LearnedNote:
         self.mtime = mtime   # cached at read time so hot-path callers needn't re-stat
         self.source = source if source in SOURCES else "legacy"
         self.confidence = SOURCES[self.source] if confidence is None else confidence
+        #: The slot this fact occupies, when the caller declared one. Two live facts sharing a
+        #: subject would be a contradiction; one live plus one superseded is history.
+        self.subject = subject
+        #: The note that replaced this one, or "". Set only on a tombstone, never cleared.
+        self.superseded_by = superseded_by
 
 
 class MemoryStore:
@@ -122,15 +187,37 @@ class MemoryStore:
 
     # ---- L1: learned facts ------------------------------------------------------------
     def remember(self, text: str, tags: list[str] | None = None, *,
-                 source: str = DEFAULT_SOURCE, confidence: float | None = None) -> Path | None:
-        """Store one learned fact with its provenance (30.F3).
+                 source: str = DEFAULT_SOURCE, confidence: float | None = None,
+                 subject: str | None = None) -> Path | None:
+        """Store one learned fact with its provenance (30.F3), superseding its predecessor.
 
         `source` must be one of `SOURCES`; an unknown one is stored as the default rather than
         inventing a category, because a vocabulary nothing enforces is a vocabulary that drifts.
+
+        **`subject` is the supersession key (D-25).** Two facts conflict when they are about the
+        same *slot* and say different things — "the garage remote is in the kitchen drawer"
+        against "the garage remote is under the stairs". Nothing in this module can know that:
+        deciding it from strings is how a store invents a contradiction that was never there.
+        So the caller declares the slot, exactly as Jev's callers declare the labels it chooses
+        between, and the code enforces the rule. Without a subject, behaviour is unchanged —
+        a differing fact is simply a new fact.
+
+        When a subject repeats with different text, the older note is **tombstoned**: its
+        front-matter records what superseded it, and an audit line records why. The note's
+        text is kept, because a fact the system can no longer explain is a fact it can no
+        longer defend, and deleting it would make the record lie.
         """
         text = (text or "").strip()
         if not text:
             return None
+        # 37.R5 / D-24: the never-store set is enforced HERE, where the write is attempted, rather
+        # than described in prose. A refusal RAISES rather than returning None, because None already
+        # means "empty text" and a caller that cannot tell a refusal from an empty string will treat
+        # a refused secret as stored. Every caller in this repository is a tool call or a background
+        # job that can say so out loud; see the two call sites hardened for it.
+        verdict = _never_store_screen(text)
+        if verdict.refused:
+            raise NeverStoreRefused(verdict, where="memory.remember")
         tags = [t.strip().lower() for t in (tags or []) if t.strip()]
         if source not in SOURCES:
             logger.warning(f"memory: unknown source {source!r} — storing as {DEFAULT_SOURCE}")
@@ -148,6 +235,28 @@ class MemoryStore:
                 else:
                     logger.info(f"memory: already knew {text[:50]!r}")
                 return note.path
+        superseded_by: LearnedNote | None = None
+        rejected: LearnedNote | None = None
+        slot = (subject or "").strip().lower()
+        if slot:
+            for note in self._iter_notes():
+                if note.subject != slot or _norm(note.text) == _norm(text):
+                    continue
+                # D-25: a more recent EXPLICIT correction beats an inferred record. The reverse
+                # is not permitted — a guess must not be able to overwrite something the owner
+                # said, however much later the guess arrives. So the weaker fact is refused
+                # rather than stored: two live facts on one subject is the contradiction this
+                # whole mechanism exists to prevent.
+                if source_rank(source) < source_rank(note.source):
+                    logger.info(
+                        f"memory: refused a {source!r} fact that would supersede an {note.source!r} "
+                        f"one on {slot!r} — provenance cannot be traded for recency")
+                    rejected = note
+                    break
+                superseded_by = note
+                break
+        if rejected is not None:
+            return rejected.path
         self.learned_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc)
         stem = f"{ts:%Y%m%d-%H%M%S}-{_slug(text)}"
@@ -163,14 +272,73 @@ class MemoryStore:
                 break
             path = self.learned_dir / f"{stem}-{n}.md"
         tagline = ", ".join(tags)
-        path.write_text(
-            f"---\ncreated: {ts.isoformat()}\ntags: {tagline}\n"
-            f"source: {source}\nconfidence: {conf:.2f}\n---\n{text}\n",
-            encoding="utf-8",
-        )
+        head = [f"created: {ts.isoformat()}"]
+        if tags:
+            head.append(f"tags: {tagline}")
+        if slot:
+            head.append(f"subject: {slot}")
+        head += [f"source: {source}", f"confidence: {conf:.2f}"]
+        path.write_text("---\n" + "\n".join(head) + f"\n---\n{text}\n", encoding="utf-8")
+        if superseded_by is not None:
+            self._tombstone(superseded_by, path, slot)
         logger.info(f"memory: learned {text[:60]!r} [{source} {conf:.2f}]"
-                    + (f" [{tagline}]" if tags else ""))
+                    + (f" [{tagline}]" if tagline else "")
+                    + (f" [supersedes {superseded_by.path.name}]" if superseded_by else ""))
         return path
+
+    #: Where the supersession trail is written. A `.jsonl` beside the notes, so the note glob
+    #: in `_iter_notes` never mistakes an audit line for a fact.
+    SUPERSESSION_LOG = "supersessions.jsonl"
+
+    def _tombstone(self, note: LearnedNote, by: Path, slot: str) -> bool:
+        """Mark a note superseded — never delete it — and record the reason."""
+        ts = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+        try:
+            raw = note.path.read_text(encoding="utf-8", errors="ignore")
+            m = _FRONTMATTER_RE.match(raw)
+            body = m.group(2).strip() if m else raw.strip()
+            keep = [ln for ln in (m.group(1).splitlines() if m else [])
+                    if not ln.startswith(("superseded_by:", "superseded_at:"))]
+            keep += [f"superseded_by: {by.name}", f"superseded_at: {ts}"]
+            note.path.write_text("---\n" + "\n".join(keep) + f"\n---\n{body}\n", encoding="utf-8")
+            self._note_cache.pop(str(note.path), None)
+        except OSError as e:
+            logger.warning(f"memory: could not tombstone {note.path.name}: {e}")
+            return False
+        row = {
+            "ts": ts,
+            "subject": slot,
+            "superseded": note.path.name,
+            "by": by.name,
+            "reason": "a later fact stated the same subject differently",
+            "old_text": note.text[:120],
+            "new_text": by.read_text(encoding="utf-8", errors="ignore").split("---", 2)[-1].strip()[:120],
+            "old_source": note.source,
+        }
+        try:
+            with (self.learned_dir / self.SUPERSESSION_LOG).open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        except OSError as e:
+            logger.warning(f"memory: supersession audit line not written: {e}")
+        logger.info(f"memory: superseded {note.path.name} ({slot})")
+        return True
+
+    def supersessions(self) -> list[dict]:
+        """The audit trail, oldest first. The answer to 'why does it still believe the old one?'."""
+        path = self.learned_dir / self.SUPERSESSION_LOG
+        if not path.exists():
+            return []
+        out = []
+        try:
+            for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if line.strip():
+                    try:
+                        out.append(json.loads(line))
+                    except ValueError:
+                        continue
+        except OSError:
+            return out
+        return out
 
     def _rewrite_provenance(self, note: LearnedNote, source: str, confidence: float) -> None:
         """Upgrade a stored fact's provenance in place, keeping its text and original timestamp."""
@@ -191,6 +359,7 @@ class MemoryStore:
     def _parse_note(self, p: Path, raw: str) -> LearnedNote:
         m = _FRONTMATTER_RE.match(raw)
         source, confidence = "legacy", None
+        subject = superseded_by = ""
         if m:
             meta, body = m.group(1), m.group(2).strip()
             tags: list[str] = []
@@ -202,6 +371,10 @@ class MemoryStore:
                     created = line[8:].strip()
                 elif line.startswith("source:"):
                     source = line[7:].strip().lower()
+                elif line.startswith("subject:"):
+                    subject = line[8:].strip().lower()
+                elif line.startswith("superseded_by:"):
+                    superseded_by = line[14:].strip()
                 elif line.startswith("confidence:"):
                     try:
                         confidence = max(0.0, min(1.0, float(line[11:].strip())))
@@ -209,9 +382,24 @@ class MemoryStore:
                         confidence = None
         else:
             body, tags, created = raw.strip(), [], ""
-        return LearnedNote(p, body, tags, created, source=source, confidence=confidence)
+        return LearnedNote(p, body, tags, created, source=source, confidence=confidence,
+                           subject=subject, superseded_by=superseded_by)
 
-    def _iter_notes(self):
+    def _iter_notes(self, include_superseded: bool = False):
+        """Live facts, oldest first.
+
+        Superseded notes are **skipped by default**: recall that still returned a fact the owner
+        had corrected is worse than no memory, because the answer looks confident. The note is
+        not deleted — it stays on disk with `superseded_by` in its front-matter, and
+        `supersessions()` returns the trail, so "why does it still believe the old one?" has an
+        answer. Pass `include_superseded=True` to walk history.
+        """
+        for note in self._iter_all_notes():
+            if note.superseded_by and not include_superseded:
+                continue
+            yield note
+
+    def _iter_all_notes(self):
         if not self.learned_dir.is_dir():
             return
         seen: set[str] = set()
@@ -310,15 +498,14 @@ class MemoryStore:
         """Cross-layer recall — returns ranked hits with layer tags so the LLM can cite them.
 
         Default layers: ("L1", "L2", "L3", "L5", "L5b"). Each hit is a dict::
-
             {"layer": "L1", "text": "...", "score": 4.0, "source": "memory/learned/..."}
 
         L1 = learned facts (with optional L5 semantic blend).
         L2 = journal entries (most recent days only — journal grows fast; cap scan).
         L3 = vault notes (Obsidian) via search_vault tool.
         L5 = re-ranks L1 hits by cosine similarity when available (no separate layer; folds into L1).
-        L5b = the entity graph (772 triples in production) — the store J3.3 called "no unified
-              recall" and the only one that was genuinely unreachable from here.
+        L5b = the entity relation graph, **removed 2026-10-04 (D-26)**. The name is still
+              accepted so a caller gets a quiet miss rather than a KeyError.
 
         Falls back gracefully: any unavailable layer is silently skipped (no error, no crash).
         """
@@ -406,34 +593,15 @@ class MemoryStore:
             except Exception as e:  # noqa: BLE001
                 logger.debug(f"fused_recall: L3 layer skipped ({e})")
 
-        # L5b graph — the store J3.3 is actually about. It is ENTITY-KEYED (neighbors/describe,
-        # no free-text search), so the join to a natural-language query is `_terms()` — the same
-        # tokeniser L2 uses. ~11ms for four terms, and deliberately NOT in the per-turn
-        # ("L1","L2") path: that path is ~10ms and is the reason turns stay fast.
-        if "L5b" in layers:
-            try:
-                from afon.brain.graph import GRAPH  # noqa: PLC0415
+        # L5b — the structured relation layer — is GONE (D-26, milestone M04). It pulled stale,
+        # irrelevant semantic noise, cost ~11ms per fused query, and was never on the per-turn
+        # ("L1","L2") path, so removing it cannot slow a turn down. The layer name stays
+        # recognised and simply yields nothing, because a caller passing L5b should get a quiet
+        # miss rather than an error for asking for a layer that no longer exists.
 
-                def _graph_hits() -> list[str]:
-                    lines, seen = [], set()
-                    for term in _terms(query)[:6]:
-                        for line in GRAPH.describe(term)[:4]:
-                            if line not in seen:
-                                seen.add(line)
-                                lines.append(line)
-                    return lines
-
-                # Threaded for the same reason as L1: sqlite reads are blocking, and this one
-                # fans out over several entities.
-                for line in await asyncio.to_thread(_graph_hits):
-                    hits.append({"layer": "L5b", "text": line, "score": 3.0, "source": "graph"})
-            except Exception as e:  # noqa: BLE001
-                logger.debug(f"fused_recall: L5b layer skipped ({e})")
-
-        # Rank: score desc, then L1 before L2 before L5b before L3 (slight tiebreak by layer).
-        # L5b outranks L3 on ties because a graph hit is an exact entity match, while a vault hit
-        # is a substring match in a long note.
-        layer_priority = {"L1": 0, "L2": 1, "L5b": 2, "L3": 3}
+        # Rank: score desc, then L1 before L2 before L3 (slight tiebreak by layer).
+        layer_priority = {"L1": 0, "L2": 1, "L3": 3}
+        hits = _dedupe_across_layers(hits, priority=layer_priority)
         hits.sort(key=lambda h: (-h["score"], layer_priority.get(h["layer"], 9)))
         return hits[:limit]
 
@@ -564,6 +732,12 @@ class MemoryStore:
         summary = (summary or "").strip()
         if not summary:
             return None
+        # 37.R5 / D-24, same rule and same reason as `remember`. The journal is the store most
+        # likely to receive a crisis disclosure, because its input is a model-written summary of a
+        # conversation that may have contained one — so this is the seam the rule exists for.
+        verdict = _never_store_screen(summary)
+        if verdict.refused:
+            raise NeverStoreRefused(verdict, where="memory.journal_append")
         when = when or datetime.now(timezone.utc)
         self.journal_dir.mkdir(parents=True, exist_ok=True)
         path = self.journal_dir / f"{when:%Y-%m-%d}.md"

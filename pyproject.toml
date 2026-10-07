@@ -53,8 +53,11 @@ brain = [
     "sqlalchemy>=2.0",         # SQLite jobstore so reminders survive a restart (Phase 4)
     "yt-dlp>=2024.8",          # resolve a song -> YouTube video for free playback (no Premium)
     "ytmusicapi>=1.7",         # YouTube Music search (music-tuned, free) — the Spotify replacement
-    "redis>=5.0",              # L4 hot-cache backend (Phase 9b); graceful no-op if unreachable
 ]
+# The `postgres` extra was removed on 2026-10-04 (D-02, M02). It held `psycopg[binary]`, which
+# only the staged S30 migration adapters ever imported, and it was never installed by the edge
+# or brain extras — so nothing broke by dropping it, and one fewer wheel is downloaded on every
+# sync. `uv lock` was re-run to match.
 # Vision (LAPTOP-SIDE ONLY — the VPS is cameraless and pc_agent routes every camera op here).
 #
 # `opencv-python` was previously an UNDECLARED runtime dependency: camera.py imports cv2 and

@@ -1,8 +1,8 @@
-"""Phase 9b — L4 hot-cache (in-process TTL + graceful Redis), offline + hermetic.
+"""Phase 9b — L4 hot-cache (in-process TTL), offline + hermetic.
 
 Verifies: a value is cached and returned without re-running the factory; TTL expiry; LRU eviction;
 blank results aren't cached; the cache fails open (a factory error isn't masked); and the backend
-reports 'memory' when no Redis is configured. No network, no Redis needed.
+names where the cache lives. No network, no daemon (O3.2 dropped the Redis tier).
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def main() -> None:
     from afon.brain.cache import Cache, _InProcessTTL
 
     print("[1] cached() returns the factory value, then serves it without re-running")
-    cache = Cache(redis_url=None)
+    cache = Cache()
     calls = {"n": 0}
 
     async def factory() -> str:
@@ -48,7 +48,7 @@ def main() -> None:
     check("second call is a cache hit (same value)", b == a)
     check("factory ran exactly once", calls["n"] == 1, f"ran {calls['n']}x")
 
-    print("\n[2] backend is 'memory' with no Redis configured")
+    print("\n[2] the backend is named, so self-health can report it")
     check("backend reports memory", cache.backend == "memory", cache.backend)
 
     print("\n[3] TTL expiry forces a refresh")

@@ -71,7 +71,7 @@ echo "==> syncing src/afon + skills + clients + personality -> $VPS:$REMOTE (exc
 # + the persona files. personality/ was missing here, so every persona edit stayed on the laptop and
 # the VPS brain answered with a months-stale prompt — invisible while the edge ran its own local
 # brain, and wrong the moment it routes to the VPS. .env, voiceprint, sessions live only on the target.
-tar --exclude='__pycache__' -czf - src/afon skills clients personality | ssh "$VPS" "tar -xzf - -C '$REMOTE'"
+tar --exclude='__pycache__' --exclude='node_modules' -czf - src/afon skills clients personality | ssh "$VPS" "tar -xzf - -C '$REMOTE'"
 
 echo "==> verifying the VPS matches local, by content (J4.1)"
 # `verify_vps_sync.sh` existed for weeks and was called from NOWHERE. A verifier nobody runs is

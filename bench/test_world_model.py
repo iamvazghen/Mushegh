@@ -128,54 +128,31 @@ def main() -> None:
 # not from whatever happens to be stored: a gap you can only notice by already knowing what to
 # look for is a gap nobody notices. Same reasoning as the loop registry in 31.F4.
 def states_its_gaps() -> None:
-    import tempfile
-    from pathlib import Path as _P
+    """24.F2, after M04: the gap-naming is gone with the relation layer (D-26).
 
-    from afon.brain.graph import GraphMemory
+    It used to read `describe` and `gaps` off the graph and speak a confident list of what
+    was missing about a person. The store it read was the one the owner had stopped
+    trusting, so a well-spoken list of missing fields was worse than silence. What is
+    asserted now is that the answer no longer *claims* either half — it does not report
+    facts it no longer holds, and it does not invent gaps from a store that is gone.
+    """
     from afon.brain.world_model import what_i_dont_know
-    from afon.shared.entities import FACETS
 
-    with tempfile.TemporaryDirectory() as td:
-        g = GraphMemory(_P(td) / "graph.sqlite")
-        g.add("Anna Petrova", "email", "anna@example.com")
-        g.add("Anna Petrova", "role", "architect")
+    print("\n[24.F2] it no longer claims knowledge or gaps from a store that is gone")
+    said = what_i_dont_know("Anna Petrova")
+    check("it does not report facts it no longer holds",
+          "anna@example.com" not in said and "architect" not in said, said)
+    check("...and it does not enumerate missing fields as if it had checked",
+          "don't have" not in said and "email" not in said, said)
+    check("...it says plainly that it does not track the entity",
+          "track" in said.lower(), said)
+    check("...and it is one honest sentence, not a list", said.count(";") == 0, said)
 
-        print("\n[24.F2] the answer names both halves")
-        said = what_i_dont_know("Anna Petrova", graph=g)
-        check("what IS known is reported", "anna@example.com" in said, said)
-        check("what is NOT known is reported too", "don't have" in said, said)
-        for facet in ("phone", "birthday"):
-            check(f"the missing '{facet}' is named", facet in said, said)
-        check("a facet that IS known is not listed as missing",
-              "role" not in said.split("don't have")[1], said)
-
-        print("\n[24.F2] the gaps come from a declared list, not from what happens to be stored")
-        gaps = g.gaps("Anna Petrova")
-        check(f"every gap is a declared facet ({gaps})",
-              set(gaps) <= set(FACETS["person"]), str(gaps))
-        check("the two recorded facets are not gaps",
-              "email" not in gaps and "role" not in gaps, str(gaps))
-        check("a project is asked different questions than a person",
-              set(g.gaps("Rently", kind="project")) <= set(FACETS["project"])
-              and "deadline" in g.gaps("Rently", kind="project"),
-              str(g.gaps("Rently", kind="project")))
-
-        print("\n[24.F2] an entity he holds nothing about says so plainly")
-        blank = what_i_dont_know("Someone He Never Met", graph=g)
-        check("it does not pretend to know anything", "nothing recorded" in blank, blank)
-        check("...and still says what it would want to know", "email" in blank, blank)
-
-        print("\n[24.F2] the gaps close as facts arrive")
-        before = len(g.gaps("Anna Petrova"))
-        g.add("Anna Petrova", "phone", "+37411223344")
-        after = g.gaps("Anna Petrova")
-        check(f"recording a fact removes its gap ({before} -> {len(after)})",
-              "phone" not in after and len(after) == before - 1, str(after))
-        # 24.F1 and 24.F2 meet here: the gap must close whichever spelling the fact arrived under.
-        g.add("Вазген", "email", "vaz@example.com")
-        check("a fact stored under one spelling closes the gap for the other",
-              "email" not in g.gaps("Vazgen"), str(g.gaps("Vazgen")))
-
+    print("\n[24.F2] an entity it never knew is answered the same way")
+    blank = what_i_dont_know("Someone He Never Met")
+    check("it does not differentiate a known entity from an unknown one, "
+          "because it no longer claims to know either", "track" in blank.lower(), blank)
 
 if __name__ == "__main__":
     main()
+

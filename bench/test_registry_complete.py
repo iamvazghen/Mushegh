@@ -53,7 +53,10 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 def main() -> int:
     runner_src = RUNNER.read_text(encoding="utf-8")
     # Every "<name>.py" string literal in the runner counts as registered.
-    registered = set(re.findall(r'"(test_[a-z0-9_]+\.py)"', runner_src))
+    registered_list = re.findall(r'"(test_[a-z0-9_]+\.py)"', runner_src)
+    registered = set(registered_list)
+    duplicates = sorted(name for name in registered if registered_list.count(name) > 1)
+    check("the runner has no duplicate test entries", not duplicates, f"duplicates: {duplicates}")
     on_disk = {p.name for p in BENCH.glob("test_*.py")}
 
     check("the runner registers some tests", bool(registered), f"{len(registered)} entries")

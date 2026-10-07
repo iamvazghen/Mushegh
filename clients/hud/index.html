@@ -56,12 +56,17 @@
   .hrow .name { font-family:var(--mono); font-size:12px; color:var(--dim); }
   .hrow .detail { color:var(--faint); font-size:.78rem; margin-left:auto; }
   .flaky { color:var(--warn); font-size:.82rem; padding:5px 0; border-top:1px solid var(--line); font-family:var(--mono); }
+  .wide { grid-column:1 / -1; }
+  .compact { font-family:var(--mono); font-size:11px; color:var(--dim); overflow-wrap:anywhere; }
+  .budget { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:8px 0; }
+  .budget .m { border:1px solid var(--line); border-radius:7px; padding:8px; }
+  .attention { color:var(--warn); }
   .err { color:var(--crit); font-family:var(--mono); font-size:12px; margin-top:16px; }
 </style>
 </head>
 <body>
   <header>
-    <h1>W<span class="r">A</span>TARI · HUD</h1>
+    <h1><span id="assistant">Afon</span><span class="r"> · HUD</span></h1>
     <div class="presence" id="presence">…</div>
     <div style="text-align:right">
       <div class="live"><span class="pulse"></span> Live</div>
@@ -88,6 +93,22 @@
       <div id="health"></div>
       <div id="reliability"></div>
     </div>
+    <div class="card">
+      <h2>Background loops <span class="count" id="c-loops"></span></h2>
+      <div id="loops"></div>
+    </div>
+    <div class="card">
+      <h2>Turn trace</h2>
+      <div class="metrics" id="trace"></div>
+    </div>
+    <div class="card">
+      <h2>LLM providers <span class="count" id="c-providers"></span></h2>
+      <div id="providers"></div>
+    </div>
+    <div class="card">
+      <h2>Unattended review</h2>
+      <div id="unattended"></div>
+    </div>
   </div>
 
   <div class="systems" id="systems"></div>
@@ -102,6 +123,7 @@
 
   function render(d) {
     $("err").textContent = "";
+    $("assistant").textContent = d.assistant || "Afon";
     $("presence").textContent = d.presence || "";
     $("stamp").textContent = "updated " + (d.generated || "").replace("T", " ").replace("+00:00", " UTC");
     document.title = "Afon · HUD" + (d.awaiting_approval && d.awaiting_approval.length ? " (" + d.awaiting_approval.length + ")" : "");
@@ -151,11 +173,64 @@
     $("reliability").innerHTML = flaky.map(f =>
       '<div class="flaky">⚠ ' + esc(f.tool) + ' — ' + Math.round(f.rate * 100) + '% ok (' + f.calls + ' calls)</div>').join("");
 
+    const loops = d.loops || [];
+    $("c-loops").textContent = loops.length || "";
+    if (!loops.length) empty($("loops"), "No loop declarations reported.");
+    else $("loops").innerHTML = loops.map(loop => {
+      const state = loop.never_ran ? "never_ran" : loop.stale ? "stale" : loop.last_error ? "error" : "ok";
+      const detail = loop.never_ran ? "never ran in this process" :
+        (loop.last_age_s == null ? loop.schedule : "last tick " + esc(loop.last_age_s) + "s ago");
+      return '<div class="hrow"><span class="dot ' + (state === "ok" ? "ok" : "bad") + '"></span>' +
+        '<span class="name">' + esc(loop.name) + '</span><span class="detail">' + esc(state) + ' · ' + detail + '</span></div>';
+    }).join("");
+
+    const trace = d.turns_trace || {};
+    const noTrace = metric("Traced turns", 0, "warn");
+    $("trace").innerHTML = trace.turns ?
+      metric("Traced turns", trace.turns) + metric("Complete", trace.complete || 0) +
+      metric("Incomplete", trace.incomplete || 0, trace.incomplete ? "warn" : "") +
+      metric("Failed", trace.failed || 0, trace.failed ? "crit" : "") +
+      metric("P50 prefill", (trace.p50_prefill_tokens || 0) + " tok") +
+      metric("P50 total", (trace.p50_total_ms || 0) + " ms") : noTrace;
+
+    const providers = d.llm_providers || [];
+    $("c-providers").textContent = providers.length || "";
+    if (!providers.length) empty($("providers"), "No providers reported.");
+    else $("providers").innerHTML = providers.map(provider =>
+      '<div class="hrow"><span class="dot ' + (provider.cooling ? "bad" : "ok") + '"></span>' +
+      '<span class="name">' + esc(provider.provider) + '</span><span class="detail">' +
+      (provider.cooling ? "cooling " + esc(provider.cooling_for_s) + "s" : "ready") +
+      (provider.recent_failures ? " · " + esc(provider.recent_failures) + " recent failures" : "") + '</span></div>').join("");
+
+    const unattended = d.unattended || {};
+    const budget = unattended.budget || {};
+    const budgetMetric = (label, value) => {
+      const m = /^([0-9.]+)\/([0-9.]+)$/.exec(String(value || ""));
+      return '<div class="m"><div class="k">' + esc(label) + '</div><div class="v">' +
+        esc(m ? m[1] + " / " + m[2] : "—") + '</div></div>';
+    };
+    const unpriced = Number(budget.unpriced_calls || 0);
+    $("unattended").innerHTML =
+      '<div class="metrics">' + metric("Runs", unattended.runs || 0) + metric("Actions", unattended.actions || 0) +
+      metric("Needs attention", unattended.needs_attention || 0, unattended.needs_attention ? "warn" : "") +
+      metric("Uncorrelated", unattended.uncorrelated_runs || 0, unattended.uncorrelated_runs ? "warn" : "") + '</div>' +
+      '<div class="budget">' + budgetMetric("Calls", budget.calls) + budgetMetric("USD", budget.usd) + budgetMetric("Seconds", budget.seconds) + '</div>' +
+      (unpriced ? '<div class="attention compact">' + esc(unpriced) + ' unpriced_calls — spend is a floor</div>' : '') +
+      '<div class="compact">outcomes: ' + esc(JSON.stringify(unattended.outcomes || {})) +
+      ' · recognised: refused / awaiting approval</div>';
+
     const s = d.systems || {};
+    const judgment = s.judgment || {};
+    const controls = d.hud_control || {};
     $("systems").innerHTML =
       'brain <b class="ok">' + esc(s.brain || "?") + '</b>' +
       ' · llm <b>' + esc(s.llm || "?") + '</b>' +
-      ' · <b>' + esc(s.fallbacks || 0) + '</b> fallbacks';
+      ' · <b>' + esc(s.fallbacks || 0) + '</b> fallbacks' +
+      ' · jev <b class="' + (judgment.available ? 'ok' : '') + '">' +
+        esc(judgment.available ? (judgment.model || 'ready') : (judgment.configured ? 'unavailable' : 'not configured')) + '</b>' +
+      ' · judgments <b>' + esc(judgment.calls || 0) + '</b>' +
+      ' · owner <b>' + esc(d.owner || "?") + '</b>' +
+      ' · hud sequence <b>' + esc(controls.sequence || 0) + '</b>';
   }
 
   function metric(k, v, cls) {

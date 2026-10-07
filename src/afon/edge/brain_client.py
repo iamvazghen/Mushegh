@@ -59,6 +59,10 @@ class BrainClient:
         self.headphones_connected = headphones_connected
         self._on_event = on_event
         self._on_state = on_state
+        # 23.R4 — run once per successful connect, AFTER Hello and the error-spool drain. The
+        # edge uses it to deliver turns it held during the outage; kept as a plain callback so
+        # this module stays ignorant of what is being drained.
+        self.on_connected = None
         self._url = url or settings.brain_ws_url
         self._token = token if token is not None else settings.api_auth_token
         self._backoff_initial = backoff_initial
@@ -136,6 +140,11 @@ class BrainClient:
                         )
                     )
                     await self._drain_spool()          # AFTER Hello: the brain wants the session first
+                    if self.on_connected is not None:
+                        try:
+                            await self.on_connected()
+                        except Exception as e:  # noqa: BLE001 — never break the link
+                            logger.warning(f"on_connected hook failed ({type(e).__name__})")
                     await self._reader(ws)             # returns when the socket closes
             except asyncio.CancelledError:
                 raise
@@ -154,6 +163,10 @@ class BrainClient:
 
     async def _reader(self, ws) -> None:
         async for raw in ws:
+            # 23.R2 — a digest is consumed here, not handed to on_event: it is state for the outage,
+            # not a turn. Checked before StreamEvent parsing because it is not one.
+            if self._cache_digest(raw):
+                continue
             ev = self._parse(raw)
             if ev is None or self._on_event is None:
                 continue
@@ -163,6 +176,24 @@ class BrainClient:
                     await res
             except Exception:  # noqa: BLE001 — a bad handler must not drop the link
                 logger.exception("brain-event handler failed")
+
+    @staticmethod
+    def _cache_digest(raw) -> bool:
+        """Persist a brain digest if that is what this frame is. True = consumed. Fail-quiet."""
+        try:
+            from afon.shared.protocol import Digest
+
+            d = Digest.model_validate_json(raw)
+        except Exception:  # noqa: BLE001 — not a digest, or malformed; let the normal path try
+            return False
+        try:
+            from afon.edge import degraded_answers
+
+            degraded_answers.save(d.reminders, now=d.generated or None)
+            logger.debug(f"brain digest cached: {len(d.reminders)} reminder(s)")
+        except Exception as e:  # noqa: BLE001
+            logger.debug(f"digest cache failed ({type(e).__name__})")
+        return True
 
     @staticmethod
     def _parse(raw) -> StreamEvent | None:

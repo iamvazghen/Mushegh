@@ -58,6 +58,8 @@ def hud_snapshot(
     tasks: Any | None = None,
     approvals: Any | None = None,
     presence: Any | None = None,
+    hud_control: Any | None = None,
+    judgments: Any | None = None,
     now: datetime | None = None,
 ) -> dict:
     """Gather the live HUD state. Sources default to the process singletons; injectable for tests.
@@ -70,6 +72,10 @@ def hud_snapshot(
         from afon.brain.approvals import APPROVALS as approvals
     if presence is None:
         from afon.brain.presence import PRESENCE as presence
+    if hud_control is None:
+        from afon.brain.hud_control import HUD_CONTROL as hud_control
+    if judgments is None:
+        from afon.brain.judgment import JUDGMENTS as judgments
 
     now = now or datetime.now(timezone.utc)
 
@@ -93,6 +99,10 @@ def hud_snapshot(
             "llm": settings.llm_primary_model,
             "fallbacks": len(fallbacks),
             "brain": "online",
+            "judgment": _safe(judgments.snapshot, {
+                "provider": "typesafe", "enabled": False, "configured": False,
+                "available": False, "model": "", "calls": 0, "errors": 0, "latest": {},
+            }),
         },
         # Live observability — closes the "no always-on latency/health surface" gap (Efficiency + Production).
         "performance": _safe(_performance, {}),
@@ -108,6 +118,40 @@ def hud_snapshot(
         # 02.F3: learned provider health. Every provider the chain can address gets a row, so a
         # healthy one says so rather than being an absence.
         "llm_providers": _safe(_llm_providers, []),
+        # 45.F4: what ran WITHOUT the owner, and what of it still wants him. Compact here on
+        # purpose — the full grouped detail is /review.json, because a status page the owner
+        # stops reading because it is too long is a status page that does not exist.
+        "unattended": _safe(_unattended, {}),
+        # Presentation-only commands emitted by Afon's voice-addressable HUD tool. The browser
+        # consumes sequence numbers idempotently; no command here can authorize or execute work.
+        "hud_control": _safe(hud_control.snapshot, {"stream_id": "", "sequence": 0, "commands": []}),
+    }
+
+
+def _unattended() -> dict:
+    """45.F4 — the headline of the review surface: did anything run unattended, and is anything
+    waiting on the owner? The governor's remaining budget rides along, because "what did it do"
+    and "how much is it allowed to do" are one question."""
+    from afon.brain.review import review_snapshot
+
+    snap = review_snapshot(days=7, limit=20)
+    governor = snap.get("governor") or {}
+    return {
+        "runs": snap.get("run_count", 0),
+        "actions": snap.get("action_count", 0),
+        "outcomes": snap.get("outcomes", {}),
+        "actors": snap.get("actors", {}),
+        "needs_attention": len(snap.get("needs_attention") or []),
+        "uncorrelated_runs": snap.get("uncorrelated_runs", 0),
+        "budget": {
+            "calls": f"{governor.get('calls', 0)}/{governor.get('max_calls', 0)}",
+            "usd": f"{governor.get('usd', 0)}/{governor.get('max_usd', 0)}",
+            "seconds": f"{governor.get('seconds', 0)}/{governor.get('max_seconds', 0)}",
+            "refusals": governor.get("refusals", 0),
+            "unpriced_calls": governor.get("unpriced_calls", 0),
+            "resets_at": governor.get("resets_at", ""),
+        },
+        "detail": "/review.json",
     }
 
 

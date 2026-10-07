@@ -19,6 +19,13 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+# The console here is cp1252, and this file prints live model output and exception text that
+# routinely carries an em dash or a Cyrillic transcript. Without this, `rec()` raises
+# UnicodeEncodeError *while reporting a failure*, which hides the failure behind a crash in the
+# reporter — the worst possible place for an encoding bug, and it is why the "brain response"
+# check below could not say what went wrong.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 
 def _synth_16k(text: str) -> bytes:
     """Piper -> 16 kHz mono int16 PCM bytes (stand-in for mic audio)."""

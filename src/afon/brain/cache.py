@@ -1,16 +1,21 @@
 """Afon's L4 hot-cache — front the slow paths so repeated questions are near-instant.
 
-Two tiers, both optional and graceful:
+One tier: a small bounded in-process TTL cache. Costs nothing, needs no service, and makes a
+repeated lookup inside one session essentially free.
 
-* **In-process TTL cache** (always on): a small bounded dict with per-entry expiry. Costs
-  nothing, needs no service, and makes a repeated lookup inside one session essentially free.
-* **Redis** (when ``AFON_REDIS_URL`` is set and ``redis`` is installed): the same cache, but
-  shared across processes and surviving a brain restart — so "what's the BTC price?" asked again
-  tomorrow can still hit a warm value (within its TTL).
+**There used to be a second tier (Redis/Valkey) and it was dropped on 2026-09-20** — O3.2, Jev
+p = 0.98, conf 0.96, the most one-sided technology verdict in the evaluation: *three of four uses
+are better served without it, Postgres covers the fourth, and a second daemon on a host that has
+OOMed is not earned by one use case.* Two things made it clear-cut rather than a judgement call:
+``redis_url`` defaulted to ``None``, so the tier had never actually run in this deployment; and the
+VPS OOMed on a single extra worker in 2026-08. A cross-process cache that is never enabled is not
+resilience — it is an unexecuted code path sitting in the read path of every cached tool.
 
-Everything degrades: no Redis URL → in-process only; Redis unreachable → fall back to in-process
-and log once; cache miss/any error → the caller's real function runs as if no cache existed. The
-cache is therefore *never* a source of failure, only of speed.
+If a shared, restart-surviving cache is ever genuinely wanted, it goes in Postgres — already the
+only datastore the brain speaks to — not in a new daemon.
+
+Everything still degrades: a miss, or any error at all, runs the caller's real function as if no
+cache existed. The cache is therefore *never* a source of failure, only of speed.
 
 Usage (see ``tools/utility.py`` and ``tools/web.py``):
 
@@ -23,10 +28,6 @@ from __future__ import annotations
 import time
 from collections import OrderedDict
 from typing import Awaitable, Callable
-
-from loguru import logger
-
-from afon.config import settings
 
 
 class _InProcessTTL:
@@ -57,77 +58,28 @@ class _InProcessTTL:
         self._data.clear()
 
 
-_UNSET = object()  # distinguishes "argument omitted" from an explicit None/"" (= force no Redis)
-
-
 class Cache:
-    """L4 hot-cache: in-process always, Redis too when configured. Async, fail-open."""
+    """L4 hot-cache: in-process, async, fail-open."""
 
-    def __init__(self, redis_url: str | None = _UNSET) -> None:  # type: ignore[assignment]
-        # Omitted -> use the configured URL; explicit None/"" -> force in-process only (tests).
-        self._url = settings.redis_url if redis_url is _UNSET else redis_url
+    def __init__(self) -> None:
         self._local = _InProcessTTL()
-        self._redis = None            # lazily connected redis.asyncio client
-        self._redis_tried = False     # connect attempted (success or give-up)
-        self._redis_down = False      # connect/op failed once -> stop trying this run
 
     @property
     def backend(self) -> str:
-        """'redis' if a Redis client is live, else 'memory'. For self-health/diagnostics."""
-        return "redis" if self._redis is not None else "memory"
-
-    async def _ensure_redis(self):
-        if not self._url or self._redis_down:
-            return None
-        if self._redis is not None:
-            return self._redis
-        if self._redis_tried:
-            return None
-        self._redis_tried = True
-        try:
-            import redis.asyncio as redis  # type: ignore
-
-            client = redis.from_url(self._url, decode_responses=True)
-            await client.ping()
-            self._redis = client
-            logger.info(f"L4 cache: connected to Redis at {self._url}")
-            return client
-        except Exception as e:  # noqa: BLE001
-            self._redis_down = True
-            logger.warning(f"L4 cache: Redis unavailable ({type(e).__name__}); using in-process only")
-            return None
+        """Always ``"memory"``. Kept as a property rather than deleted because self-health reports it
+        (``health.py``), and naming the backend stays useful even when there is only one: "memory" is
+        the answer to "where is the cache", not a placeholder for a missing one."""
+        return "memory"
 
     @staticmethod
     def _k(namespace: str, key: str) -> str:
         return f"afon:{namespace}:{key}"
 
     async def get(self, namespace: str, key: str) -> str | None:
-        full = self._k(namespace, key)
-        # In-process first (cheapest); it also caches Redis hits for the session.
-        local = self._local.get(full)
-        if local is not None:
-            return local
-        client = await self._ensure_redis()
-        if client is not None:
-            try:
-                val = await client.get(full)
-                if val is not None:
-                    return val
-            except Exception as e:  # noqa: BLE001
-                self._redis_down = True
-                logger.warning(f"L4 cache get failed ({type(e).__name__}); in-process only from now")
-        return None
+        return self._local.get(self._k(namespace, key))
 
     async def set(self, namespace: str, key: str, value: str, ttl: int) -> None:
-        full = self._k(namespace, key)
-        self._local.set(full, value, ttl)
-        client = await self._ensure_redis()
-        if client is not None:
-            try:
-                await client.set(full, value, ex=ttl)
-            except Exception as e:  # noqa: BLE001
-                self._redis_down = True
-                logger.warning(f"L4 cache set failed ({type(e).__name__}); in-process only from now")
+        self._local.set(self._k(namespace, key), value, ttl)
 
     async def cached(
         self,
@@ -145,8 +97,8 @@ class Cache:
             hit = await self.get(namespace, key)
             if hit is not None:
                 return hit
-        except Exception:  # noqa: BLE001
-            pass  # fail open: behave as a cache miss
+        except Exception:  # noqa: BLE001 — fail open: behave as a cache miss
+            pass
         value = await factory()
         if value:
             try:
@@ -156,7 +108,7 @@ class Cache:
         return value
 
     def clear(self) -> None:
-        """Drop the in-process tier (used by tests). Redis is left intact."""
+        """Drop everything (used by tests)."""
         self._local.clear()
 
 

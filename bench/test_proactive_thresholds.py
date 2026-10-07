@@ -200,6 +200,11 @@ COVERED_ELSEWHERE = {
     "reraise": "needs an unacknowledged urgent delivery — test_delivery_ledger.py",
     "routine-plan": "planning prompt, asserted above by message rather than kind",
     "resurface": "memory resurfacing, asserted above by message rather than kind",
+    # 14.R4. Needs live presence in a discretionary category AND a goal with a near deadline, so it
+    # cannot be driven from here. Worth naming what its own gate covers that reachability does not:
+    # this is the only kind that can exceed proactive_context_override_urgency without a calendar
+    # event, i.e. the only companion-grade source able to interrupt him at all.
+    "goal-deviation": "needs presence + a goal deadline — test_goal_deviation.py",
 }
 
 _unaccounted = sorted(DECLARED - SEEN_KINDS - set(COVERED_ELSEWHERE))

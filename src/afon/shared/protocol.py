@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ---- edge -> brain --------------------------------------------------------------------
@@ -82,5 +82,19 @@ class StreamEvent(BaseModel):
     final: bool = False       # last chunk of this turn
 
 
+class Digest(BaseModel):
+    """23.R2 — the small, cacheable facts the edge needs to stay useful with the brain unreachable.
+
+    Sent on connect, not polled: the edge cannot ask for this precisely when it needs it, so the brain
+    hands it over while it still can. Deliberately tiny — upcoming reminders only. Anything larger
+    would be a memory replica, and there is exactly one brain by design.
+    """
+
+    type: Literal["digest"] = "digest"
+    session_id: str
+    generated: float = 0.0                 # unix seconds, so the edge can state the age out loud
+    reminders: list[dict] = Field(default_factory=list)
+
+
 EdgeToBrain = Hello | Utterance | Barge | ErrorReport
-BrainToEdge = StreamEvent
+BrainToEdge = StreamEvent | Digest

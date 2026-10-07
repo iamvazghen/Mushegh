@@ -43,10 +43,32 @@ def check(ok: bool, name: str, detail: str = "") -> None:
         print(f"  [FAIL] {name}  {detail}")
 
 
+def _bash_with_sha256sum() -> str | None:
+    """Find a real POSIX shell, not Windows' WSL launcher without an installed distro."""
+    candidates: list[str] = []
+    git = shutil.which("git")
+    if git:
+        git_bash = Path(git).resolve().parents[1] / "bin" / "bash.exe"
+        if git_bash.exists():
+            candidates.append(str(git_bash))
+    if found := shutil.which("bash"):
+        candidates.append(found)
+    for candidate in dict.fromkeys(candidates):
+        try:
+            probe = subprocess.run(
+                [candidate, "-lc", "command -v sha256sum"], capture_output=True, timeout=5,
+            )
+            if probe.returncode == 0:
+                return candidate
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+    return None
+
+
 def main() -> int:
     deploy = (SCRIPTS / "deploy_vps.sh").read_text(encoding="utf-8")
     verify = (SCRIPTS / "verify_vps_sync.sh").read_text(encoding="utf-8")
-    bash = shutil.which("bash")
+    bash = _bash_with_sha256sum()
 
     print("[1] pruning is opt-in, and unknown flags do not silently become a deploy")
     check("PRUNE=0" in deploy, "prune defaults to OFF",
@@ -99,7 +121,9 @@ def main() -> int:
     print("\n[4] the drift report the prune reads, against a stubbed remote")
     check("DRIFT_OUT" in verify and "DRIFT_OUT" in deploy,
           "the verifier emits it and the deploy consumes it")
-    if not bash or not shutil.which("sha256sum"):
+    check("--exclude='node_modules'" in deploy and "*/node_modules/*" in verify,
+          "developer dependencies are neither deployed nor hashed as brain code")
+    if not bash:
         check(False, "bash + sha256sum available to run the verifier", "cannot exercise the report")
     else:
         trees = re.search(r'^TREES="([^"]+)"', verify, re.M).group(1)
@@ -111,16 +135,23 @@ def main() -> int:
             (tmp / "ssh").write_text(
                 "#!/usr/bin/env bash\n"
                 f"cd '{ROOT.as_posix()}' || exit 1\n"
-                f"find {trees} -type f ! -path '*__pycache__*' ! -name '*.pyc' -print0 "
+                f"find {trees} -type f ! -path '*__pycache__*' ! -path '*/node_modules/*' "
+                "! -name '*.pyc' -print0 "
                 "| xargs -0 sha256sum\n"
                 "echo 'd41d8cd98f00b204e9800998ecf8427e  src/afon/brain/tools/mynews.py'\n",
-                encoding="utf-8")
+                encoding="utf-8", newline="\n")
             os.chmod(tmp / "ssh", 0o755)
             drift = tmp / "drift.tsv"
-            env = {**os.environ, "PATH": f"{tmp.as_posix()}{os.pathsep}{os.environ['PATH']}",
-                   "AFON_VPS": "stub@example.invalid", "DRIFT_OUT": str(drift)}
-            r = subprocess.run([bash, "scripts/verify_vps_sync.sh"], cwd=str(ROOT),
-                               capture_output=True, text=True, env=env)
+            env = {**os.environ, "AFON_VPS": "stub@example.invalid", "DRIFT_OUT": str(drift)}
+            # Put the stub first INSIDE MSYS. Passing a Windows PATH through subprocess leaves the
+            # conversion up to the launcher and can accidentally resolve the real OpenSSH binary.
+            r = subprocess.run(
+                [bash, "-c",
+                 'stub_dir=$(cygpath -u "$1"); export PATH="$stub_dir:$PATH"; '
+                 'bash scripts/verify_vps_sync.sh',
+                 "deploy-prune-test", tmp.as_posix()],
+                cwd=str(ROOT), capture_output=True, text=True, env=env,
+            )
             check(r.returncode == 1, "one stale file is reported as drift (exit 1)",
                   (r.stdout or "")[-300:])
             rows = [ln.split("\t") for ln in drift.read_text(encoding="utf-8").splitlines() if ln]
@@ -129,7 +160,7 @@ def main() -> int:
             check(kinds.count("MISSING") == 0 and kinds.count("DIFFERS") == 0,
                   "no MISSING or DIFFERS rows — empty lists must not emit blank entries",
                   str([r for r in rows if r[0] in ("MISSING", "DIFFERS")]))
-            stale_path = next(v for k, v in rows if k == "STALE")
+            stale_path = next((v for k, v in rows if k == "STALE"), "")
             check(stale_path == "src/afon/brain/tools/mynews.py",
                   "the stale path survives the hash/path splitting intact", stale_path)
             count = next((v for k, v in rows if k == "REMOTE_FILES"), "")

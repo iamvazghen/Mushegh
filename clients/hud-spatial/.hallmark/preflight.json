@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-03",
+  "route": "custom",
+  "genre": "atmospheric",
+  "macrostructure": "Workbench",
+  "theme": "Midnight",
+  "enrichment": "none",
+  "framework": "React 19.2 + TypeScript + Vite + Tailwind 4",
+  "fonts": ["IBM Plex Sans (local)", "IBM Plex Mono (local)"],
+  "tokens": "../tokens.css",
+  "motion": "Motion layout springs; functional CSS loaders; prefers-reduced-motion forces zero duration",
+  "persistent_regions": ["Afon command/search", "12x12 canvas mesh"],
+  "data_policy": "real snapshot data, local files, or explicit unavailable states"
+}
+

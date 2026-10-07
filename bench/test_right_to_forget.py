@@ -2,15 +2,20 @@
 
 `forget` deleted the single best-matching learned note. Right for "forget that" about one thing said
 a moment ago; wrong for everything else. Told to forget a subject Afon knew four facts about, it
-dropped ONE and said "Forgotten, sir". The embedding stayed in the vector store, the entities stayed
-in the relationship graph where they still shaped answers, and the journal still described the day in
-prose. Four stores, one deletion, and a confident report of success.
+dropped ONE and said "Forgotten, sir". The embedding stayed in the vector store, and the journal still described the day in
+prose. Three stores, one deletion, and a confident report of success.
 
 The plan states the test: "forget X that leaves X in two stores is the failure". So this asserts the
-sweep across all four AND the re-query, because the only evidence a thing is forgotten is asking for
+sweep across all of them AND the re-query, because the only evidence a thing is forgotten is asking for
 it again and getting nothing back.
 
-Hermetic: temporary memory, vector and graph stores. No network, no embedder.
+**Updated 2026-10-04 (D-26, M04):** this used to sweep four stores, the fourth being the relation
+graph. The relation layer was deleted, so this gate was importing a module that no longer exists and
+had been failing to start — a stale import left behind by the migration, found while landing 37.R5.
+The graph assertions are now assertions about their absence (see `[1]`), because `Erasure.triples`
+survives as a permanently-zero field and a reader deserves to know that is deliberate.
+
+Hermetic: temporary memory and vector stores. No network, no embedder.
 
     uv run python bench/test_right_to_forget.py
 """
@@ -39,7 +44,6 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def main() -> None:
     from afon.brain import forget as F
-    from afon.brain.graph import GraphMemory
     from afon.brain.memory import MemoryStore
     from afon.brain.semantic import VectorStore
 
@@ -53,21 +57,22 @@ def main() -> None:
 
         vec = VectorStore(Path(d) / "vectors.sqlite")
         vec.put_many([(str(n.path), 0.0, [0.1, 0.2, 0.3]) for n in store._iter_notes()])
-        graph = GraphMemory(Path(d) / "graph.sqlite")
-        graph.add("rabbit farm", "located_in", "Armenia")
-        graph.add("rabbit farm", "needs", "a water system")
-        graph.add("Vazghen", "trains_at", "the gym")
 
-        print("[1] the sweep reaches all four stores, not just the best-matching note")
+        print("[1] the sweep reaches every store, not just the best-matching note")
         before_vec = len(vec.keys())
-        out = F.everywhere("rabbit farm", store=store, index=vec, graph=graph)
+        out = F.everywhere("rabbit farm", store=store, index=vec)
         check("EVERY matching fact goes, not one", len(out.facts) == 3, out.facts)
         check("the embeddings go with them", out.vectors == 3, out.vectors)
         check("...and really leave the vector store", len(vec.keys()) == before_vec - 3,
               f"{before_vec} -> {len(vec.keys())}")
-        check("the graph relations go", out.triples == 2, out.triples)
-        check("...and the graph really forgets the entity",
-              graph.neighbors("rabbit farm") == [], graph.neighbors("rabbit farm"))
+        # D-26, M04: the relation layer is gone, so there is no graph sweep to assert any more.
+        # `Erasure.triples` survives on the result so callers do not break, and is now always 0 —
+        # which is worth asserting, because a field that reads like a count and is permanently
+        # zero is exactly the kind of thing a later reader mistakes for a broken sweep.
+        check("no relation edges are reported, because there is no relation layer (D-26)",
+              out.triples == 0, out.triples)
+        check("...and the field is still on the result so callers do not break",
+              "triples" in {f for f in F.Erasure.__dataclass_fields__})
         check("the journal line goes", out.journal_lines == 1, out.journal_lines)
 
         print("\n[2] the re-query is the proof, and it is actually run")
@@ -77,7 +82,6 @@ def main() -> None:
 
         print("\n[3] the neighbours survive — a sweep that over-deletes is worse than none")
         check("an unrelated fact is untouched", bool(store.recall("gym", semantic=False)))
-        check("an unrelated relation is untouched", bool(graph.neighbors("Vazghen")))
         check("an unrelated journal line is untouched", "gym" in store.read_journal())
         check("its embedding is untouched", len(vec.keys()) == 1, vec.keys())
 
@@ -109,7 +113,7 @@ def main() -> None:
             def _iter_notes(self):
                 return iter(())
 
-        stuck = F.everywhere("rabbit farm", store=_Stubborn(), index=vec, graph=graph)
+        stuck = F.everywhere("rabbit farm", store=_Stubborn(), index=vec)
         check("it is not called clean", not stuck.clean, stuck.survived)
         check("the survivor is named", "still came back" in stuck.spoken(), stuck.spoken())
         check("...with what it was", "still here" in stuck.spoken(), stuck.spoken())
@@ -121,16 +125,16 @@ def main() -> None:
             def recall(self, q, semantic=None):
                 raise RuntimeError("index gone")
 
-        broken = F.everywhere("rabbit farm", store=_Mute(), index=vec, graph=graph)
+        broken = F.everywhere("rabbit farm", store=_Mute(), index=vec)
         check("an unusable memory is reported as unverified, not as clean",
               not broken.clean, broken.survived)
         check("...naming why", "couldn't re-check" in " ".join(broken.survived), broken.survived)
 
         print("\n[7] nothing to forget says so, and an empty query does nothing")
-        nada = F.everywhere("something he never mentioned", store=store, index=vec, graph=graph)
+        nada = F.everywhere("something he never mentioned", store=store, index=vec)
         check("an unknown subject is reported honestly", nada.removed == 0, nada)
         check("...in plain words", "had nothing stored" in nada.spoken(), nada.spoken())
-        empty = F.everywhere("   ", store=store, index=vec, graph=graph)
+        empty = F.everywhere("   ", store=store, index=vec)
         check("an empty query removes nothing", empty.removed == 0 and empty.clean)
 
         print("\n[8] a broken store never takes the turn down with it")
@@ -147,7 +151,7 @@ def main() -> None:
             def _iter_notes(self):
                 raise OSError("disk gone")
 
-        survived = F.everywhere("anything", store=_Explodes(), index=vec, graph=graph)
+        survived = F.everywhere("anything", store=_Explodes(), index=vec)
         check("a failing store degrades instead of raising", isinstance(survived, F.Erasure))
         check("...and claims nothing it did not do", survived.facts == [] and survived.vectors == 0)
 

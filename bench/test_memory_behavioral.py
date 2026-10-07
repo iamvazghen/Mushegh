@@ -9,9 +9,9 @@ live turn path:
                         startup digest; refreshed mid-session (Fix #2). Read on demand via `recall`.
   L2 journal         -> auto-injected when the utterance matches a recent journal entry.
   L3 vault + L5 sem  -> reached through the `recall` tool (fused across layers; semantic on, Fix #3).
-  L5b graph          -> WRITTEN by consolidation (Fix #4); READ when the utterance is relational
-                        (the 'graph' lazy tool group activates).
-  Consolidation      -> background review fires on the cadence and writes facts + relations.
+  L5b graph          -> REMOVED 2026-10-04 (D-26, M04). A relational-sounding turn no longer
+                        wakes a tool group, and consolidation writes facts only.
+  Consolidation      -> background review fires on the cadence and writes facts.
   Discipline         -> a trivial or off-topic turn injects NOTHING (stopword filter + semantic floor).
 
 Hermetic: temp stores swapped for the singletons, a capturing/scripted fake LLM. No network.
@@ -77,13 +77,9 @@ async def main() -> None:
     settings.session_persist_path = str(Path(tmp.name) / "session.json")
     settings.session_idle_reset_minutes = 0
     import afon.brain.memory as mem
-    import afon.brain.graph as graphmod
-    import afon.brain.tools.graphmem as graphtools
 
     store = mem.MemoryStore(base_dir=Path(tmp.name))
-    graph = graphmod.GraphMemory(path=Path(tmp.name) / "g.sqlite")
     mem.STORE = store
-    graphtools.GRAPH = graph   # the read tool resolves this module global
     store.remember("the owner runs a rabbit farm called Lpstrak in Armenia", tags=["project"])
     store.remember("the owner prefers replies under two sentences", tags=["preference"])
     store.journal_append("Reviewed the rabbit farm irrigation schedule for next week.")
@@ -152,27 +148,20 @@ async def main() -> None:
     check("an unrelated recall stays empty (semantic floor holds the line)",
           "don't have" in empty.lower() or "nothing" in empty.lower(), empty[:120])
 
-    print("\n[L5b] graph is READ on relational turns, WRITTEN by consolidation (Fix #4)")
-    check("'what's connected to X' activates the graph tool group", "graph" in groups_for_text("what's connected to the rabbit farm"))
-    check("a plain factual turn does NOT activate the graph group", "graph" not in groups_for_text("how's the rabbit farm"))
-    from afon.brain.background_review import review_and_learn
-    convo = [{"role": "user", "content": "My rabbit farm is in Armavir, which is in Armenia."},
-             {"role": "assistant", "content": "Noted, sir."}]
-    obj = ('{"facts": ["the owner has a rabbit farm in Armavir."], '
-           '"relations": [["rabbit farm","located in","armavir"],["armavir","located in","armenia"]]}')
-
-    class OneShot:
-        async def complete(self, *a, **k):
-            return SimpleNamespace(content=obj, tool_calls=None)
-    await review_and_learn(convo, OneShot(), store=store, graph=graph)
-    check("consolidation WROTE relations into the graph", len(graph.all_triples()) >= 2, str(graph.all_triples()))
-    related = await graphtools.recall_related({"entity": "rabbit farm"})
-    check("the graph tool answers a MULTI-HOP query (farm->Armavir->Armenia)", "armenia" in related.lower(), related[:160])
+    print("\n[L5b] the relation layer is gone, and a relational turn asks for nothing instead")
+    # Removed with the graph (D-26, M04). What is asserted now is the *absence* that the
+    # previous section asserted the presence of: a relational-sounding turn no longer wakes a
+    # tool group, so the model is not offered a way to answer from a store that held stale
+    # relations. A capability that is gone must not leave a trigger behind.
+    check("'what's connected to X' no longer activates any graph group",
+          "graph" not in groups_for_text("what's connected to the rabbit farm"))
+    check("a plain factual turn activates no graph group either",
+          "graph" not in groups_for_text("how's the rabbit farm"))
 
     print("\n[consolidation] the reviewer fires on cadence")
     check("agent schedules a background review every N turns", agent._review_every >= 2)
-    check("both stores are populated after a session (L1 facts + L5b triples)",
-          store.count() >= 3 and len(graph.all_triples()) >= 2, f"L1={store.count()} triples={len(graph.all_triples())}")
+    check("the store is populated after a session (L1 facts)", store.count() >= 2,
+          f"L1={store.count()}")
 
     print("\n[30.F2] one slow store cannot own the answer")
     # test_layering.py checks that the facade EXISTS and that nobody bypasses it. This checks the

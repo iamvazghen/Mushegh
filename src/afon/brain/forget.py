@@ -127,13 +127,9 @@ def everywhere(query: str, store=None, index=None, graph=None) -> Erasure:
         except Exception as e:  # noqa: BLE001
             logger.warning(f"forget: vector sweep failed ({type(e).__name__}: {e})")
 
-    try:
-        if graph is None:
-            from afon.brain.graph import GRAPH as graph
-        out.triples = _sweep_graph(graph, out.query)
-    except Exception as e:  # noqa: BLE001
-        logger.warning(f"forget: graph sweep failed ({type(e).__name__}: {e})")
-
+    # The graph sweep is GONE with the relation layer (D-26, M04). `out.triples` stays on the
+    # result so callers do not break, and is always 0. What "forget" now covers is the three
+    # stores that hold the owner's actual words: learned notes, the journal, and vectors.
     out.survived = _requery(out.query, store)
     logger.info(f"forget {out.query!r}: removed {out.removed} item(s) across four stores; "
                 f"{'clean' if out.clean else str(len(out.survived)) + ' survived'}")
@@ -141,18 +137,9 @@ def everywhere(query: str, store=None, index=None, graph=None) -> Erasure:
 
 
 def _sweep_graph(graph, query: str) -> int:
-    """Remove every triple whose subject, predicate or object mentions `query`."""
-    from afon.brain.memory import _terms
-
-    terms = _terms(query)
-    if not terms or graph is None:
-        return 0
-    gone = 0
-    for subj, pred, obj in list(graph.all_triples()):
-        blob = f"{subj} {pred} {obj}".lower()
-        if any(t in blob for t in terms):
-            gone += graph.remove(subj, pred, obj)
-    return gone
+    """Removed with the relation layer (D-26). Kept as a name so any caller that still asks
+    for a graph sweep gets 0 rather than an AttributeError — the layer it swept is gone."""
+    return 0
 
 
 def _requery(query: str, store) -> list[str]:
@@ -173,7 +160,6 @@ def _selfcheck() -> None:
     import tempfile
     from pathlib import Path
 
-    from afon.brain.graph import GraphMemory
     from afon.brain.memory import MemoryStore
     from afon.brain.semantic import VectorStore
 
@@ -188,13 +174,11 @@ def _selfcheck() -> None:
         keys = [str(n.path) for n in store._iter_notes()]
         vec.put_many([(k, 0.0, [0.1, 0.2]) for k in keys])
 
-        graph = GraphMemory(Path(d) / "graph.sqlite")
-        graph.add("rabbit farm", "located_in", "Armenia")
-        graph.add("the owner", "trains_at", "the gym")
-
-        out = everywhere("rabbit farm", store=store, index=vec, graph=graph)
+        # No graph argument: the relation layer is gone (D-26), so `everywhere` now sweeps the
+        # three stores that hold the owner's actual words.
+        out = everywhere("rabbit farm", store=store, index=vec)
         assert len(out.facts) == 2, out.facts            # BOTH, not the best one
-        assert out.triples == 1, out.triples
+        assert out.triples == 0, out.triples
         assert out.journal_lines == 1, out.journal_lines
         assert out.clean, out.survived
         said = out.spoken()
@@ -203,11 +187,9 @@ def _selfcheck() -> None:
 
         # The untouched fact is still there — a sweep that takes the neighbours is worse than none.
         assert store.recall("gym", semantic=False), "forget took an unrelated fact with it"
-        assert graph.neighbors("the owner"), "forget took an unrelated relation with it"
         assert "gym" in store.read_journal()
 
-        assert everywhere("nothing at all about this", store=store, index=vec,
-                          graph=graph).removed == 0
+        assert everywhere("nothing at all about this", store=store, index=vec).removed == 0
 
         # And the honest path: a store that refuses to give the thing up is REPORTED.
         store.remember("The rabbit farm is still mentioned here", source="selfcheck")
@@ -225,7 +207,7 @@ def _selfcheck() -> None:
             def _iter_notes(self):
                 return iter(())
 
-        stuck = everywhere("rabbit farm", store=_Stubborn(), index=vec, graph=graph)
+        stuck = everywhere("rabbit farm", store=_Stubborn(), index=vec)
         assert not stuck.clean and "still came back" in stuck.spoken(), stuck.spoken()
     print("forget self-check OK")
 

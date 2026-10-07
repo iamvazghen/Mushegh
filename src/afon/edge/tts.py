@@ -3,15 +3,23 @@
 Like ``build_stt``, this honours ``settings.tts_provider`` so the SAME pipeline runs cloud-quality
 or **100% local** just by flipping one flag — no code change:
 
-  * ``elevenlabs`` (default) — cloud, streaming, the chosen "Afon voice". Needs an API key + voice id.
-  * ``piper``      — local, CPU-fast. Fully offline: the voice model auto-downloads ONCE, then no
-                     network at all.
+  * ``piper``      — the code default (D-17). Local, CPU-fast. Fully offline: the voice model
+                     auto-downloads ONCE, then no network at all.
+  * ``elevenlabs`` — cloud, streaming, the chosen "Afon voice". Needs an API key + voice id.
   * ``kokoro``     — local, higher quality than Piper, still CPU-runnable. Model auto-downloads once.
 
-Pair ``AFON_TTS_PROVIDER=piper`` (or ``kokoro``) with ``AFON_STT_PROVIDER=whisper`` (already the
-default — local + multilingual) for a **fully offline voice stack**: no audio ever leaves the
-machine, no cloud key required. That satisfies the local-first / privacy non-negotiable. The local
-voices need the ``local-voice`` extra installed (``uv sync --extra local-voice``).
+With ``stt_provider`` also local (Whisper is the default — D-78), the default stack is now
+**fully offline on both sides**: no audio ever leaves the machine and no cloud key is required.
+
+**But "fully offline" currently means "fully offline in English," and that is the whole of D-78.**
+The local engines are monolingual as wired — one ``piper_voice`` model, one English voice on disk,
+Kokoro pinned to ``Language.EN``, and no per-language voice selection anywhere. This owner speaks
+French, English, German, Ukrainian and Russian, so on his machine ``AFON_TTS_PROVIDER`` is set to
+``elevenlabs`` and the D-17 opt-in is exercised. That is the charter working, not failing; the
+alternative was a local voice that answers a German sentence in English. The exit from that
+exception is per-language local voices (`18.R6`), not a weaker claim about this one.
+
+The local voices need the ``local-voice`` extra installed (``uv sync --extra local-voice``).
 """
 
 from __future__ import annotations
@@ -144,7 +152,12 @@ def build_tts():
     try:
         return _BUILDERS.get(prov, _build_elevenlabs)()
     except Exception as e:  # noqa: BLE001
-        if prov in _CLOUD and settings.voice_local_fallback and fb not in _CLOUD:
-            logger.warning(f"cloud TTS '{prov.value}' unavailable ({e}); falling back to local '{fb.value}'")
+        # The fallback applies to a LOCAL primary too, not only a cloud one. That was not needed
+        # while the default was cloud — but it is needed now, because with Piper primary a
+        # builder that cannot construct would otherwise raise and take the voice down with it,
+        # which is the exact regression the local default was chosen to avoid. A fallback to
+        # ITSELF is not a fallback, so `fb is not prov` is the condition.
+        if settings.voice_local_fallback and fb is not prov:
+            logger.warning(f"{prov.value} unavailable ({e}); falling back to '{fb.value}'")
             return _BUILDERS[fb]()
         raise

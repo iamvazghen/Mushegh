@@ -114,6 +114,41 @@ def caveat(text: str) -> str:
             "not a source.")
 
 
+#: 45.R2 — short-form attribution. The task asks for "from your calendar", "from the web", not a
+#: list of URLs: this reply is spoken aloud to a man who is not holding a browser, and a butler who
+#: recites a hostname is reciting something the owner cannot act on. Matched on the host, longest
+#: pattern first, because `mail` must win over a bare `web` fallback and `notion` over `notes`.
+_ATTRIBUTION: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("your calendar", ("calendar.google", "googleapis.com/calendar", "caldav", "ics.")),
+    ("your mail", ("mail.google", "gmail", "imap.", "smtp.")),
+    ("Notion", ("notion.so", "notion.com")),
+    ("your vault", ("obsidian",)),
+    ("the news", ("reuters", "bbc.", "ft.com", "guardian", "nytimes", "bloomberg", "wsj.")),
+    ("the web", ()),                       # the fallback: any host that is not one of the above
+)
+
+
+def spoken() -> str:
+    """Who this turn actually read from, in one spoken clause. "" when nothing was read.
+
+    **Silence is the default and the most important behaviour here.** A reply that came entirely
+    from Afon's own head must not be dressed up with a source: "from the web" on an answer nobody
+    looked anything up for is noise, and noise is how an owner learns to stop believing attribution.
+    So this returns "" on an empty ledger, and the reply is passed through byte-identical — which
+    is the same property `test_citations.py` already asserts for the honesty caveat, and the reason
+    attribution is a SEPARATE seam from it rather than bolted onto it.
+    """
+    got = hosts()
+    if not got:
+        return ""
+    for phrase, needles in _ATTRIBUTION:
+        if not needles:                      # the catch-all, only once nothing more specific matched
+            break
+        if any(n in h for h in got for n in needles):
+            return f" {phrase[0].upper()}{phrase[1:]}, sir."
+    return " The web, sir."                  # reached only via the catch-all above
+
+
 def render() -> str:
     """The sources behind this turn, for the owner or the journal. "" when nothing was read."""
     got = sources()

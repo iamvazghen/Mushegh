@@ -47,7 +47,7 @@ def is_question(s: str) -> bool:
 
 
 async def main() -> None:
-    from afon.brain.tools import contacts, graphmem, maps, memory, notify, objectives, reminders
+    from afon.brain.tools import contacts, maps, memory, notify, objectives, reminders
     from afon.brain.tools.base import missing_arg
     from afon.config import settings
 
@@ -77,7 +77,9 @@ async def main() -> None:
         ("travel_time",      maps.travel_time,           {"query": "Berlin"}),
         ("find_place",       maps.find_place,            {"entity": "sushi"}),
         ("set_reminder",     reminders.set_reminder,     {"subject": "call mum"}),
-        ("recall_related",   graphmem.recall_related,    {"query": "Alex"}),
+        # `recall_related` left this sweep with the relation layer (D-26, M04). It was here as one
+        # more instance of the same behaviour, not as coverage of anything graph-specific, so the
+        # sweep loses a row and the property being tested is unchanged.
         ("assign_objective", objectives.assign_objective, {"content": "ship it"}),
         ("send_push",        notify.send_push,           {"body_text": "hi"}),
     ]

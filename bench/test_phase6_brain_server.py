@@ -120,7 +120,11 @@ async def run() -> None:
     server = BrainServer(agent=agent)
     ws = FakeWS()
     await server.handle_message(ws, Hello(session_id="s1", device_id="iphone", headphones_connected=True))
-    check("ready lifecycle sent", ws.sent and ws.sent[-1]["kind"] == "lifecycle" and ws.sent[-1]["delta"] == "ready")
+    ready = [frame for frame in ws.sent
+             if frame.get("kind") == "lifecycle" and frame.get("delta") == "ready"]
+    check("ready lifecycle sent", len(ready) == 1)
+    check("hello also seeds the edge's degraded-mode digest",
+          any(frame.get("type") == "digest" for frame in ws.sent))
     check("session stored with headphones flag", server._sessions["s1"]["headphones_connected"] is True)
 
     print("\n[4] Utterance -> thinking, tool filler, streamed assistant chunks (each sentence non-final + terminal marker)")
@@ -192,7 +196,6 @@ async def run() -> None:
         await gen.aclose()
     check("at least one chunk was streamed before cancel", len(consumed) >= 1, str(consumed))
     # After cancellation, history must NEVER end with two user turns (the AUDIT #7 invariant).
-    user_count = sum(1 for m in stub._history if m["role"] == "user")
     last_two = stub._history[-2:]
     consecutive_users = (
         len(last_two) == 2

@@ -23,6 +23,36 @@ Writes a JSON scorecard to bench/_behavioral_scorecard.json for the recommendati
 
 Side-effects are cleaned up (learned facts forgotten, the one test task deleted). No email/telegram
 is ever actually sent — those scenarios assert the confirm-gate HOLDS the action.
+
+**Re-specified 2026-10-04 (D-44, 01.E1, 01.E2). The instrument was measuring the owner's
+configuration, not the brain, and it can be shown in arithmetic rather than argued.**
+
+A turn whose expected tool did not fire is scored `correctness = 10` plus a latency band
+(`eff ∈ {25, 18, 10, 4}`) plus a delivery band (`∈ {15, 9, 3}`). Every such turn therefore lands
+in **17–50**, and the observed low categories sit inside that band: Knowledge 29 = 10+4+15,
+Time/Utility 43 = 10+18+15, Memory/Web/Tasks 50 = 10+25+15, and the 30s–40s for the rest. A turn
+that did what it was asked scores 60+25+15 = 100. That is the whole 40/50/100 cluster: **a missing
+API key was being scored as a brain failure, and the overall was a weighted average of the two.**
+It also means the instrument could not tell a decision that was wrong from a capability that is not
+switched on — the two things `01.E2` exists to tell apart.
+
+(A first draft of this note claimed the old Combination score of 40 was `10+10+15`. It is not — that
+sum is 35, and 40 is not reachable from the grid at all. `bench/test_scorecard_integrity.py` caught
+it by computing the grid rather than trusting the arithmetic, which is the only reason this
+paragraph is now narrower than it was.)
+
+Three changes, none of which loosens a bar:
+
+1. **`Scenario.needs`** names the credential a scenario depends on, and an unconfigured scenario
+   is **skipped, not scored**. It is then listed as unconfigured, so the gap stays visible instead
+   of disappearing — the difference between "not good enough" and "not present", which is the whole
+   point of D-43's mock-only rule.
+2. **The overall is computed over runnable scenarios only**, and the scorecard records its basis.
+3. **A category with too few runnable scenarios is reported as underpowered and excluded**, because
+   `01.E1`'s own number was a median of two cases, which is not a measurement of anything.
+
+What this does NOT do is lower the bar. The ≥95 in `01.E2` becomes a bar on decisions the brain
+actually made, which is harder to pass honestly than the old one, not easier.
 """
 
 from __future__ import annotations
@@ -40,6 +70,77 @@ from afon.brain import audit
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# ---- what each capability needs before its scenario means anything ---------------------------
+# A need key maps to the Settings fields that must be non-blank. Read from settings rather than
+# from "did the tool happen to fire", because a tool can fail for a dozen reasons and only the
+# credential's absence means the scenario was never runnable.
+NEEDS: dict[str, tuple[str, ...]] = {
+    "home_assistant": ("ha_token",),
+    "notion": ("notion_token", "notion_tasks_db_id"),
+    "calendar": ("google_refresh_token",),
+    "web_search": ("brave_api_key",),
+    "telegram": ("telegram_bot_token",),
+    "sms": ("twilio_auth_token",),
+    "mcp": ("composio_api_key",),
+    "vault": ("vault_path",),
+}
+
+#: Which credential each TOOL needs, so a scenario that expects one of them is known to be
+#: credential-dependent without anyone having to remember to annotate it. Kept as a table beside
+#: NEEDS rather than as a `needs=` kwarg on each Scenario, because 200 lines of scenario prose is a
+#: bad place to hide a fact that decides whether a number counts — and because this table lets the
+#: gate check the inverse direction (every scenario expecting a credentialed tool IS listed), so
+#: adding a scenario cannot silently forget to declare its dependency.
+TOOL_NEEDS: dict[str, str] = {
+    "web_search": "web_search",
+    "notion_tasks": "notion",
+    "notion_create_task": "notion",
+    "check_telegram": "telegram",
+    "list_events": "calendar",
+    "read_email": "calendar",
+}
+
+#: The scenarios those tools appear in. Derived by inspection on 2026-10-04; the gate verifies it
+#: against `scenarios()` rather than trusting it.
+SCENARIO_NEEDS: dict[str, str] = {
+    "web_search": "web_search",
+    "notion_read": "notion",
+    "notion_create_cleanup": "notion",
+    "telegram_read": "telegram",
+    "calendar_read": "calendar",
+    "email_read": "calendar",
+    "vault": "vault",
+    "combo_web_memory": "web_search",
+}
+
+#: A category needs this many runnable scenarios before its score means anything. `01.E1`'s 51.5
+#: was a median of two cases; a median of two is a coin toss with extra steps.
+MIN_RUNNABLE_PER_CATEGORY = 2
+
+
+def needs_of(scenario_id: str, explicit: str = "") -> str:
+    """The need key for a scenario: its own declaration wins, then the tool table."""
+    return explicit or SCENARIO_NEEDS.get(scenario_id, "")
+
+
+def missing_credentials(needs: str, settings=None) -> list[str]:
+    """Which of a scenario's required credentials are blank. Empty means it is runnable.
+
+    A scenario with no need is always runnable. An UNKNOWN need key is treated as runnable and
+    left for the gate to catch, because silently skipping a scenario whose key is misspelled would
+    make the scorecard better every time someone typo'd.
+    """
+    if not needs:
+        return []
+    if settings is None:
+        from afon.config import settings as settings
+    missing: list[str] = []
+    for key in (k.strip() for k in needs.split(",") if k.strip()):
+        for field_name in NEEDS.get(key, ()):      # unknown key -> no fields -> runnable
+            if not getattr(settings, field_name, None):
+                missing.append(field_name)
+    return missing
+
 # ---- tool-call capture -------------------------------------------------------------------
 # The agent calls audit.record(name, args, result, ok=) for every tool. We patch it to also
 # record into a per-turn buffer so each scenario can assert what really fired.
@@ -47,9 +148,17 @@ _CAPTURE: list[dict] = []
 _orig_record = audit.record
 
 
-def _patched_record(tool, args, result, *, ok=True):
+def _patched_record(tool, args, result, *, ok=True, **kw):
+    # The signature here MUST track `audit.record`. It did not, and that was not a cosmetic drift:
+    # `record()` has carried `decision`/`rule`/`reasoning`/`turn` for some time, so every tool call
+    # in this suite raised `TypeError: _patched_record() got an unexpected keyword argument
+    # 'decision'`, the tool never ran, and the ERROR STRING was then scored as Afon's spoken reply.
+    # That is how scenarios were scoring 50/100 and 29/100 on turns that had in fact failed, and it
+    # means part of the "40/50/100 clustering" measured on 2026-10-03 was this shim rather than the
+    # phenomenon it was blamed on. Forwarding **kw is the fix; mirroring the full parameter list
+    # would be the same bug waiting for the next field.
     _CAPTURE.append({"tool": tool, "ok": ok, "result": str(result)[:200]})
-    return _orig_record(tool, args, result, ok=ok)
+    return _orig_record(tool, args, result, ok=ok, **kw)
 
 
 @dataclass
@@ -78,6 +187,36 @@ class Scenario:
     turns: list[Turn]
     weight: float = 1.0
     desc: str = ""
+    needs: str = ""                               # a NEEDS key; blank = runnable anywhere
+
+
+def rollup(results: list[dict], min_runnable: int = MIN_RUNNABLE_PER_CATEGORY) -> dict:
+    """Pure: per-category scores, the overall, and what each one EXCLUDED and why.
+
+    Kept free of I/O and of the agent so the arithmetic can be gated without a model call. The
+    exclusions are returned as data, not just printed, so the scorecard on disk says the same
+    thing the terminal does — a report that only explains itself while you watch it is not a
+    record.
+    """
+    cats: dict[str, list[tuple[float, float]]] = {}
+    for r in results:
+        cats.setdefault(r["category"], []).append((r["score"], r["weight"]))
+
+    cat_scores: dict[str, float] = {}
+    underpowered: dict[str, int] = {}
+    for cat, items in cats.items():
+        if len(items) < min_runnable:
+            underpowered[cat] = len(items)
+            continue
+        wsum = sum(w for _, w in items)
+        cat_scores[cat] = round(sum(s * w for s, w in items) / wsum, 1)
+
+    scored = [r for r in results if r["category"] in cat_scores]
+    wsum = sum(r["weight"] for r in scored)
+    overall = round(sum(r["score"] * r["weight"] for r in scored) / wsum, 1) if wsum else 0.0
+    return {"overall": overall, "categories": cat_scores, "underpowered": underpowered,
+            "n_scenarios_scored": len(scored), "n_scenarios_excluded": len(results) - len(scored),
+            "basis": "runnable scenarios only; unconfigured and underpowered categories excluded"}
 
 
 # ---- scenarios (first capability to last + combinations + safety) ------------------------
@@ -455,12 +594,25 @@ async def main(ci: bool = False, floor: float = 80.0, runs: int = 1, only: str =
     scs = [s for s in scenarios() if not picks or any(p in s.id for p in picks)]
 
     results: list[dict] = []
+    unconfigured: list[dict] = []
     print("=" * 74)
     print(" AFON — BEHAVIORAL & PRODUCTION-READINESS SUITE"
           + (f"  (median of {runs} runs)" if runs > 1 else "")
           + (f"  [only: {only}]" if picks else ""))
     print("=" * 74)
     for sc in scs:
+        # D-44 re-spec: a scenario whose credential is absent is SKIPPED, not scored. Scoring it
+        # is what produced the 40/50/100 cluster — a missing API key arrived as correctness=10 and
+        # was then averaged into a number the owner was meant to read as brain quality.
+        absent = missing_credentials(needs_of(sc.id, sc.needs))
+        if absent:
+            unconfigured.append({"id": sc.id, "category": sc.category,
+                                 "needs": needs_of(sc.id, sc.needs),
+                                 "missing": absent, "desc": sc.desc})
+            print(f"\n[ SKIP ] {sc.id}  ({sc.category}) — not runnable, not scored: "
+                  f"{', '.join(absent)} absent")
+            print(f"          {sc.desc}")
+            continue
         run_scores: list[float] = []
         sc_notes: list[str] = []
         for _run in range(runs):
@@ -496,27 +648,37 @@ async def main(ci: bool = False, floor: float = 80.0, runs: int = 1, only: str =
     audit.record = _orig_record
 
     # ---- rollups -------------------------------------------------------------------------
-    cats: dict[str, list[tuple[float, float]]] = {}
-    for r in results:
-        cats.setdefault(r["category"], []).append((r["score"], r["weight"]))
+    # `rollup` does the arithmetic and returns what it excluded; the printing below only narrates
+    # it. An earlier draft built the category dict here and then let the caller average, which is
+    # how the exclusions became invisible — an excluded category and a scored one looked the same.
     print("\n" + "=" * 74)
     print(" CATEGORY SCORES")
     print("=" * 74)
-    cat_scores = {}
-    for cat, items in cats.items():
-        wsum = sum(w for _, w in items)
-        cs = round(sum(s * w for s, w in items) / wsum, 1)
-        cat_scores[cat] = cs
-        bar = _bar(cs)
-        print(f"  [{cs:5.1f}] {bar}  {cat}")
+    report = rollup(results)
+    cat_scores = report["categories"]
+    for cat, cs in sorted(cat_scores.items(), key=lambda kv: -kv[1]):
+        print(f"  [{cs:5.1f}] {_bar(cs)}  {cat}")
+    for cat, n in sorted(report["underpowered"].items()):
+        print(f"  [UNDERPOWERED] {cat}: {n} runnable scenario(s), needs "
+              f"{MIN_RUNNABLE_PER_CATEGORY} to mean anything — excluded from the overall")
 
-    wsum = sum(r["weight"] for r in results)
-    overall = round(sum(r["score"] * r["weight"] for r in results) / wsum, 1)
+    if unconfigured:
+        print("\n" + "=" * 74)
+        print(" NOT MEASURED — these need a credential that is not configured")
+        print("=" * 74)
+        for u in unconfigured:
+            print(f"  - {u['id']} ({u['category']}): {', '.join(u['missing'])} absent")
+
+    overall = report["overall"]
     verdict = ("PRODUCTION-READY" if overall >= 85 else
                "NEAR-READY (polish needed)" if overall >= 72 else
                "FUNCTIONAL (notable gaps)" if overall >= 55 else "NOT READY")
     print("\n" + "=" * 74)
     print(f" OVERALL PRODUCTION-READINESS: {overall}/100  →  {verdict}")
+    print(f" basis: {report['basis']}")
+    print(f" scored {report['n_scenarios_scored']} scenario(s); excluded "
+          f"{report['n_scenarios_excluded']} (underpowered categories) + "
+          f"{len(unconfigured)} (unconfigured)")
     print("=" * 74)
     lows = sorted([r for r in results if r["score"] < 75], key=lambda r: r["score"])
     if lows:
@@ -525,8 +687,11 @@ async def main(ci: bool = False, floor: float = 80.0, runs: int = 1, only: str =
             print(f"   - {r['id']} ({r['category']}): {r['score']}/100 — {r['desc']}")
 
     out = Path(__file__).resolve().parent / "_behavioral_scorecard.json"
-    out.write_text(json.dumps({"overall": overall, "verdict": verdict,
-                               "categories": cat_scores, "scenarios": results}, indent=2),
+    out.write_text(json.dumps({"overall": overall, "verdict": verdict, "basis": report["basis"],
+                               "categories": cat_scores, "underpowered": report["underpowered"],
+                               "unconfigured": unconfigured,
+                               "min_runnable_per_category": MIN_RUNNABLE_PER_CATEGORY,
+                               "scenarios": results}, indent=2),
                    encoding="utf-8")
     print(f"\n scorecard written to {out}")
     if ci and overall < floor:

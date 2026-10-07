@@ -7,6 +7,14 @@
 # Speaker biometrics. The glob matters: voiceprint.json was ignored but voiceprint.json.bak
 # was not, so a re-enrolment backup of the owner's voice embeddings sat untracked-but-committable.
 voiceprint.json*
+# FACE biometrics (37.R4, found 2026-09-20). The voiceprint got a named rule after that near-miss;
+# face data never got the equivalent one, and was covered only incidentally - the single copy on
+# this host happens to sit under the already-ignored backups/. A face embedding landing anywhere
+# else in the tree had nothing stopping it. Owner face data never leaves the laptop, so it gets a
+# rule of its own rather than relying on where a backup script chose to put it.
+owner.npy
+*.npy
+faces/
 runtime_prefs.json
 afon_session.json
 afon_tasks.sqlite

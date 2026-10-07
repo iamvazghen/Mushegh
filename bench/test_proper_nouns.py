@@ -119,37 +119,90 @@ def main() -> None:
         sys.exit(1)
 
 
-# ── 24.F1: the names STT hands over resolve to the node the facts are under ──────────────────
+# ── 24.F1: the names STT hands over resolve to the person the facts are under ──────────────────
 # This file's subject is the names Afon biases the recogniser toward. The other end of that wire
-# is what happens once STT returns one: a proper noun that arrives transliterated ("Вазген" ->
-# "Vazghen") must reach the same graph node as the facts stored under the other spelling, or
-# biasing the recogniser toward a name only makes it better at missing.
+# is what happens once STT returns one: a proper noun that arrives transliterated ("Вазген") must
+# reach the same person, or biasing the recogniser toward a name only makes it better at missing.
+#
+# **Rewritten 2026-10-04 (D-26, M04). This is a weaker test than the one it replaces, and the loss is
+# recorded here rather than hidden.** It ran against `GraphMemory`, so it had been failing to start
+# since the relation layer was deleted — the second gate left importing a module that no longer
+# exists, found by the full suite while landing 26.R5. A third gate named for 24.F1,
+# `test_graph_memory.py`, is not a file any more.
+#
+# Measuring what the deletion actually cost, rather than assuming:
+#
+#   * SURVIVES, and is asserted below — the MECHANISM, intact. `shared/entities.same_entity` does
+#     exactly what SYSTEMS-DETAILS.md says it does: transliterate, then merge what transliteration
+#     cannot settle by a high-threshold difflib match at lookup time, never by rewriting one name
+#     into the other. It bridges "Вазген"/"Vazghen" (0.923) and refuses "John Smith"/"Jane Smith"
+#     (0.800, under the 0.82 bar) — which is the whole point of the threshold.
+#   * DOES NOT reach the owner — the WIRING. `ContactBook.resolve`, the one path that answers "call
+#     Вазген", compares with `canonical()` equality and never calls `same_entity`. So the fuzzy merge
+#     the floor task specifies is implemented, tested nowhere, and absent from the lookup that
+#     matters. `test_contacts.py` (52/52) does not catch this because its fixtures spell the owner
+#     consistently.
+#   * SAME for the L1 memory store: recall does not canonicalise at all, so a transliterated query
+#     misses a fact stored under the other spelling.
+#
+# Both gaps are wiring, not design, and both are asserted as gaps so they flip and announce
+# themselves when fixed. Closing either is a one-line change to a lookup, but it is a change to who
+# an outgoing message can be addressed to — merging two different people sends it to the wrong human
+# — so it belongs to the owner, not to the repair of a dead test file.
 def one_node_per_person() -> None:
     import tempfile
-    from pathlib import Path as _P
 
-    from afon.brain.graph import GraphMemory
-    from afon.shared.entities import canonical
+    from afon.brain.contacts import ContactBook
+    from afon.brain.memory import MemoryStore
+    from afon.shared.entities import canonical, same_entity
 
-    print("\n[24.F1] a transliterated proper noun finds the facts stored under the other spelling")
+    print("\n[24.F1] a transliterated proper noun reaches the person, not a near-miss match")
+
+    check("canonical() transliterates Cyrillic into the Latin the rest of the system stores",
+          canonical("Вазген") == "vazgen" and canonical("Vazgen") == "vazgen",
+          f"{canonical('Вазген')!r} vs {canonical('Vazgen')!r}")
+    check("the merge mechanism transliterates first, so the script never matters",
+          same_entity("Вазген", "Vazghen") and same_entity("Вазген", "Vazgen"),
+          "transliteration is supposed to settle this before any fuzzy comparison runs")
+    check("...and it bridges the Latin spelling variant transliteration cannot settle",
+          same_entity("Vazghen", "Vazgen"),
+          "SYSTEMS-DETAILS says this merges at lookup time; it does not any more")
+    check("...and it still refuses two people who share a surname",
+          not same_entity("John Smith", "Jane Smith"),
+          "merging two different people sends an outward message to the wrong human")
+
     with tempfile.TemporaryDirectory() as td:
-        g = GraphMemory(_P(td) / "g.sqlite")
-        g.add("Вазген", "owns", "Lpstrak")
-        g.add("Lpstrak", "located in", "Armenia")
+        book = ContactBook(Path(td) / "contacts.md")
+        book.save(contacts_mod.Contact("Vazgen Vardanian", email="v@example.com"))
+        book.save(contacts_mod.Contact("Anna Petrova", email="a@example.com"))
+        for spelling in ("Вазген", "Vazgen", "vazgen", "Вазген Варданян"):
+            found = book.resolve(spelling)
+            check(f"the CHANNEL path resolves {spelling!r} to the owner, not to a neighbour",
+                  bool(found) and found[0].email == "v@example.com",
+                  f"resolve({spelling!r}) -> {[c.name for c in found]}")
+        check("the channel path does NOT resolve a stranger onto the nearest person",
+              not book.resolve("Zebedee Quinn"),
+              "resolving a stranger onto the nearest entry is worse than finding nothing")
 
-        check("the Cyrillic name is stored transliterated",
-              any(canonical("Вазген") in s for s, _p, _o in g.all_triples()),
-              str(g.all_triples()))
-        for spelling in ("Вазген", "Vazgen", "vazgen"):
-            check(f"{spelling!r} reaches the stored facts", bool(g.describe(spelling)),
-                  f"describe -> {g.describe(spelling)}")
-        check("a close spelling variant reaches them too", bool(g.describe("Vazghen")),
-              "STT returns whichever transliteration it favours; the facts must not move")
-        check("multi-hop still works from the transliterated name",
-              "armenia" in [r.lower() for r in g.related("Vazgen", hops=2)],
-              str(g.related("Vazgen", hops=2)))
-        check("an unrelated name reaches nothing", g.describe("Zebedee Quinn") == [],
-              "resolving a stranger onto the nearest node is worse than finding nothing")
+        bridging = book.resolve("Vazghen")
+        check("KNOWN GAP, asserted as a gap: ContactBook.resolve never calls same_entity, so the "
+              "merge the floor task specifies is unreachable from the lookup that matters",
+              not bridging,
+              "resolve('Vazghen') now finds them — the contacts path is wired to the merge, and "
+              "this gap check should be replaced with a capability check")
+
+    with tempfile.TemporaryDirectory() as td:
+        store = MemoryStore(base_dir=td)
+        store.remember("Вазген owns Lpstrak", source="tool")
+        store.remember("Lpstrak is located in Armenia", source="tool")
+        texts = [n.text for n in store._iter_notes()]          # noqa: SLF001
+        check("the facts are stored under the Cyrillic spelling",
+              any("Lpstrak" in t and "Вазген" in t for t in texts), str(texts))
+        check("KNOWN GAP, asserted as a gap: L1 recall calls neither canonical() nor same_entity, "
+              "so a transliterated query still misses the fact stored under the other spelling",
+              not store.recall("Vazgen", semantic=False),
+              "recall('Vazgen') now finds it — L1 resolves entities, and this gap check should be "
+              "replaced with a capability check")
 
 
 if __name__ == "__main__":

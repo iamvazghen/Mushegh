@@ -49,6 +49,9 @@ class RemoteBrain(FrameProcessor):
             headphones_connected=headphones_connected,
             on_event=self._on_event,
         )
+        # 23.R4 — deliver what was held the moment the link returns, not the next time he speaks.
+        # "Answer when the brain returns" is the promise; waiting for another utterance is not it.
+        self._client.on_connected = self._drain_held
         self._task: asyncio.Task | None = None
         self._fallback_agent = None          # lazily-built local AfonAgent (warm standby)
         self._local_task: asyncio.Task | None = None
@@ -106,9 +109,65 @@ class RemoteBrain(FrameProcessor):
         if self._client.connected and await self._client.send_utterance(text):
             logger.info(f"heard: {text!r} -> VPS brain")
             return "remote"
+        # 23.R2 — before spending an LLM on it, check whether the answer needs one at all. Status
+        # comes from the declared degraded matrix and reminders from the digest the brain handed over
+        # while it still could; both are free and instant. Only tried while degraded, because with the
+        # brain up these belong to the brain, which has the live scheduler rather than a copy.
+        local = self._degraded_answer(text)
+        if local is not None:
+            logger.info(f"heard: {text!r} -> answered locally while degraded (no model)")
+            await self.push_frame(TTSSpeakFrame(local))
+            return "degraded"
         logger.warning(f"VPS brain unreachable — answering {text!r} on the LOCAL standby brain")
         await self._answer_local(text)
         return "local"
+
+    def _degraded_answer(self, text: str) -> str | None:
+        """23.R2 — the answer if this host can give one without a model, else None. Fail-quiet."""
+        try:
+            from afon.edge import degraded_answers
+            from afon.shared import degraded
+
+            mode = degraded.current(brain_up=self._client.connected)
+            return degraded_answers.answer(text, mode_name=mode.name)
+        except Exception as e:  # noqa: BLE001 — never let this path cost him the standby
+            logger.debug(f"degraded answer skipped ({type(e).__name__})")
+            return None
+
+    async def _promise(self, text: str) -> None:
+        """23.R4 — hold a turn we could not answer, and say so truthfully.
+
+        Reached only when BOTH the VPS brain and the local standby are unavailable. Before this, both
+        of those paths spoke an apology and dropped the transcript: it had been heard and transcribed,
+        and was then thrown away, which is what made real offline capability score 0.70/4.
+
+        The wording follows what actually happened. A promise that was not taken on must not be
+        announced as though it were, so a full or unwritable queue says something different.
+        """
+        from afon.edge import offline_queue
+
+        if offline_queue.enqueue(text):
+            owed = offline_queue.depth()
+            more = "" if owed == 1 else f" That's {owed} I'm holding."
+            await self.push_frame(TTSSpeakFrame(
+                "I can't reach the brain or answer that locally, sir — I've held it and I'll come "
+                f"back to you the moment the link returns.{more}"))
+        else:
+            await self.push_frame(TTSSpeakFrame(
+                "I can't reach the brain or answer that locally, sir, and I can't hold any more "
+                "either — you'll have to ask me again later."))
+
+    async def _drain_held(self) -> None:
+        """Send everything held during the outage, oldest first. Called on every reconnect."""
+        from afon.edge import offline_queue
+
+        if not offline_queue.depth():
+            return
+        n = await offline_queue.drain(self._client.send_utterance)
+        if n:
+            await self.push_frame(TTSSpeakFrame(
+                f"The link's back, sir — catching up on {n} thing{'' if n == 1 else 's'} "
+                "you said while it was down."))
 
     async def _ensure_fallback(self):
         """Build (once) + warm the local standby agent. A preset agent (tests) is left untouched."""
@@ -136,14 +195,12 @@ class RemoteBrain(FrameProcessor):
                         spoke = True
                         await self.push_frame(TTSSpeakFrame(sentence))
                 if not spoke:
-                    await self.push_frame(TTSSpeakFrame(
-                        "The main brain's unreachable, sir, and I couldn't answer locally either."))
+                    await self._promise(text)
             except asyncio.CancelledError:
                 raise
             except Exception:  # noqa: BLE001 — a standby failure must not crash the edge
                 logger.exception("local standby turn failed")
-                await self.push_frame(TTSSpeakFrame(
-                    "The main brain's unreachable, sir — I'm on the local standby and hit an error."))
+                await self._promise(text)
 
         self._local_task = asyncio.create_task(_turn())
         await self._local_task

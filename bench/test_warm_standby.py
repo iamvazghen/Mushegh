@@ -96,8 +96,10 @@ async def main() -> None:
     print("\n[4] Local agent produces nothing -> honest spoken degradation, never silent")
     rb, spoken = _mk(connected=False, send_ok=False, sentences=[])
     await rb._route_utterance("hello")
-    check("spoke a degradation line instead of going mute", len(spoken) == 1 and "unreachable" in spoken[0].lower(),
-          repr(spoken))
+    line = spoken[0].lower() if len(spoken) == 1 else ""
+    check("spoke a degradation line instead of going mute",
+          ("can't reach" in line or "unreachable" in line)
+          and ("held" in line or "ask me again" in line), repr(spoken))
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

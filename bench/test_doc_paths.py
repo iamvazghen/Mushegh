@@ -58,7 +58,11 @@ _WINDOW = 2   # lines either side: these entries wrap, and the negation usually 
 #: State directories the RUNTIME creates under ~/.afon, named in docs (SECURITY.md's never-commit
 #: list, the memory-hygiene job's output). They are correct citations of things that are correctly
 #: absent from the tree, so requiring them to exist would be requiring the repo to be dirty.
-_RUNTIME_DIRS = {"audit/", "backups/", "memory/learned/archive/", "memory/journal/archive/"}
+#: Directories that live under the STATE root (`~/.afon`), not in the repo — so their absence from a
+#: checkout is correct, not a phantom path. `traces/` and `screenshots/` joined the list when 37.R4
+#: started naming stores by their state-relative names.
+_RUNTIME_DIRS = {"audit/", "backups/", "memory/learned/archive/", "memory/journal/archive/",
+                 "traces/", "screenshots/", "faces/", "run/", "shell/"}
 
 passed = failed = 0
 
@@ -119,6 +123,21 @@ def main() -> None:
                     bad.append(f"{name}:{i + 1} `{cited}` (directory)")
         check(not bad, f"{name}: {len(lines)} lines, no phantom paths",
               "\n        " + "\n        ".join(bad[:12]))
+
+    # O1.5 (p=0.77): "local-first" as a PROJECT label overpromises — state is self-hosted, but the
+    # reasoning models are remote by default and the VPS has no GPU. Component-level uses stay
+    # legitimate (the audio path really is local), so this guards only the four places that speak
+    # for the whole project. A tagline is exactly the kind of claim that drifts back.
+    # A *quoted* "local-first" is discussing the label; an unquoted one is claiming it. That
+    # distinction is the whole rule, and it needs no exemption list to maintain.
+    unquoted = re.compile(r'(?<![\'"`])local-first', re.I)
+    for name in ("README.md", "CONTRIBUTING.md", "SECURITY.md", "src/afon/__init__.py"):
+        hits = [
+            f"{name}:{i + 1}"
+            for i, ln in enumerate((ROOT / name).read_text(encoding="utf-8").splitlines())
+            if unquoted.search(ln)
+        ]
+        check(not hits, f"{name}: no project-level 'local-first' claim", str(hits))
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     sys.exit(1 if failed else 0)

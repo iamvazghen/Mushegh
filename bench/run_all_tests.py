@@ -19,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -59,14 +60,91 @@ TESTS = [
      "network", ["checks passed ==="]),
     ("Phase 9: persistent memory (learned facts + journal)", "test_phase9_memory.py", "offline",
      ["checks passed ==="]),
-    ("Phase 9b: L4 hot-cache (in-process + graceful Redis)", "test_phase9b_cache.py", "offline",
+    ("Phase 9b: L4 hot-cache (in-process TTL)", "test_phase9b_cache.py", "offline",
      ["checks passed ==="]),
     ("Phase 9c: L5 semantic recall (graceful embedder)", "test_phase9c_semantic.py", "offline",
      ["checks passed ==="]),
+    ("D-13: physical door locks refuse outright, with no confirmation path that opens one (28.R4)",
+     "test_blast_radius_refusal.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-07: a browser op that could commit a form confirms; reading a page does not (05.R1)",
+     "test_browser_submit_confirm.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-79/D-80: one contract for every external executor — no credentials to the child, no "
+     "non-zero exit reading as success, no arbitration outside the candidates (M41)",
+     "test_executor_contract.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-79: a brief is assembled by code from a task record, and an acceptance check that "
+     "restates the task is refused (M46)",
+     "test_brief_assembly.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-73/D-76/D-81: Jev picks the executor from the ballot code built, and an outage keeps the "
+     "deterministic choice silently (M45)",
+     "test_executor_arbitration.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-08/D-80: a delegated coding change cannot become a commit without all four conditions, "
+     "and a refused approval leaves the owner's checkout untouched (M43)",
+     "test_coding_delegation.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-86: the Bookroom summarizer is reachable, an unpriced book is never summarised, and "
+     "quality is reported honestly",
+     "test_bookroom_tool.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-88/D-89: the toolchain updates itself, proves each update with a ping, rolls a bad "
+     "release back, and the weekly Jev review installs nothing",
+     "test_toolchain.py", "offline", ["ALL CHECKS PASSED ==="]),
     ("Persistent vector store: L5 embeddings survive restart (sqlite)", "test_vector_store.py",
      "offline", ["checks passed ==="]),
-    ("Graph memory (L5b): sqlite triple store + multi-hop recall + lazy tools", "test_graph_memory.py",
-     "offline", ["checks passed ==="]),
+    ("S30 staged migration is gone (M02): no scaffolding, no DSN, no psycopg — and the backup "
+     "path that replaced the snapshot helper still round-trips",
+     "test_s30_migration_removed.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("Local voice is the default (18.R4): TTS builds with no key, cloud is an explicit opt-in, "
+     "and a local primary that cannot build degrades instead of dying",
+     "test_tts_local_default.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("No unprompted content feed (41.R4): the news source is not collected, the seam carries no "
+     "import of it, and the engine ticks a stubbed registry rather than the live one",
+     "test_no_unprompted_feed.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("Wake word is on-device (18.R5): the two dead settings are gone, the module cannot reach the "
+     "network, and every configured phrase is reported loadable-or-pending",
+     "test_wakeword_offline.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("The never-store set is enforced (37.R5): all four D-24 classes are refused at the write "
+     "boundary, the audit trail withholds the payload instead of recording it, and there is no "
+     "override to reach past any of it",
+     "test_never_store.py", "offline", ["passed, 0 failed"]),
+    ("No video frame leaves the house (26.R5): the detector channel carries metadata or nothing, "
+     "events still arrive with egress blocked, see() is not on the path, and neither a log nor a "
+     "crash report can hold frame bytes",
+     "test_no_frame_egress.py", "offline", ["passed, 0 failed"]),
+    ("The ear is chosen per turn (18.R7): the language the fast ear cannot hear moves the next "
+     "turn to the local one, a short turn cannot swap it, and the refuted predictive design's "
+     "measured cost stays on the record",
+     "test_stt_by_language.py", "offline", ["passed, 0 failed"]),
+    ("The elite scorecard measures the brain (01.E1/E2, D-44): an unconfigured scenario is skipped "
+     "rather than scored, the overall states its basis, underpowered categories are excluded, and "
+     "the per-turn scoring bands are unchanged so nothing was loosened",
+     "test_scorecard_integrity.py", "offline", ["passed, 0 failed"]),
+    ("The audit trail is verifiable (45.R10): every line chains to the one before it, an edited, "
+     "removed, reordered or spliced line is found by a reader that needs no framework, and the "
+     "limits that are NOT detected are asserted rather than implied",
+     "test_audit_integrity.py", "offline", ["passed, 0 failed"]),
+    ("A past turn can be reconstructed (45.R3): the decision is replayed in full and joined to its "
+     "tool calls on turn_id, the three things a replay CANNOT show are named rather than left blank, "
+     "and a tampered turn is explained and flagged in the same breath",
+     "test_decision_replay.py", "offline", ["passed, 0 failed"]),
+    ("A stalled delegation comes back (39.R2): a timeout is NOT an outage, so the task is never "
+     "re-sent over the CLI, the breaker is not tripped, and the outage path still recovers",
+     "test_fleet_takeback.py", "offline", ["passed, 0 failed"]),
+    ("A failure is described accurately (02.E1): an exhausted chain, a single model going quiet and "
+     "a bug in Afon are three different sentences, and a bug is never blamed on the models",
+     "test_outage_audible.py", "offline", ["passed, 0 failed"]),
+    ("The catalogue router is MEASURED (03.R1 + 03.R7): 60 hand-written prompts reach the right "
+     "group, narrowing measurably beats the 19k full surface, and the triggers that mis-fired are "
+     "gone",
+     "test_catalogue_narrowing.py", "offline", ["passed, 0 failed"]),
+    ("The acceptance rate is a number with a definition (14.R1): strict and lenient are both "
+     "reported because silence is not a refusal, a cold start is 0.0 and not 1.0, and quoting a "
+     "rate moves no threshold",
+     "test_acceptance_rate.py", "offline", ["passed, 0 failed"]),
+    ("One fact is one hit (30.R1): the same fact from two memory layers collapses to one and names "
+     "the layers, while two DISAGREEING facts are deliberately not merged",
+     "test_memory_dedup.py", "offline", ["passed, 0 failed"]),
+    ("The weekly self-report answers all three questions (31.R3): what broke, what self-repaired "
+     "and what needs the owner — and a section it cannot measure is SPOKEN as unknown, never "
+     "rendered as all-clear",
+     "test_self_report.py", "offline", ["passed, 0 failed"]),
     ("weather: 'tomorrow'/'this week' answer the day asked for, not today (H2.11)",
      "test_weather_when.py", "offline", ["checks passed ==="]),
     ("if_then: the parsed comparison operator is actually applied (H2.12)",
@@ -93,8 +171,8 @@ TESTS = [
      "test_interventions.py", "offline", ["checks passed ==="]),
     ("Memory RAG: auto-recall per turn + un-frozen learned digest", "test_memory_autorecall.py",
      "offline", ["checks passed ==="]),
-    ("Memory graph learning: reviewer feeds L5b triples + L5 semantic default on",
-     "test_memory_graph_learn.py", "offline", ["checks passed ==="]),
+    ("Memory review learning: one call yields facts and relations, L5 semantic default on",
+     "test_memory_review_learn.py", "offline", ["checks passed ==="]),
     ("Memory behavioral trace: each layer engages at the right moment through the agent",
      "test_memory_behavioral.py", "offline", ["checks passed ==="]),
     ("Phase 11: Gmail/Calendar/Home-Assistant (graceful degradation)",
@@ -293,9 +371,6 @@ TESTS = [
     ("02.R2: the stable half of the system prompt is byte-identical between turns, so a prompt "
      "cache can actually hit it",
      "test_prompt_prefix_stable.py", "offline", ["checks passed ==="]),
-    ("02.R2: the stable half of the system prompt is byte-identical between turns, so a prompt "
-     "cache can actually hit it",
-     "test_prompt_prefix_stable.py", "offline", ["checks passed ==="]),
     ("01.R1/01.R2: the five intent classes are explicit and measured, and an ambiguous turn asks "
      "ONE question instead of guessing \u2014 and never the same one twice",
      "test_intent_classes.py", "offline", ["checks passed ==="]),
@@ -412,6 +487,43 @@ TESTS = [
      "test_work_on_task.py", "offline", ["checks passed ==="]),
     ("Safety+Autonomy levers: catastrophic refusal + work_on_task intent routing",
      "test_safety_autonomy.py", "offline", ["checks passed ==="]),
+    ("Autonomy governor (36.F6): calls/spend/runtime ceilings refuse, audited, survive restart",
+     "test_action_governor.py", "offline", ["checks passed ==="]),
+    ("Correlation id (31.F5): one id joins edge, brain, tool and audit with no gaps",
+     "test_correlation_id.py", "offline", ["checks passed ==="]),
+    ("Unattended review (45.F4): every unattended action with its actor, id and outcome",
+     "test_unattended_review.py", "offline", ["checks passed ==="]),
+    ("HUD render seam (P1.2): the page draws every section the brain sends, and parses it",
+     "test_hud_render.py", "offline", ["checks passed ==="]),
+    ("Jev typed decisions: option authority, outage behavior, minimized audit and path parity",
+     "test_jev_judgment.py", "offline", ["checks passed ==="]),
+    ("Jev tool arbitration (01.R6): the deterministic group match is the only candidate source, "
+     "a 400ms cap, silent deterministic fallback, and the owner-visible two-option path unchanged",
+     "test_jev_tool_arbitration.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("Supersession (30.R10): a declared subject makes a correction replace its predecessor, the "
+     "loser is tombstoned not deleted, and a weaker source can never overwrite a stronger one",
+     "test_supersession.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("Coherence journeys (01.E3): cross-system policy seams, with blocked legs named rather "
+     "than faked", "test_journeys.py", "offline", ["Journey verdicts: CLEAN"]),
+    ("Jev turn assessment (01.R7): route, clarity, urgency and tone in ONE bounded call; ambiguity "
+     "asks one question; a failed assessment stays silent; urgency never touches the budget",
+     "test_jev_turn_assessment.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("Spatial HUD (45.R6): bounded Afon control, search-only shell, real sources and loaders",
+     "test_hud_modes.py", "offline", ["checks passed ==="]),
+    ("Confirm seam (O2.5): all six exits from tool dispatch audit a decision, rule and turn id",
+     "test_confirm_seam.py", "offline", ["checks passed ==="]),
+    ("Low-confidence escalation (44.R4): an unsure non-destructive write asks instead of running",
+     "test_confirm_low_confidence.py", "offline", ["checks passed ==="]),
+    ("Shell bound (04.R4): the shell runs in one directory; escapes and network reach are refused",
+     "test_shell_sandbox.py", "offline", ["checks passed ==="]),
+    ("Data classes (37.R4): every store declares a class; an undeclared store fails the gate",
+     "test_data_classification.py", "offline", ["checks passed ==="]),
+    ("Goal deviation (14.R4): a stated goal can interrupt; an aligned session of equal length cannot",
+     "test_goal_deviation.py", "offline", ["checks passed ==="]),
+    ("Offline promises (23.R4): speech during an outage is held on disk and answered, in order",
+     "test_offline_queue.py", "offline", ["checks passed ==="]),
+    ("Actor field (36.F7): every audit line has a truthful actor; unattended work is not the owner",
+     "test_actor_field.py", "offline", ["checks passed ==="]),
     ("Contacts: resolve name -> target, clarify ambiguous/unknown, degrade",
      "test_contacts.py", "offline", ["checks passed ==="]),
     ("Calendar dates: named day != today, seconds-bearing writes, speakable times",
@@ -499,6 +611,14 @@ RUNNABLE_FAILURE = (
 #: instances and Chrome were holding ~72% CPU. The tests weren't hanging — they were finishing a few
 #: seconds late, and whichever one crossed the line got reported as a hang and blocked the deploy.
 #: Five consecutive deploys died on that, each on a different test, each passing in isolation.
+#: The suite must not spend the real autonomy window (36.F6). Several tests drive a real
+#: TaskWorker, and a measured run consumed 64 of 200 calls - so the ledger is pointed at a
+#: throwaway file for the duration. Set before any test imports afon.brain.governor.
+os.environ.setdefault(
+    "AFON_GOVERNOR_LEDGER",
+    str(Path(tempfile.gettempdir()) / "afon-test-governor.json"),
+)
+
 #: Override with AFON_TEST_TIMEOUT_S on a slower machine.
 TEST_TIMEOUT_S = int(os.environ.get("AFON_TEST_TIMEOUT_S", "420"))
 
@@ -697,3 +817,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

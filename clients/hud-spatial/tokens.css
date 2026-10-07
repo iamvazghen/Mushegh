@@ -1,0 +1,33 @@
+:root {
+  color-scheme: dark;
+  --color-paper: #030712;
+  --color-surface: #08111d;
+  --color-surface-raised: #0d1927;
+  --color-glass: rgba(15, 23, 42, 0.65);
+  --color-model: #103544;
+  --color-text: #f8fafc;
+  --color-muted: #91a5b9;
+  --color-dim: #6d8398;
+  --color-accent: #00f0ff;
+  --color-accent-soft: rgba(0, 240, 255, 0.08);
+  --color-line: #233b4a;
+  --color-glass-border: rgba(0, 240, 255, 0.15);
+  --color-purple: #a78bfa;
+  --color-error: #ff668d;
+  --color-alert: #ff0055;
+  --color-success: #00ff66;
+  --color-warning: #e6bd76;
+  --color-shadow: rgba(0, 0, 0, 0.6);
+  --color-focus: #f8fafc;
+  --color-accent-ink: #030712;
+  --color-pdf-paper: #f8fafc;
+  --color-pdf-ink: #101b26;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-display: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --space-xs: 4px; --space-sm: 8px; --space-md: 12px; --space-lg: 16px; --space-xl: 24px; --space-2xl: 32px;
+  --text-xs: 10px; --text-sm: 12px; --text-body: 14px; --text-lg: 20px; --text-display: 30px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-short: 180ms; --dur-layout: 350ms; --radius-panel: 18px; --radius-control: 14px; --radius-small: 10px;
+  --z-base: 1; --z-modal: 100; --z-dialog: 110;
+}

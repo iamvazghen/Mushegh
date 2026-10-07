@@ -83,8 +83,16 @@ def main() -> None:
 
     print("\n[3] STT floor: the streaming provider is the accurate/low-latency one")
     # A regression that silently flips the DEFAULT provider back to local whisper on a no-GPU CPU
-    # (which added ~4s to short phrases) would gut latency. The personal deploy uses deepgram; the
-    # framework default is deepgram too. Guard that the shipped default stays streaming-cloud.
+    # would gut latency, and the number is now MEASURED rather than remembered. 2026-10-04, this
+    # machine, `whisper_model=base` (the fast size), int8, CPU only, five synthesised utterances:
+    # mean 3.00s, median 2.94s, p95 3.95s, real-time factor 1.39 — it transcribes slower than the
+    # owner speaks, and the mean budget below is 1800ms. So this is 1.7x over.
+    #
+    # The reason this floor exists is not preference: Deepgram's nova-3 `multi` cannot transcribe
+    # UKRAINIAN, which the owner speaks, and that failure is silent — plausible Russian comes back
+    # and Afon answers confidently in the wrong language. Neither provider is acceptable alone, so
+    # the fix is routing by language rather than picking a winner; that is 18.R7 and the owner's
+    # call. Until then this guard holds the default where the measurement says it can live.
     from afon.config import STTProvider
     default_stt = type(settings)().stt_provider  # a fresh Settings() = the shipped default, not .env
     check("shipped default STT is deepgram (streaming, low-latency)",

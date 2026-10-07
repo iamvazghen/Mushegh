@@ -60,7 +60,7 @@ REQUIRED = ("ts", "intent", "tools_considered", "catalogue_tokens", "prefill_tok
 #: classifier. `turn_trace.classify` below mirrors `_prepare_turn`'s precedence rather than calling
 #: `intent_router.classify`, because it answers from the signals the router has ALREADY computed
 #: for the turn — no second parse, and `test_metrics.py` holds the two in step.
-INTENTS = ("chat", "lookup", "act", "multi", "ambiguous", "emergency", "general", "refused")
+INTENTS = ("chat", "lookup", "act", "multi", "ambiguous", "emergency", "decision", "general", "refused")
 
 #: Tool-name prefixes that CHANGE something. A narrowed turn is a lookup unless its one tool is
 #: one of these. Deliberately the inverse of an allowlist of read verbs: most of the 142 tools are
@@ -180,6 +180,16 @@ class TurnTrace:
     model: str = ""
     answer_tokens: int = 0
     seq: int = 0
+    #: 31.F5 - the correlation id this turn shares with the edge's logs, the pc agent's, the
+    #: error journal and every audit line the turn writes. Minted on the edge when the user stops
+    #: speaking and adopted by the brain, so ONE key retrieves every record of a turn that went
+    #: wrong. Blank only for a turn that reached the tracer without going through a correlated
+    #: entry point, which is itself worth seeing.
+    #: ponytail: deliberately NOT added to REQUIRED. That tuple gates rows already on disk, and
+    #: 285 historical rows could not have carried a field that did not exist - failing the honesty
+    #: gate on them would say something false about history. `test_correlation_id.py` gates the
+    #: field on newly emitted rows instead, which is the claim actually being made.
+    turn_id: str = ""
     _t0: float = field(default_factory=time.perf_counter)
 
     def set_intent(self, intent: str) -> None:
@@ -235,6 +245,7 @@ class TurnTrace:
         return {
             "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
             "seq": self.seq,
+            "turn_id": self.turn_id,
             "intent": self.intent,
             "language": self.language,
             "streamed": self.streamed,
@@ -304,7 +315,14 @@ def turn(user_text: str = "", streamed: bool = False) -> Iterator[TurnTrace]:
     with _LOCK:
         _seq += 1
         seq = _seq
-    t = TurnTrace(text=user_text[:120], streamed=streamed, seq=seq)
+    # 31.F5 - adopt whatever correlation id is already in flight on this task. `current_turn()`
+    # returns the id the edge minted and the server adopted; outside a correlated entry point it
+    # is blank, and a blank id is recorded as blank rather than invented, so an unjoinable turn
+    # is visible as one.
+    from afon.shared.errors import current_turn
+
+    t = TurnTrace(text=user_text[:120], streamed=streamed, seq=seq,
+                  turn_id=current_turn() or "")
     token = _CURRENT.set(t)
     try:
         yield t

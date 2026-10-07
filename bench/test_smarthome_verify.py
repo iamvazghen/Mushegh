@@ -107,7 +107,12 @@ async def main() -> None:
     print("\n[4] when he cannot read it back, he refuses to claim it worked")
     get_raises = True
     post_reply = []
-    out = await sh.ha_call({"domain": "lock", "service": "lock", "entity": "lock.front_door"})
+    # `climate`, not `lock`: a lock is refused outright under D-13 (28.R4), so using one here
+    # would test the blast radius instead of the read-back, and the two failures would be
+    # indistinguishable. This section is about honesty about verification, so it needs a
+    # domain that still actuates.
+    out = await sh.ha_call({"domain": "climate", "service": "set_temperature",
+                            "entity": "climate.hall"})
     check("the failure to verify is stated plainly", "couldn't read it back" in out, out)
     check("...and he does not say it worked", "can't tell you it worked" in out, out)
     get_raises = False
@@ -128,7 +133,11 @@ async def main() -> None:
           "is off" in out and "wrong with it" not in out, out)
 
     print("\n[7] what isn't only his, he confirms first  [28.F3]")
-    check("a lock confirms", confirm_required("ha_call", {"domain": "lock", "service": "lock"}))
+    # A lock is still flagged here, but the gate is no longer what stops it — D-13 refuses it
+    # outright inside ha_call (28.R4, test_blast_radius_refusal.py). Both layers agree it is
+    # sensitive; only one of them is load-bearing.
+    check("a lock is still flagged as sensitive at the gate",
+          confirm_required("ha_call", {"domain": "lock", "service": "lock"}))
     check("an alarm confirms",
           confirm_required("ha_call", {"domain": "alarm_control_panel", "service": "arm_away"}))
     check("a cover confirms",

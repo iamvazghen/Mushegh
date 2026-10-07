@@ -44,19 +44,22 @@ LAYERS: dict[str, str] = {
     "L2": "the daily journal",
     "L3": "the Obsidian vault",
     "L5": "semantic similarity over L1",   # folds into L1 rather than returning separately
-    "L5b": "the entity graph",
+    "L5b": "removed — the relation layer is gone (D-26)",
     "L4": "open tasks and to-dos",
 }
 
 #: Per-store wall-clock budget. The whole point: one slow layer must not own the answer.
 #:
-#: Split local from network deliberately. L1, L2, L4 and L5b are sqlite and files on this host and
+#: Split local from network deliberately. L1, L2 and L4 are sqlite and files on this host and
 #: have no business taking a second; L3 searches the vault and L5 embeds through api.jina.ai, so
 #: they get real network budgets. That distinction is what makes the number matter: auto-recall
 #: runs on EVERY turn over the local layers only, and S30 budgets recall at p95 <= 300ms — a
 #: single flat backstop generous enough for Jina would have put five seconds on the turn path.
+#:
+#: L5b is still listed, and still budgeted, so a caller that asks for it gets a quiet miss rather
+#: than a KeyError. The layer it named no longer exists.
 LAYER_TIMEOUT_S: dict[str, float] = {
-    "L1": 1.0, "L2": 1.0, "L4": 0.5, "L5b": 1.0,   # local
+    "L1": 1.0, "L2": 1.0, "L4": 0.5, "L5b": 1.0,   # local (L5b is a no-op now)
     "L3": 4.0, "L5": 4.0,                           # network
 }
 DEFAULT_TIMEOUT_S = 2.5

@@ -51,7 +51,10 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 #: The one module allowed to know where state lives. Everyone else asks it.
 OWNER = "shared/paths.py"
 
-#: Store basenames that used to be resolved against the repo root.
+#: Store basenames that used to be resolved against the repo root. `afon_graph.sqlite` is
+#: listed even though the relation layer is gone (D-26, M04): a host that ran the old code may
+#: still have one sitting in its repo, and the migration has to move it anyway. A file the
+#: code no longer writes is still a file the owner has.
 STORE_FILES = ("afon_graph.sqlite", "afon_vectors.sqlite", "afon_tasks.sqlite",
                "afon_coaching.sqlite", "afon_presence.sqlite", "afon_jobs.sqlite")
 
@@ -103,14 +106,13 @@ def main() -> None:
     # answers from it. Driven rather than grepped, because the failure is in what the function
     # RETURNS, and a store can import `state_dir` and then not use it.
     import afon.brain.coaching as coaching
-    import afon.brain.graph as graph
     import afon.brain.memory as memory
     import afon.brain.presence as presence
     import afon.brain.scheduler as scheduler
     import afon.brain.semantic as semantic
     import afon.brain.tasks as tasks
 
-    overrides = ("state_dir", "memory_graph_db_path", "memory_vector_db_path", "tasks_db_path",
+    overrides = ("state_dir", "memory_vector_db_path", "tasks_db_path",
                  "coaching_db_path", "presence_db_path", "scheduler_db_path",
                  "session_persist_path")
     saved = {k: getattr(settings, k, None) for k in overrides}
@@ -121,7 +123,6 @@ def main() -> None:
             settings.state_dir = td
             root = Path(td)
             resolved = {
-                "graph": graph._graph_db_path(),
                 "vectors": semantic._vector_db_path(),
                 "tasks": tasks._db_path(),
                 "coaching": coaching._db_path(),
@@ -133,8 +134,8 @@ def main() -> None:
                 check(f"{label} follows the state root", root in p.parents,
                       f"{p} — moving AFON_STATE_DIR leaves this store behind, silently empty")
             check("store_path agrees with the stores it is supposed to place",
-                  {store_path(n) for n in ("graph", "vectors", "tasks", "coaching", "presence")}
-                  == {resolved[n] for n in ("graph", "vectors", "tasks", "coaching", "presence")})
+                  {store_path(n) for n in ("vectors", "tasks", "coaching", "presence")}
+                  == {resolved[n] for n in ("vectors", "tasks", "coaching", "presence")})
             check("the memory dir is one directory, not one per caller",
                   memory.MemoryStore().base == memory_dir())
             # Two stores used to take their DIRECTORY from `settings.tasks_db_path`'s parent, so
@@ -337,3 +338,4 @@ def merge_is_a_union() -> None:
 
 if __name__ == "__main__":
     main()
+

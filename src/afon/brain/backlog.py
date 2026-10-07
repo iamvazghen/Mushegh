@@ -76,7 +76,8 @@ async def attempt_backlog(
             "searched...', 'I will now...'), no restating the task, no filler. Complete every sentence. "
             "End with a short 'Sources:' line naming what you verified against."
         )
-        worker = TaskWorker(llm, registry, worker_tools, max_steps=max_steps)
+        worker = TaskWorker(llm, registry, worker_tools, max_steps=max_steps,
+                            actor="afon:backlog")
         try:
             result = await worker.run(objective)
         except Exception as e:  # noqa: BLE001 — one task must not break the whole pass

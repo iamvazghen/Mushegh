@@ -70,15 +70,18 @@ class _ClosingConnection(sqlite3.Connection):
 
 
 def connect(path: str | Path, *, timeout: float = DEFAULT_TIMEOUT_S,
-            rows: bool = True) -> sqlite3.Connection:
+            rows: bool = True, read_only: bool = False) -> sqlite3.Connection:
     """Open a memory database with this brain's agreed settings.
 
     `rows=True` gives `sqlite3.Row` (index *and* name access), which is what a caller wants unless
     it is reading single scalar columns. Use it in a `with` block: the connection closes at the
     end of one, and only there.
+    `read_only=True` is for migration inspection: URI escaping handles spaces, # and ?, and
+    mode=ro refuses a missing source instead of silently creating an empty database.
     """
     global OPEN
-    conn = sqlite3.connect(str(path), timeout=timeout, factory=_ClosingConnection)
+    target = Path(path).resolve().as_uri() + "?mode=ro" if read_only else str(path)
+    conn = sqlite3.connect(target, timeout=timeout, factory=_ClosingConnection, uri=read_only)
     OPEN += 1
     if rows:
         conn.row_factory = sqlite3.Row

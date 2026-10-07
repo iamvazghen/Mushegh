@@ -7,8 +7,11 @@ silence, so ambient speech/media is ignored. Keeps Deepgram engaged only when ad
 
 The owner's required wake set (see README): afon, alfred, robbin, assist, time to work,
 wake up, six-one-nine. openWakeWord only ships pretrained models for a few phrases, so only
-the resolvable ones load here; the rest are reported as pending (Porcupine path). The engine
-is pluggable via ``AFON_WAKE_WORD_ENGINE``.
+the resolvable ones load here; the rest are reported as pending. The engine is **not**
+selectable: openWakeWord is the only one, and it runs on-device (D-19). There was once an
+``AFON_WAKE_WORD_ENGINE`` setting and a Porcupine key for custom phrases; both were read by
+nothing for months and were removed on 2026-10-04 (18.R5), because a switch that changes
+nothing while looking configurable is worse than no switch.
 
 Placement: directly after ``transport.input()`` (before the echo gate and STT).
 """

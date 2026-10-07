@@ -22,12 +22,13 @@ from typing import Any
 
 from loguru import logger
 
-from afon.brain.graph import GRAPH
 from afon.brain.memory import STORE
+from afon.brain.never_store import NeverStoreRefused
 
-# Adapted from Hermes' _MEMORY_REVIEW_PROMPT, tightened to return machine-parseable output. Now asks
-# for BOTH flat facts (L1) and explicit entity relations (L5b graph) in ONE call, so the graph layer
-# populates itself as the owner talks instead of sitting empty.
+# The L5b relation store is gone (D-26, M04). The prompt below still asks the model for both
+# facts and relations, because the relations it extracts are useful as facts — "he trains at
+# the gym" is a fact. Only the separate triple store is gone, not the behaviour of noticing
+# a relation; the parse simply no longer has somewhere else to put it.
 _EXTRACT_PROMPT = (
     "You are Afon's private memory reviewer. Read the conversation and extract what's worth "
     "remembering about the owner for months. Return ONLY a compact JSON object with two keys:\n"
@@ -97,10 +98,13 @@ def _parse_relations(raw: str) -> list[tuple[str, str, str]]:
     return out[:8]
 
 
-async def review_and_learn(history: list[dict[str, Any]], llm, store: Any = STORE,
-                           graph: Any = GRAPH) -> list[str]:
-    """Replay ``history``, extract durable facts (L1) + explicit relations (L5b graph), and write the
-    new ones. Returns the facts learned. ONE model call; graph writes are best-effort + deduped."""
+async def review_and_learn(history: list[dict[str, Any]], llm, store: Any = STORE) -> list[str]:
+    """Replay ``history``, extract durable facts (L1) and write the new ones. ONE model call.
+
+    The ``graph`` parameter is gone with the relation layer (D-26). It is dropped rather than
+    ignored so that a caller still passing it fails loudly here instead of quietly believing
+    its triples were stored.
+    """
     convo = "\n".join(
         f"{m['role']}: {m['content']}"
         for m in history
@@ -123,18 +127,20 @@ async def review_and_learn(history: list[dict[str, Any]], llm, store: Any = STOR
     learned: list[str] = []
     for f in facts:
         # Read out of a conversation by a model, not stated as fact (30.F3).
-        if store.remember(f, tags=["learned", "auto"], source="inferred"):
-            learned.append(f)
-    # L5b: write any explicit relations into the graph (dedup via INSERT OR IGNORE). Never fatal.
-    triples = 0
-    for s, p, o in _parse_relations(raw):
         try:
-            if graph.add(s, p, o):
-                triples += 1
-        except Exception as e:  # noqa: BLE001
-            logger.debug(f"graph relation write skipped ({type(e).__name__})")
+            if store.remember(f, tags=["learned", "auto"], source="inferred"):
+                learned.append(f)
+        except NeverStoreRefused as refused:
+            # 37.R5 / D-24. A refusal is a RESULT, not a failure: the batch continues, and one
+            # refused fact must not cost the owner the other facts the reviewer found. This loop is
+            # outside the try that guards the model call, so without this the raise would abort
+            # every remaining fact and read as "self-improvement skipped".
+            logger.warning(f"self-improve: refused a D-24 fact ({refused.cls}), continuing")
+    # The L5b relation write is GONE (D-26, M04). Parsed relations are no longer stored as
+    # triples: they are kept as ordinary L1 facts by the loop above, which is where a
+    # statement like "he trains at the gym" was already ending up anyway. The separate store is
+    # what produced stale relations, and it is the reason they are gone.
     new = store.count() - before
-    if learned or triples:
-        logger.info(f"self-improve: reviewed {len(history)} msgs -> {new} new fact(s) into L1, "
-                    f"{triples} relation(s) into L5b graph")
+    if learned:
+        logger.info(f"self-improve: reviewed {len(history)} msgs -> {new} new fact(s) into L1")
     return learned

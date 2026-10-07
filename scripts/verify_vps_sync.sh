@@ -14,7 +14,7 @@
 # hardcoded here; that would leak the deployment topology into the repo.
 set -uo pipefail
 
-if [[ -f "$(dirname "$0")/deploy_vps.env" ]]; then
+if [[ -z "${AFON_VPS:-}" && -f "$(dirname "$0")/deploy_vps.env" ]]; then
   # shellcheck disable=SC1091
   source "$(dirname "$0")/deploy_vps.env"
 fi
@@ -32,11 +32,11 @@ cd "$(dirname "$0")/.."
 normalise() { awk '{h=$1; $1=""; sub(/^  */,""); sub(/^\*/,""); print $0 "\t" h}'; }
 
 hash_local() {
-  find $TREES -type f ! -path '*__pycache__*' ! -name '*.pyc' -print0 2>/dev/null |
+  find $TREES -type f ! -path '*__pycache__*' ! -path '*/node_modules/*' ! -name '*.pyc' -print0 2>/dev/null |
     xargs -0 sha256sum | normalise
 }
 hash_remote() {
-  ssh "$VPS" "cd '$REMOTE' && find $TREES -type f ! -path '*__pycache__*' ! -name '*.pyc' -print0 2>/dev/null | xargs -0 sha256sum" | normalise
+  ssh "$VPS" "cd '$REMOTE' && find $TREES -type f ! -path '*__pycache__*' ! -path '*/node_modules/*' ! -name '*.pyc' -print0 2>/dev/null | xargs -0 sha256sum" | normalise
 }
 
 L=$(mktemp); R=$(mktemp)

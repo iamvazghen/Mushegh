@@ -131,6 +131,20 @@ class FleetUnavailable(RuntimeError):
     """Raised when the fleet can't be reached or delegation is disabled."""
 
 
+class FleetStalled(FleetUnavailable):
+    """39.R2 — the fleet TOOK the work and did not answer in time. Not the same as being down.
+
+    A subclass of `FleetUnavailable` so every existing caller keeps handling it, and a separate type
+    so the two are never confused again. The distinction is the whole point: an unreachable fleet
+    means the request never arrived, and re-sending it is safe; a stall means it MAY have arrived and
+    may still be running, and re-sending it can execute a non-idempotent task — send this email,
+    spawn this process, pay this — twice. Those two cases used to take the same path, because a
+    `TimeoutError` was caught by a bare `except Exception` and reported as a gateway error before
+    being retried over the CLI. The owner was told the bridge was broken when the bridge had
+    answered and simply gone quiet.
+    """
+
+
 async def delegate_to_fleet(
     task: str,
     timeout_s: int | None = None,
@@ -195,7 +209,26 @@ async def delegate_to_fleet(
     try:
         result = await asyncio.wait_for(_run(), timeout=timeout_s + 15)
         _reset_ws_block()  # the fast path works — make sure the breaker isn't holding it back
+    except (asyncio.TimeoutError, TimeoutError) as e:
+        # 39.R2 — A STALL, and three things must not happen here. All three used to.
+        #
+        # 1. The breaker must NOT be tripped. The gateway answered the challenge and then went
+        #    quiet; blocking the WebSocket punishes every LATER turn for one slow one.
+        # 2. The CLI fallback must NOT re-send the task. A timeout says the request may still be
+        #    running over there, and a non-idempotent task then happens TWICE. Re-dispatch is safe
+        #    after a CONNECTION failure precisely because nothing was ever sent; it is not safe
+        #    here, and the old code did it because `TimeoutError` matched `except Exception`.
+        # 3. The work must come BACK rather than be dropped, or the owner is told a story about a
+        #    task nobody is doing any more.
+        if on_progress:
+            on_progress("the team lead went quiet — taking the work back rather than sending it twice")
+        raise FleetStalled(
+            f"the team lead took the job and did not answer within {timeout_s + 15}s. I have taken "
+            f"it back rather than send it a second time, because it may still be running over "
+            f"there. Tell me if it turns up, and I will not re-send it without you saying so."
+        ) from e
     except FleetUnavailable as e:
+        # Genuinely unreachable: nothing was sent, so re-dispatching over the CLI is safe.
         _block_ws(str(e)[:120])
         try:
             result = await _delegate_via_cli(task, timeout_s)

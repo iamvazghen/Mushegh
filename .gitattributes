@@ -8,3 +8,4 @@
 # They are run by sh, so a CRLF checkout breaks them exactly the same way — and a broken
 # post-commit hook fails silently, which is how the graph froze on 2026-08-09.
 scripts/githooks/* text eol=lf
+graphify-out/graph.json merge=graphify

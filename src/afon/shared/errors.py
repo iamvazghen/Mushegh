@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from afon.shared.redact import withhold_media
+
 from loguru import logger
 from afon.shared.paths import state_dir
 
@@ -81,7 +83,14 @@ def _scrub(text: str) -> str:
                   r"(\"?\s*[:=]\s*\"?)([^\s\",&}]{4,})", r"\1\2<redacted>", text)
     text = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._\-]{8,}", "bearer <redacted>", text)
     text = re.sub(r"\b(sk|xi|dg|pk)-[A-Za-z0-9_\-]{12,}\b", r"\1-<redacted>", text)
-    return text
+    # 26.R5 / D-66 — and these are NOT secrets, which is exactly why they needed their own rule.
+    # A crash report is one of the three places the charter says a frame may never reach, and an
+    # exception is how a frame gets there: `LLMClient.see` puts the JPEG in a data URI, an SDK error
+    # quotes the request it failed on, and the 600-char message clip below used to store the first
+    # 600 characters of the image — a recognisable fragment of the owner's face, written to
+    # `errors.jsonl` beside a stack trace, by the crash path. The credential rules above cannot see
+    # it. The rule itself lives in `afon.shared.redact` because the audit trail needs the same one.
+    return withhold_media(text)
 
 
 def _subsystem(name: str) -> str:

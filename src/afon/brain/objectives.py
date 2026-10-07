@@ -393,7 +393,8 @@ async def advance_objectives(
 
     book = book or OBJECTIVES
     make = worker_factory or (
-        lambda o: TaskWorker(llm, registry, tools, max_steps=max_steps, origin=f"objective:{o.id}")
+        lambda o: TaskWorker(llm, registry, tools, max_steps=max_steps,
+                             origin=f"objective:{o.id}", actor="afon:objectives")
     )
     out: list[dict] = []
     for obj in book.active()[:max_objectives]:

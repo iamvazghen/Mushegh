@@ -4,8 +4,11 @@ The owner asked for smart-home; Home Assistant is the privacy-respecting, local 
 HA instance's REST API with a long-lived token (``AFON_HA_URL`` / ``AFON_HA_TOKEN``).
 ``ha_state`` reads ("is the front door locked?"); ``ha_call`` actuates (lights, scenes, climate,
 locks). Security-sensitive domains (see ``SENSITIVE_DOMAINS``) are ENFORCED as confirm-gated in
-``proactive.confirm_required`` — a lock/alarm/cover/garage call is held until the owner affirms —
-while a light or scene flows without friction (a voice home shouldn't nag to turn on a lamp).
+``proactive.confirm_required`` — an alarm/cover/garage/climate call is held until the owner
+affirms — while a light or scene flows without friction (a voice home shouldn't nag to turn on
+a lamp). Physical door locks are further out than that: ``lock`` and ``garage_door`` are REFUSED
+outright by ``ha_call`` (see ``BLAST_RADIUS_DOMAINS``), because D-13 puts them beyond a typed
+confirmation. Reading a lock is still allowed — that is information, not actuation.
 Degrades to a spoken note when HA isn't configured. See docs/home-assistant.md for setup + checks.
 """
 
@@ -23,6 +26,34 @@ _NEEDS = "a Home Assistant URL + long-lived token (AFON_HA_URL / AFON_HA_TOKEN)"
 #: the temperature he sets, and unlike a lamp nobody else can simply undo it from the wall.
 SENSITIVE_DOMAINS = {"lock", "alarm_control_panel", "cover", "garage_door",
                      "climate", "water_heater"}
+
+#: D-13: physical door locks are outside the blast radius, and a confirmation is not the
+#: difference that matters. D-13 requires the owner to be *physically present*; a typed "yes"
+#: is not presence, so a confirm-gated lock is a lock one voice command away from opening. The
+#: only way to honour the decision is for no code path to reach the actuator at all, which is
+#: why this refuses inside ``ha_call`` rather than in the confirm gate above it — a refusal that
+#: lives only in the policy layer is one refactor away from being wrong.
+#:
+#: Scoped to what D-13 actually names. ``alarm_control_panel``, ``cover``, ``climate`` and
+#: ``water_heater`` keep the confirm-gated middle tier: reaching past the owner deserves a
+#: second look, but it is not entry.
+#:
+#: Reads are unaffected — ``ha_state`` still reports whether the front door is locked, because
+#: information is not actuation. (28.R4)
+BLAST_RADIUS_DOMAINS = frozenset({"lock", "garage_door"})
+
+#: Spoken refusals, one per domain, so the answer names the boundary rather than the mechanism.
+_BLAST_RADIUS_REFUSALS = {
+    "lock": "I don't work door locks, sir. That one is yours to do at the door — I can tell you "
+            "whether it's locked, if you like.",
+    "garage_door": "I don't drive the garage door, sir. It's yours to open or close by hand; ask "
+                   "me and I'll tell you what state it's in.",
+}
+
+
+def _refuse_blast_radius(domain: str) -> str | None:
+    """The spoken refusal for a domain outside the blast radius, or None to let the call through."""
+    return _BLAST_RADIUS_REFUSALS.get(domain)
 
 
 def _configured() -> bool:
@@ -56,6 +87,11 @@ async def ha_call(args: dict) -> str:
     entity = (args.get("entity") or "").strip()
     if not (domain and service):
         return "I need a domain and service to call, sir (e.g. light / turn_on)."
+    # D-13. Before the try, and before any request is built: a refusal that happened after the
+    # HTTP call would have already opened the door it is declining to open.
+    refusal = _refuse_blast_radius(domain)
+    if refusal is not None:
+        return refusal
     try:
         url = f"{settings.ha_url.rstrip('/')}/api/services/{domain}/{service}"
         payload = {"entity_id": entity} if entity else {}

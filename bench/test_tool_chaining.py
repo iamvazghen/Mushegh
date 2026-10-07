@@ -125,8 +125,14 @@ def main() -> None:
     i_confirm = src.index("if confirm_required(name, args) and not self._confirm_granted:")
     check("the recipient is resolved before the confirm gate reads the call", i_chain < i_confirm,
           "confirming 'Anna' and sending to @anna_k is a confirmation of something else")
+    # The window is the held branch ITSELF - from the resolve call to the `continue` that ends it -
+    # and not a byte count. A byte count measures whatever prose happens to sit inside it: this
+    # check failed on 2026-09-20 because O2.5 added the missing audit line to this branch, i.e.
+    # because the branch got safer. `continue` is also the closer statement of intent, since it is
+    # how the call is actually stopped.
+    held = src[i_chain:src.index("\n                continue\n", i_chain)]
     check("a held chain stops the call rather than sending it",
-          '"blocked": True' in src[i_chain:i_chain + 600])
+          '"blocked": True' in held, held[-160:])
     check("the model is told to ask, not to state", "_CHAIN_ASK" in src)
     from afon.brain import agent as A
     check("...and explicitly not to say it has sent anything",

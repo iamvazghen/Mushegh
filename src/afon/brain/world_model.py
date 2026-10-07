@@ -267,26 +267,16 @@ class WorldModel:
 
 
 def what_i_dont_know(entity: str, kind: str = "person", graph=None) -> str:
-    """A spoken answer that includes the shape of the gap (24.F2).
+    """Removed with the relation layer (D-26, M04).
 
-    Afon could always say what he knew about someone. He could not say what he *didn't* — so an
-    entity he held two facts about and an entity he held twenty about sounded equally complete,
-    and the owner had no way to tell which answers were thin. Naming the gaps is what makes the
-    difference audible, and it is what turns "tell me about X" into a question he can help close.
+    It answered "what do I *not* know about this person" by reading the graph's `describe` and
+    `gaps` — and the gaps it named were the gaps of a store the owner had stopped trusting,
+    not the gaps in what Afon actually knew. A confident, well-spoken list of missing fields
+    is worse than saying nothing, so the method goes rather than being re-pointed at a store it
+    was never written for. The capability it wanted is real; an honest version needs a source
+    of truth this system does not have yet.
     """
-    if graph is None:
-        from afon.brain.graph import GRAPH as graph
-    known = graph.describe(entity)
-    missing = graph.gaps(entity, kind)
-    if not known and not missing:
-        return f"I have nothing at all about {entity}, sir."
-    if not known:
-        return (f"I have nothing recorded about {entity}, sir — not their "
-                f"{_join(missing)}.")
-    lines = "; ".join(known[:6])
-    if not missing:
-        return f"About {entity}, sir: {lines}. That's everything I track about them."
-    return (f"About {entity}, sir: {lines}. I don't have their {_join(missing)}.")
+    return f"I don't keep track of {entity} any more, sir."
 
 
 def _join(items: list[str]) -> str:

@@ -14,6 +14,7 @@ All handlers return a short speakable string and never raise.
 from __future__ import annotations
 
 import asyncio
+import re
 import shutil
 import subprocess
 import sys
@@ -254,6 +255,81 @@ async def _process_op_local(args: dict) -> str:
         return tool_error("process operation", e)
 
 
+
+# ---- 04.R4: bound the shell's blast radius ----------------------------------------------------
+#: Cmdlets, aliases and binaries that reach the network. Matched as whole words on a lowercased
+#: command, so `curl` matches and `curling` does not.
+_NET_WORDS = (
+    "invoke-webrequest", "iwr", "invoke-restmethod", "irm", "curl", "wget",
+    "start-bitstransfer", "webclient", "downloadstring", "downloadfile", "net.sockets",
+    "test-netconnection", "resolve-dnsname", "new-pssession", "enter-pssession",
+    "ssh", "scp", "sftp", "ftp", "rsync", "nc", "telnet", "bitsadmin", "certutil",
+)
+
+#: A scheme or a UNC path is a network reach whatever verb carries it.
+_NET_PREFIXES = ("http://", "https://", "ftp://", "\\\\")
+
+
+def shell_workdir() -> Path:
+    """The one directory the shell is allowed to work in. Created on demand.
+
+    Explicit because the alternative is not "no bound" but "whatever directory the pc_agent process
+    was started in", which is worse: unbounded AND unpredictable.
+    """
+    configured = (settings.shell_workdir or "").strip()
+    if configured:
+        root = Path(configured).expanduser()
+    else:
+        root = state_dir() / "shell"
+    root.mkdir(parents=True, exist_ok=True)
+    return root.resolve()
+
+
+def shell_escape(command: str, *, workdir: Path | None = None,
+                 allow_network: bool | None = None) -> str:
+    """04.R4 - why this command leaves the bound, or "" if it stays inside.
+
+    ponytail: this is a **tripwire, not a sandbox**. Scanning a PowerShell string cannot be
+    complete - `& ([char]105+...)` defeats any word list, and nothing here stops it. The real bound
+    is the working directory the process actually runs in; this exists to catch and NAME the
+    ordinary case, which given one owner and one principal is a mistake rather than an attacker.
+    Upgrade path if that threat model ever changes: a constrained-language-mode runspace or a
+    container, not a longer word list.
+    """
+    cmd = (command or "").strip()
+    if not cmd:
+        return ""
+    low = cmd.lower()
+    root = (workdir or shell_workdir())
+    net_ok = settings.shell_allow_network if allow_network is None else allow_network
+
+    if not net_ok:
+        for pre in _NET_PREFIXES:
+            if pre in low:
+                return f"it reaches the network ({pre.rstrip(':/')})"
+        for word in _NET_WORDS:
+            if re.search(rf"(?<![\w-]){re.escape(word)}(?![\w-])", low):
+                return f"it reaches the network (`{word}`)"
+
+    if re.search(r"(?<![\w.])\.\.[\\/]", cmd):
+        return "it walks up out of the working directory (`..`)"
+    if re.search(r"(?<![\w])~[\\/]", cmd):
+        return "it refers to the home directory, which is outside the working directory"
+
+    # Absolute paths, Windows and POSIX. A path inside the bound is fine; anything else is the
+    # escape this is here to catch.
+    for m in re.finditer(r"(?<![\w])([A-Za-z]:[\\/][^\s\"\';|)]*|/[A-Za-z][^\s\"\';|)]*)", cmd):
+        raw = m.group(1).rstrip("\\/\"';")
+        try:
+            candidate = Path(raw).expanduser().resolve()
+        except (OSError, ValueError):
+            continue
+        if candidate == root or root in candidate.parents:
+            continue
+        return f"it touches `{raw}`, which is outside the working directory"
+    return ""
+
+
 async def _run_powershell_local(args: dict) -> str:
     if not _enabled():
         return "System tools are disabled, sir."
@@ -261,6 +337,13 @@ async def _run_powershell_local(args: dict) -> str:
     as_admin = bool(args.get("as_admin"))
     if not command:
         return "What PowerShell command, sir?"
+    # 04.R4 - bound the blast radius. The cwd below is the bound; this names the escape so the
+    # refusal is specific enough for the owner to decide what he actually wanted.
+    workdir = shell_workdir()
+    escape = shell_escape(command, workdir=workdir)
+    if escape:
+        return (f"I won't run that as-is, sir — {escape}. I work in {workdir}; tell me to do it "
+                "there, or say explicitly that you want me outside it.")
     try:
         if as_admin:
             # Relaunch elevated via UAC. Output goes to its own window (not captured here).
@@ -271,7 +354,8 @@ async def _run_powershell_local(args: dict) -> str:
             await asyncio.to_thread(
                 subprocess.run,
                 [_win_exe("powershell"), "-NoProfile", "-NonInteractive", "-Command", launcher],
-                capture_output=True, text=True, timeout=30, creationflags=_NO_WINDOW, startupinfo=_hidden_startupinfo(),
+                capture_output=True, text=True, timeout=30, cwd=str(workdir),
+                creationflags=_NO_WINDOW, startupinfo=_hidden_startupinfo(),
             )
             return ("I launched that as administrator, sir — accept the Windows prompt to let it run. "
                     "(Elevated output runs in its own window.)")
@@ -279,7 +363,7 @@ async def _run_powershell_local(args: dict) -> str:
             subprocess.run,
             [_win_exe("powershell"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
              "-Command", command],
-            capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL,
+            capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL, cwd=str(workdir),
             creationflags=_NO_WINDOW, startupinfo=_hidden_startupinfo(),
         )
         out = (r.stdout or "").strip() or (r.stderr or "").strip()

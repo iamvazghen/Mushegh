@@ -9,7 +9,8 @@ so they work offline and never crash the brain.
 from __future__ import annotations
 
 from afon.brain.memory import STORE
-from afon.brain.tools.base import missing_arg, tool_error
+from afon.brain.never_store import NeverStoreRefused
+from afon.brain.tools.base import ErrorKind, ToolResult, missing_arg, tool_error
 from afon.config import settings
 
 
@@ -51,6 +52,12 @@ async def remember(args: dict) -> str:
         # He said it outright — nothing outranks that (30.F3).
         STORE.remember(text, tags=tags, source="owner")
         return "Noted, sir — I'll remember that."
+    except NeverStoreRefused as refused:
+        # 37.R5 / D-24. Spoken in the owner's language, not as "I couldn't complete the remember
+        # (NeverStoreRefused)": the assistant did not malfunction, it declined on purpose, and
+        # telling him otherwise would be a lie about his own system. The `REFUSED` kind is what
+        # makes the audit line record this as a refusal rather than an allowed call.
+        return ToolResult(refused.verdict.spoken, ErrorKind.REFUSED)
     except Exception as e:  # noqa: BLE001
         return tool_error("remember", e)
 

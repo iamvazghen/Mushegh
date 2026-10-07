@@ -123,7 +123,7 @@ async def main() -> None:
         check("correct password speaks a confirmation", "sir" in r.lower(), r)
 
         launched.clear()
-        r2 = await protocols_tool.run_protocol(
+        await protocols_tool.run_protocol(
             {"name": "backup", "password": settings.protocol_backup_password}
         )
         ok = "argv" in launched and str(launched["argv"][1]).endswith("backup.py")
@@ -137,14 +137,27 @@ async def main() -> None:
     # ignore_cleanup_errors: on Windows the SQLite jobstore file can stay briefly locked
     # after shutdown; the assertions below are what matter, not the temp-dir teardown.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+        real_scheduler_path = settings.scheduler_db_path
         settings.scheduler_db_path = str(Path(d) / "jobs.sqlite")
         from afon.brain.scheduler import SCHEDULER
-        from afon.brain.tools import notify, reminders
+        from afon.brain.tools import base as http_base, notify, reminders
 
         # Keep this block hermetic: no real ntfy POST to the phone. (Phase 4b's ntfy path gets
         # its own monkeypatched check below.)
         real_topic = settings.ntfy_topic
+        real_ticker = settings.ticker_url
+        real_request = http_base._request
+        attempted_requests = []
+
+        async def no_network(method, url, **kwargs):
+            attempted_requests.append(method)
+            raise AssertionError("Offline scheduler fixture attempted a real HTTP request")
+
+        # A real .env used to leak ticker POSTs from both cancellation and daily registration.
+        # Disable that integration AND guard the transport so a future leak fails without sending.
         settings.ntfy_topic = ""
+        settings.ticker_url = None
+        http_base._request = no_network
         try:
             SCHEDULER.start()  # running loop (asyncio.run) is active here
             r = await reminders.set_reminder({"message": "test ping", "in_minutes": 120})
@@ -197,6 +210,10 @@ async def main() -> None:
                 notify.push = real_push
         finally:
             settings.ntfy_topic = real_topic
+            settings.ticker_url = real_ticker
+            settings.scheduler_db_path = real_scheduler_path
+            http_base._request = real_request
+            check("offline scheduler never attempted HTTP", not attempted_requests)
             if SCHEDULER._sched and SCHEDULER._sched.running:
                 SCHEDULER._sched.shutdown(wait=False)
                 SCHEDULER._sched = None

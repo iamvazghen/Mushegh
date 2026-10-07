@@ -50,38 +50,28 @@ def check(name: str, ok: bool, detail: str = "") -> None:
         print(f"  [FAIL] {name} {detail}")
 
 
-PLAN = """
-| Wave | Systems | Why first |
-|---|---|---|
-| **0 — Unpark safely** | S31, S36, S22, S23 | Nothing goes back into production until… |
-| **1 — The organs** | S01, S02 | later |
+def _task(tid, tier, state, title, tests):
+    return {"id": tid, "tier": tier, "state": state, "title": title, "test_names": tests}
 
-## S31 · Self-Monitoring
 
-**Floor**
-- [x] 31.F1 A thing that is done. *gate:* `test_alpha.py`
-- [ ] 31.F2 A thing that is not done. *gate:* `test_beta.py`
-
-**Raise**
-- [ ] 31.R1 Not a floor, must be ignored. *gate:* `test_never_run.py`
-
----
-
-## S36 · Security
-
-**Floor**
-- [x] 36.F1 Two gates, the second wrapped onto its own line. *gate:* `test_alpha.py`,
-      `test_gamma.py`
-
----
-
-## S01 · Brain
-
-**Floor**
-- [ ] 1.F1 Wave 1, must be ignored. *gate:* `test_never_run.py`
-
----
-"""
+PLAN = {
+    "systems": [
+        {"id": "S31", "wave": "0", "tasks": [
+            _task("31.F1", "F", "done", "A thing that is done.", ["test_alpha.py"]),
+            _task("31.F2", "F", "open", "A thing that is not done.", ["test_beta.py"]),
+            _task("31.R1", "R", "open", "Not a floor, must be ignored.", ["test_never_run.py"]),
+        ]},
+        {"id": "S36", "wave": "0", "tasks": [
+            _task("36.F1", "F", "done", "A floor naming two gates.",
+                  ["test_alpha.py", "test_gamma.py"]),
+        ]},
+        {"id": "S22", "wave": "0", "tasks": []},
+        {"id": "S23", "wave": "0", "tasks": []},
+        {"id": "S01", "wave": "1", "tasks": [
+            _task("01.F1", "F", "open", "Wave 1, must be ignored.", ["test_never_run.py"]),
+        ]},
+    ]
+}
 
 
 def _runner(results: dict):
@@ -98,16 +88,16 @@ def _runner(results: dict):
 def main() -> int:
     print("[1] the checklist reads the plan, rather than keeping its own copy of it")
     systems = U.wave_systems(PLAN)
-    check(f"Wave 0's systems come from the wave table ({systems})",
+    check(f"Wave 0's systems come from the registry's wave field ({systems})",
           systems == ["S31", "S36", "S22", "S23"])
     tasks = U.floors(PLAN, systems)
     check(f"only Wave-0 FLOOR tasks are collected ({[t['id'] for t in tasks]})",
           [t["id"] for t in tasks] == ["31.F1", "31.F2", "36.F1"],
           "raise tasks and other waves must not gate production")
-    check("a gate wrapped onto a continuation line is still collected",
+    check("every gate a floor names is collected, not just the first",
           tasks[2]["gates"] == ["test_alpha.py", "test_gamma.py"],
-          "31.F2 in the real plan names two gates this way; a *gate:*-only rule ran half of them")
-    check("and the checkbox state is read per task",
+          "31.F2 in the real plan names two; running half of them reported it verified")
+    check("and the done/open state is read per task",
           [t["done"] for t in tasks] == [True, False, True])
     # Not the same statement as "raise tasks are not collected". Gates are gathered from every line
     # of a task, so without a tier boundary the **Raise** section's gate is appended to the LAST
@@ -116,6 +106,18 @@ def main() -> int:
     # keep flowing into the previous one.
     check("a raise task's gate does not leak into the floor above it",
           tasks[1]["gates"] == ["test_beta.py"], str(tasks[1]["gates"]))
+
+    # The checks above run on a fixture, which is why they all stayed green on 2026-09-16 while
+    # the real command was dead: the plan had become a generated dashboard with no wave table, so
+    # `unpark_check` refused every run and nothing noticed. A fixture proves the logic; only the
+    # real file proves the checklist is still plugged into the plan.
+    print("\n[1b] ...and the plan on disk still answers it")
+    real = U.load_plan()
+    real_systems = U.wave_systems(real)
+    check(f"{U.PLAN.name} puts systems in wave {U.WAVE} ({real_systems})", bool(real_systems),
+          "no wave data means the gate refuses forever, which reads as 'not ready' either way")
+    real_floors = U.floors(real, real_systems)
+    check(f"...and their floor tasks are readable ({len(real_floors)} found)", bool(real_floors))
 
     print("\n[2] an unfinished floor refuses, and says which")
     run = _runner({})
