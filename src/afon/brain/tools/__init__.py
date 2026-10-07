@@ -15,6 +15,7 @@ from typing import Any, Awaitable, Callable
 from afon.brain.tools import (
     activity,
     approvals,
+    bookroom,
     browser,
     calendar,
     audioout,
@@ -29,7 +30,7 @@ from afon.brain.tools import (
     documents,
     fitness,
     gmail,
-    graphmem,
+    hudui,
     inbox,
     localplay,
     macros,
@@ -64,9 +65,9 @@ from afon.brain.tools import (
 _MODULES = [vault, memory, web, telegram, voicechat, music, localplay, system, browser,
             protocols, reminders, notify, gmail, calendar, smarthome, utility, routines,
             coding, skills, notion, tasks, contacts, documents, composio, channels,
-            macros, multimodal, undo, graphmem, activity, coaching, camera, objectives,
+            macros, multimodal, undo, hudui, activity, coaching, camera, objectives,
             approvals, relationship, phone, maps, wolfram, fitness, diagnose,
-            audioout, day_shape, inbox, privacy, stock, portfolio]  # noqa: E501
+            audioout, day_shape, inbox, privacy, stock, portfolio, bookroom]  # noqa: E501
 
 Handler = Callable[[dict], Awaitable[str]]
 
@@ -86,7 +87,7 @@ _LAZY_GROUPS: dict[str, list] = {
     "screen": [multimodal],              # screenshot + OCR the screen — T6 (only on "look at my screen")
     "camera": [camera],                  # webcam vision (look_around) + visual presence — Phase 3.2/3.3
     "undo": [undo],                      # undo_last / list_recent_actions — T7 (only on "undo that")
-    "graph": [graphmem],                 # L5b structured relations + multi-hop recall (only when linking)
+    "hud": [hudui],                      # spatial HUD layout and presentation-only voice control
     "activity": [activity],              # screen-time / current activity / tracking privacy switch — Phase 0
     "coaching": [coaching],              # field skill reviews + progress (e.g. German quiz) — Phase 2
     "objectives": [objectives],          # multi-day objectives Afon drives (assign/status/…) — Phase 4.1
@@ -101,6 +102,7 @@ _LAZY_GROUPS: dict[str, list] = {
     "privacy": [privacy],                # what Afon stores about the owner, and for how long — S37
     "stock": [stock],                    # what the owner has and when it runs out — S47
     "money": [portfolio],                # read his ledger and value it; never moves any — S40
+    "reading": [bookroom],               # the owner's own book summarizer — D-86
 }
 # Substring triggers (lowercased) that activate a group for a turn. Broad on purpose — a miss just
 # means a one-turn delay (the follow-up usually contains the word, and groups stay warm one turn).
@@ -140,16 +142,19 @@ LAZY_GROUP_TRIGGERS: dict[str, tuple[str, ...]] = {
                "set up a"),
     "screen": ("my screen", "the screen", "look at my", "what's on screen", "whats on screen",
                "screenshot", "read the screen", "on my display", "see my screen", "what am i looking"),
-    "camera": ("camera", "webcam", "look around", "in front of me", "can you see", "look through",
+    # 'can you see' was removed from the camera triggers: "can you see this window?" is a SCREEN
+    # question and it armed the camera group. 'camera', 'webcam', 'look at this' and 'in front of
+    # me' cover the real phrasings, and the screen group keeps 'what am i looking' for the other
+    # half of that sentence.
+    "camera": ("camera", "webcam", "look around", "in front of me", "look through",
                "am i at my desk", "are you watching", "who's here", "who is here", "with your eyes",
                "point the camera", "through the camera", "look at this", "learn my face",
                "recognise me", "recognize me", "remember my face", "remember what i look like",
                "do you recognise", "do you recognize", "who am i", "enroll my face", "enrol my face"),
     "undo": ("undo", "undo that", "revert that", "take that back", "roll back", "rollback",
              "what did you just do", "recent actions", "last action"),
-    "graph": ("related to", "connected to", "connection between", "link ", "linked to", "how is",
-              "how are", "associate", "association", "relationship between", "what's tied to",
-              "whats tied to", "map out", "knowledge graph"),
+    "hud": ("hud", "canvas", "on screen", "on the screen", "bring up", "full screen",
+            "fullscreen", "minimize the", "minimise the", "show me the", "open the display"),
     "activity": ("screen time", "screentime", "screen-time", "what am i doing", "what have i been",
                  "how long have i", "how much time", "on my computer", "on the computer", "focused",
                  "productivity", "how long was i", "stop watching my screen", "pause tracking",
@@ -179,9 +184,12 @@ LAZY_GROUP_TRIGGERS: dict[str, tuple[str, ...]] = {
     # Phrasing matters here: "how long would it take me to drive from X to Y" matched NONE of the
     # original needles ("how long to", "drive to"), so the group never loaded and the model answered a
     # deterministic routing question with a web search (observed 2026-07-30, 6.3s and a wrong ETA).
+    # 'driving' was removed here for the same reason as 'out of': "what am I meant to be DRIVING at"
+    # is an objectives question and armed the places group. 'drive to', 'drive from' and 'how far'
+    # cover the real ones, and 'driving' in the objectives list below already exists as a phrase.
     "places": ("how long to", "how long would", "how long does it take", "how long will it take",
                "how far", "directions", "traffic", "route to", "eta", "drive to", "drive from",
-               "driving", "by car", "walk to", "cycle to", "travel time", "get there",
+               "by car", "walk to", "cycle to", "travel time", "get there",
                "get to the", "nearest", "find a restaurant", "find a place", "a good restaurant",
                "places near", "close by", "on the way", "when should i leave"),
     "compute": ("calculate", "compute", "convert", "how many", "what's the square", "whats the square",
@@ -206,8 +214,21 @@ LAZY_GROUP_TRIGGERS: dict[str, tuple[str, ...]] = {
     "money": ("portfolio", "my holdings", "what do i own", "net worth", "my investments",
               "my ledger", "what am i worth", "how are my stocks", "my shares", "my positions",
               "worth right now", "my assets"),
+    # D-86. Deliberately narrow: "book" alone fires on "book me a table" and "the booking",
+    # so the triggers name the artefact or the act rather than the word.
+    "reading": ("summarise this book", "summarize this book", "study guide", "this epub",
+                "an epub", "the epub", "summarise the book", "summarize the book",
+                "read this book", "chapter summary", "book summary", "summarise a book",
+                "summarize a book", "bookroom", "price the book", "what's in this pdf",
+                "whats in this pdf", "outline the book"),
+    # 03.R7, measured: 'out of' was removed from the stock triggers. It is two words of ordinary
+    # English and it fired on "the sound is coming OUT OF the wrong box", arming the stock group
+    # for a question about speakers. A mis-route is worse than a miss in this design — a miss costs
+    # one turn because the group stays warm on its TTL, while a wrong group spends catalogue budget
+    # on tools the owner never asked for and can fire one on a guess. 'run out' and 'running out'
+    # already cover the real stock phrasing, so nothing was lost.
     "stock": ("how much", "how many", "running low", "run out", "running out", "we have left",
-              "have left", "in stock", "out of", "restock", "reorder", "used up", "used the",
+              "have left", "in stock", "restock", "reorder", "used up", "used the",
               "sacks", "supplies", "inventory", "how long will", "do we have any",
               "do i have any", "bought more", "came in", "keep track of"),
     "dayshape": ("what should i do", "what should i work on", "what next", "what do i do next",
