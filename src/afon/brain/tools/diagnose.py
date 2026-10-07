@@ -61,9 +61,55 @@ def _why_last() -> str:
     return "For that last answer, sir: " + "; ".join(bits) + "." + tail
 
 
+def _executors() -> str:
+    """D-01 for the delegation layer: which executor serves what, and is it actually there.
+
+    The standing objection to delegating work to four external CLIs is that it is four more things
+    that can be down. That objection is only answered if the question is answerable *from the
+    running system* rather than by reading a source file at 2 AM, so it is a `diagnose` subject.
+    """
+    from afon.brain.executors import status
+
+    rows = status()
+    if not rows:
+        return "No executors are declared, sir."
+    up = [r for r in rows if r["installed"]]
+    parts = []
+    for r in rows:
+        mark = "ready" if r["installed"] else "NOT INSTALLED"
+        bits = f"{r['name']} ({'/'.join(r['domains'])}, {'/'.join(r['tiers'])}): {mark}"
+        if r["withholds"]:
+            bits += f", output withheld ({r['withholds']})"
+        parts.append(bits)
+    # The second half of the same 2 AM question: a ready executor whose landing path cannot
+    # function is a delegation that will reach the owner's approval and then fail on `git`.
+    # Reporting it here costs nothing and is the difference between diagnosing it and guessing.
+    try:
+        from afon.brain.executors import landing
+
+        tail = (" The landing path is ready." if landing.available()
+                else " WARNING: git is not on PATH, so no diff can be landed.")
+        trees = landing.worktree_root()
+        kept = sorted(p.name for p in trees.iterdir()) if trees.is_dir() else []
+        if kept:
+            tail += (f" {len(kept)} delegated worktree(s) are still on disk, kept from refused or "
+                     f"unanswered runs: {', '.join(kept[:4])}"
+                     + (" …" if len(kept) > 4 else "") + ".")
+    except Exception:  # noqa: BLE001 — a roster must still answer when one half of it is broken
+        tail = " I could not check the landing path."
+    return (f"{len(up)} of {len(rows)} executors are ready, sir. " + "; ".join(parts) + "."
+            + tail)
+
+
 async def diagnose(args: dict) -> str:
     """What has gone wrong recently, across every process."""
-    if str(args.get("about") or "").strip().lower() in ("last_turn", "last turn", "why"):
+    about = str(args.get("about") or "").strip().lower()
+    if about in ("executors", "executor", "delegation"):
+        try:
+            return _executors()
+        except Exception as e:  # noqa: BLE001
+            return tool_error("the executor roster", e)
+    if about in ("last_turn", "last turn", "why"):
         try:
             return _why_last()
         except Exception as e:  # noqa: BLE001
@@ -112,7 +158,9 @@ SCHEMAS = [
                 "about='last_turn' when he asks about the ANSWER rather than a failure — 'why did "
                 "you say that?', 'how do you know?', 'what did you use?', 'are you sure?' — and it "
                 "reports the tools that actually fired, the sites actually read, and whether the "
-                "answer was hedged. This is real recorded data — never guess when this can answer."
+                "answer was hedged. Pass about='executors' when he asks what Afon can delegate to, or "
+                "whether a coding, errand or finance executor is available. This is real "
+                "recorded data — never guess when this can answer."
             ),
             "parameters": {
                 "type": "object",
@@ -125,7 +173,10 @@ SCHEMAS = [
                              "description": "A turn id, to trace one turn across both machines."},
                     "about": {"type": "string",
                               "description": "'last_turn' to explain the previous ANSWER (tools "
-                                             "used, sources read, confidence) instead of failures."},
+                                             "used, sources read, confidence) instead of failures. "
+                                             "'executors' to report the delegation roster — which "
+                                             "external CLI serves which domain, and whether it is "
+                                             "installed on this host."},
                 },
                 "required": [],
             },

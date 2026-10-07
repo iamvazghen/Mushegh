@@ -99,7 +99,11 @@ async def browser(args: dict) -> str:
     route as the file/process tools. Falls through to local when the brain runs on the laptop itself."""
     from afon.brain.tools.system import _dispatch
 
-    return await _dispatch("browser", args, _browser_local)
+    out = await _dispatch("browser", args, _browser_local)
+    # 05.R1 — record what this op did AFTER it ran, so the next one knows whether a click would
+    # submit. Arming before dispatch would gate the very call that armed it.
+    _note_action(str((args or {}).get("action") or "").strip().lower())
+    return out
 
 
 async def _browser_action(args: dict) -> str:
@@ -315,6 +319,99 @@ def _neutralize_speechbrain_lazy_modules() -> None:
                 setattr(mod, "__file__", placeholder)
             except Exception:  # noqa: BLE001
                 pass
+
+
+# --- 05.R1 — the confirm gate for a submit -------------------------------------------------
+# D-07 splits this tool in two: reading a page is a read-only query and flows without friction;
+# *committing* a form is not. `browser` sat in `proactive.CONFIRM_TIER` with no dynamic rule, so
+# it fell through to that function's final `return True` and EVERY action confirmed — `read` and
+# `open` included. That is the failure `ha_call`'s own comment names: a gate that fires on every
+# page read teaches the owner to say yes without reading it, and then the one that mattered is
+# waved through with the rest. So the gate fires on the commit verbs only, and 05.R1's threshold
+# ("0 money-sending or data-sending submits without a confirmation") is met by gating every path
+# that can commit, rather than by guessing which destination costs money.
+
+#: Cannot send data or spend money: navigation, reading, tab hygiene.
+_READ_ONLY_ACTIONS = frozenset({
+    "open", "read", "screenshot", "back", "new_tab", "tabs", "switch_tab",
+    "close_tab", "close_all_other_tabs", "close",
+})
+
+#: Put text in a field. Nothing has left the browser yet, so these do not confirm — but they ARM
+#: the gate, because the click or Enter that follows them is a submit.
+_INPUT_ACTIONS = frozenset({"fill", "type"})
+
+#: Navigating away abandons whatever was typed, so it disarms.
+_NAVIGATION_ACTIONS = frozenset({"open", "back", "new_tab", "switch_tab"})
+
+#: A commit that needs no typing first: one-click buy, "send", "delete account". Matched against
+#: the visible text or selector the model asked us to click, lowercased.
+_COMMIT_WORDS = (
+    "buy", "pay", "order", "checkout", "purchase", "subscribe", "donate", "bid",
+    "submit", "send", "confirm", "place order", "book now", "reserve",
+    "delete", "remove", "cancel subscription", "close account", "transfer",
+    "sign", "agree", "accept",
+)
+
+#: True once text has been typed into the current page and not yet navigated away from. Module
+#: state, deliberately: the brain issues every op — it forwards them to the laptop, it does not
+#: observe the DOM — so the only honest place to know "has he filled something in" is here.
+# ponytail: one flag for one browser. Two tabs driving forms in parallel would share it and
+# over-gate, which is the safe direction; make it per-page if that ever happens.
+_commit_armed = False
+
+
+def _note_action(action: str) -> None:
+    """Record what the last op did, so the NEXT op knows whether a click would submit."""
+    global _commit_armed
+    if action in _INPUT_ACTIONS:
+        _commit_armed = True
+    elif action in _NAVIGATION_ACTIONS:
+        _commit_armed = False
+
+
+def commit_armed() -> bool:
+    """Test seam: has text been typed into the current page without navigating away?"""
+    return _commit_armed
+
+
+def reset_commit_state() -> None:
+    """Test seam. Not called in the running system — a navigation disarms by itself."""
+    global _commit_armed
+    _commit_armed = False
+
+
+def submit_needs_confirm(args: dict | None) -> bool:
+    """05.R1 — True when this browser op could commit a form on the owner's behalf.
+
+    Called by ``proactive.confirm_required``. Three rules, in order:
+
+    1. a read-only or navigation action never confirms;
+    2. ``fill``/``type`` never confirm — the data is still in the page — but they arm rule 3;
+    3. ``click``/``press`` confirm when input is armed, or when the thing being clicked names a
+       commit ("Buy now", "Send", "Delete account").
+
+    Anything unrecognised confirms. An unknown verb on a tool that drives the owner's logged-in
+    browser is not a verb to wave through.
+    """
+    args = args or {}
+    action = str(args.get("action") or "").strip().lower()
+    if action in _READ_ONLY_ACTIONS:
+        return False
+    if action in _INPUT_ACTIONS:
+        return False
+    if action == "press":
+        # Enter in a filled form is the classic submit. Any other key is just a keystroke.
+        key = str(args.get("key") or "").strip().lower()
+        if key in {"enter", "return", "numpadenter"}:
+            return True
+        return _commit_armed
+    if action == "click":
+        if _commit_armed:
+            return True
+        target = f"{args.get('text') or ''} {args.get('selector') or ''}".lower()
+        return any(w in target for w in _COMMIT_WORDS)
+    return True
 
 
 def _locator(page, args: dict):

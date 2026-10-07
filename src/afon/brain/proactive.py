@@ -216,6 +216,10 @@ CONFIRM_TIER = {
     # Real-world outward reach (Twilio) — a wrong number or wrong words is unrecallable.
     "place_call",
     "file_op", "process_op", "run_powershell", "browser",
+    # D-86 — a full study guide is the one paid call in the book summarizer. Gated DYNAMICALLY
+    # so checking credentials, reading an outline and pricing a book stay frictionless: the
+    # estimate is the thing the owner needs to hear, and gating it would teach him to skip it.
+    "book",
     "run_protocol", "ha_call",
     "create_event",
     # Replacing routines.json rewrites the rules for when Afon speaks up unprompted (21.F1).
@@ -332,6 +336,79 @@ def _ha_shared_areas() -> tuple[str, ...]:
     return tuple(p.strip().lower() for p in raw.split(",") if p.strip())
 
 
+#: 44.R4 - phrases a model uses when it is guessing at what was meant. Deterministic, and
+#: deliberately so: `situation.py` says in its own docstring that there is no model here and there
+#: must not be one, and a confidence check that needs an LLM call to decide whether to trust an LLM
+#: call is circular.
+#:
+#: ponytail: substring match on the assistant's own words. The ceiling is real - "I think that's
+#: everything" after a successful write is a false positive - and it is bounded by only ever
+#: running when a WRITE tool is being called in the same breath, which is a narrow window. If it
+#: turns out to fire too often in the real week (O6), the upgrade path is provider logprobs, not a
+#: longer phrase list.
+_HEDGES = (
+    "i think", "i believe", "i assume", "i'm assuming", "im assuming", "assuming you mean",
+    "i'll take that to mean", "ill take that to mean", "probably", "presumably", "perhaps",
+    "maybe", "might be", "may be the", "not sure", "not certain", "not entirely sure",
+    "i couldn't tell", "i could not tell", "if i understood", "if i've understood",
+    "if that's right", "best guess", "my guess", "i'd guess", "id guess", "it seems like",
+    "hard to say", "unclear", "one of them", "either way",
+)
+
+#: Name prefixes that mean the call CHANGES something. A verb-prefix test rather than a hand-kept
+#: list of 152 tools: a tool added tomorrow called `create_whatever` is covered on the day it is
+#: written, and a list nobody updates is a gate that quietly stops gating.
+#:
+#: ponytail: a write tool named unconventionally is missed. Upgrade path is `_EXTRA_WRITES` below,
+#: not abandoning the heuristic - the failure mode of the list is worse than the failure mode of
+#: the prefix.
+_WRITE_VERBS = (
+    "create_", "add_", "set_", "update_", "save_", "schedule_", "start_", "stop_", "play_",
+    "send_", "post_", "delete_", "drop_", "clear_", "archive_", "complete_", "mark_", "move_",
+    "rename_", "enable_", "disable_", "import_", "link_", "adopt_", "enroll_", "book_", "order_",
+    "write_", "open_", "close_", "run_", "invoke_", "install_",
+)
+
+#: Writes whose names do not start with a verb.
+_EXTRA_WRITES = {"remember", "forget", "snooze", "undo", "ha_call", "browser", "file_op",
+                 "process_op", "media_pause"}
+
+
+def is_write(tool_name: str) -> bool:
+    """Does this call change something? Used only to decide whether being unsure is worth a
+    question - asking 'are you sure?' before a weather lookup is the noise that gets a gate
+    switched off."""
+    name = (tool_name or "").strip().lower()
+    return name in _EXTRA_WRITES or name.startswith(_WRITE_VERBS)
+
+
+def low_confidence(tool_name: str, args: dict | None = None, *, said: str = "",
+                   repaired: bool = False) -> str:
+    """44.R4 - why this call should be re-asked despite not being in the confirm tier, or "".
+
+    Two signals, both free of any model call:
+
+      * the assistant **hedged in the same breath** as making the call, and
+      * the call is a **repair** of one the tool's own schema already rejected once.
+
+    The second is the stronger of the two and needs no language at all. Neither fires on a read:
+    the confirm tier deliberately lets frictionless writes through (capture-by-voice is the whole
+    point of `create_task`), and this is the grade for *those*, which is exactly Jev's point -
+    escalate on confidence rather than only on how destructive the action was classified.
+    """
+    if not is_write(tool_name):
+        return ""
+    if repaired:
+        return "the first version of this call did not match the tool's own schema"
+    text = (said or "").strip().lower()
+    if not text:
+        return ""
+    for hedge in _HEDGES:
+        if hedge in text:
+            return f'it said "{hedge}" about this one'
+    return ""
+
+
 def confirm_required(tool_name: str, args: dict | None = None) -> bool:
     """True if Afon should re-ask for confirmation before running this tool.
 
@@ -372,6 +449,19 @@ def confirm_required(tool_name: str, args: dict | None = None) -> bool:
         # shared-space list invented on his behalf would gate the wrong lamps and be ignored.
         entity = str(args.get("entity") or "").lower()
         return bool(entity) and any(a and a in entity for a in _ha_shared_areas())
+    if name == "book":
+        # Only the paid action confirms. check / outline / preflight spend nothing.
+        return str((args or {}).get("action") or "").strip().lower() == "guide"
+    if name == "browser":
+        # 05.R1 / D-07. Same reasoning as ha_call above, in the other direction: this tool had NO
+        # dynamic rule, so it fell through to the `return True` below and confirmed on every page
+        # read. The rule lives next to the handler that knows whether a field has been filled —
+        # same precedent as notion's `_is_bulk`, so there is one copy of "would this submit?".
+        try:
+            from afon.brain.tools.browser import submit_needs_confirm
+        except Exception:  # noqa: BLE001 — tool module unavailable: gate rather than wave it through
+            return True
+        return submit_needs_confirm(args or {})
     return True
 
 
@@ -577,6 +667,47 @@ class ProactiveEngine:
         if (now - self._pending["at"]) > timedelta(minutes=6):
             return None
         return self._pending["kind"]
+
+    def acceptance_rate(self, kind: str | None = None) -> dict:
+        """14.R1 / 14.E1 — "did the intervention help?", as a number with its definition attached.
+
+        The reaction vocabulary is three words, not two, and that is the whole difficulty:
+
+            act     he did the thing
+            dismiss  he said no, and this code treats that as the strongest signal it gets
+            ignore  he said nothing, and that is NOT the same as no
+
+        So there is no single honest acceptance rate and this returns two, both named:
+
+            strict  act / (act + dismiss)   — silence is not counted against a nudge
+            lenient act / (act + dismiss + ignore) — silence is counted against it
+
+        Which one to quote is the owner's judgement, not a default, so neither is presented as *the*
+        rate. `14.E1` asks for 60%; the number that meets it depends entirely on this choice, which
+        is why it is surfaced rather than resolved here.
+
+        Returns counts alongside both rates so a reader can recompute, and `"kinds"` naming what was
+        aggregated — a rate over every kind mixed together is a different claim from a rate for one,
+        and a bare float cannot say which it is.
+        """
+        stats = self._fb_stats if kind is None else {kind: self._fb_stats.get(kind, {})}
+        act = dismiss = ignore = 0
+        for counts in stats.values():
+            act += int(counts.get("act", 0))
+            dismiss += int(counts.get("dismiss", 0))
+            ignore += int(counts.get("ignore", 0))
+        total = act + dismiss + ignore
+        decided = act + dismiss
+        return {
+            "kind": kind or "all",
+            "act": act, "dismiss": dismiss, "ignore": ignore, "total": total,
+            # 0.0 rather than 1.0 for "nothing to judge": a brand-new engine has no acceptance rate,
+            # and reporting a perfect one would make a cold start look like a success.
+            "strict": round(act / decided, 4) if decided else 0.0,
+            "lenient": round(act / total, 4) if total else 0.0,
+            "kinds": sorted(stats),
+            "definition": "strict = act/(act+dismiss); lenient = act/(act+dismiss+ignore)",
+        }
 
     def pending_key(self, now: datetime | None = None) -> str | None:
         """The KEY of that same interjection (13.F3). The kind identifies what learns from the
@@ -850,12 +981,14 @@ def default_signal_sources() -> list[SignalSource]:
         sources.append(reraise_signals)   # 13.F3 — one second chance for an unacknowledged urgent
     except Exception:  # noqa: BLE001
         pass
-    try:
-        from afon.brain.mynews import news_signals   # brain/, not tools/ — it is not a tool
-
-        sources.append(news_signals)      # morning news-of-interest brief (MyNews)
-    except Exception:  # noqa: BLE001
-        pass
+    # The morning news-of-interest feed is REMOVED (D-34, task 41.R4). It pushed unprompted
+    # between 08:00 and 10:00 from a signal source the owner never asked for, which is the
+    # exact shape of thing the charter forbids: "never bring the owner something unasked
+    # because it seemed interesting". Research belongs in a focused session, not in an
+    # ambient feed. `mynews.py` stays on disk — it is a module of its own and may be useful
+    # when asked for — but nothing collects from it, so the path is closed at the source
+    # rather than filtered downstream, where a threshold could be argued with.
+    #
     # T4a — weekly digest signal (fires Sun 20:00 only)
     try:
         from afon.brain.proactive_signals import weekly_digest
@@ -900,6 +1033,13 @@ def default_signal_sources() -> list[SignalSource]:
     try:
         from afon.brain.interventions import conflict_signals
         sources.append(conflict_signals)
+    except Exception:  # noqa: BLE001
+        pass
+    # 14.R4 — goal deviation: the one source that can carry a stated goal as far as an interruption.
+    # Registered unconditionally; it no-ops until `goal_deviation_enabled`, like the conflict source.
+    try:
+        from afon.brain.goal_deviation import goal_deviation_signals
+        sources.append(goal_deviation_signals)
     except Exception:  # noqa: BLE001
         pass
     # Phase 6.3 — calibrated wellbeing pushback (long unbroken session / small-hours). Rides the same
