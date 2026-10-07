@@ -40,6 +40,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH = ROOT / "graphify-out" / "graph.json"
+#: What the last prune removed, so a gate comparing graphify's own report to the
+#: graph can put them back. Lives beside graph.json and is as disposable as it is.
+REMOVED = GRAPH.parent / "pruned-edges.json"
 
 
 def bound_names(path: Path) -> set[str]:
@@ -110,7 +113,17 @@ def main() -> int:
         drop = {id(lk) for lk in doomed}
         graph["links"] = [lk for lk in graph["links"] if id(lk) not in drop]
         GRAPH.write_text(json.dumps(graph, indent=2), encoding="utf-8")
-        print(f"graph prune: {len(graph['links'])} edges remain")
+        # Record what was removed. `GRAPH_REPORT.md` is graphify's description of the graph
+        # graphify built, and only graphify can rewrite it - so after this write the report
+        # describes a graph that no longer exists. `test_cohesion_baseline`'s formula check
+        # reads this file to put the edges back before comparing, which is the only way both
+        # that gate and `test_graph_prune` can be green at the same time. Without it, pruning
+        # moved one community's cohesion past the gate's tolerance every single time.
+        REMOVED.write_text(json.dumps({"removed": doomed}, indent=2), encoding="utf-8")
+        print(f"graph prune: {len(graph['links'])} edges remain "
+              f"({len(doomed)} recorded in {REMOVED.name})")
+    elif REMOVED.exists():
+        REMOVED.unlink()   # nothing was pruned, so nothing is owed back
     return 0
 
 

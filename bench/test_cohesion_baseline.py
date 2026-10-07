@@ -58,13 +58,28 @@ def main() -> int:
     # and graphify's ever diverge, every threshold in J1/J2 silently stops meaning what it says.
     report = (ROOT / "graphify-out" / "GRAPH_REPORT.md").read_text(encoding="utf-8")
     printed = re.findall(r'### Community (\d+) - ".*?"\nCohesion: ([0-9.]+)', report)
-    by_index = {n.get("community"): None for n in graph["nodes"]}
-    comm_of = {}
-    for entry in cur["communities"]:
-        comm_of[frozenset(entry["members"])] = entry
     index_members = {}
     for n in graph["nodes"]:
         index_members.setdefault(n.get("community"), set()).add(n["id"])
+    # Check [1] is a check on the FORMULA, so it has to compare like with like. `graph_prune.py`
+    # edits graph.json and cannot rewrite GRAPH_REPORT.md - graphify owns that file - so after a
+    # prune the report describes a graph that no longer exists, and this check failed on whichever
+    # community lost an edge near the rounding boundary. Measured both ways on 2026-10-06:
+    # unpruned, this check passed and `test_graph_prune` failed; pruned, the reverse. The two
+    # gates were not simultaneously satisfiable. So the removed edges are put back for THIS check
+    # only; every other check below reads the pruned graph, which is the one the project uses.
+    as_reported = graph
+    removed_path = ROOT / "graphify-out" / "pruned-edges.json"
+    if removed_path.exists():
+        try:
+            back = json.loads(removed_path.read_text(encoding="utf-8")).get("removed") or []
+        except (OSError, ValueError):
+            back = []
+        if back:
+            as_reported = {"nodes": graph["nodes"], "links": list(graph["links"]) + list(back)}
+    reported = CB.measure(as_reported)
+    comm_of = {frozenset(e["members"]): e for e in reported["communities"]}
+
     mismatch = []
     for idx, printed_value in printed:
         entry = comm_of.get(frozenset(index_members.get(int(idx), set())))

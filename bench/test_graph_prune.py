@@ -18,7 +18,6 @@ Run:
 
 from __future__ import annotations
 
-import ast
 import copy
 import json
 import re
@@ -117,8 +116,17 @@ def main() -> int:
     print("\n[4] a real import binding is what saves an edge")
     # Not a synthetic pair: pick a file that genuinely imports another and confirm the rule reads
     # the import. Asserting on invented files would only test the invention.
-    kept = [lk for lk in inferred if lk not in same]
-    check(f"cross-file edges survive on their imports ({len(kept)})", bool(kept))
+    # Sample only from the edges the rule actually JUDGED. `unsupported()` is Python-only by
+    # design - a .tsx or .sh edge survives because it is out of scope, not because a binding saved
+    # it - and this check used to take kept[0] unfiltered. It therefore passed or failed on edge
+    # ORDER rather than on behaviour, and a graph rebuild flipped it: the first survivor became
+    # `clients/hud-spatial/src/App.tsx -> reducer`, which no import rule ever looked at. Filtering
+    # here makes the check assert the thing its own name claims.
+    kept = [lk for lk in inferred if lk not in same
+            if (lk.get("source_file") or "").endswith(".py")
+            and ((nodes.get(lk["target"]) or {}).get("source_file") or "").endswith(".py")]
+    check(f"cross-file PYTHON edges survive on their imports ({len(kept)})", bool(kept),
+          "if this is empty the check below proves nothing")
     sample = kept[0]
     src = ROOT / sample["source_file"]
     tgt_name = re.sub(r"\(\)$", "", (nodes[sample["target"]].get("label") or "").split(".")[-1])
@@ -127,6 +135,18 @@ def main() -> int:
           bool({tgt_name, tgt_name.lstrip("_"),
                 Path(nodes[sample["target"]]["source_file"]).stem} & bound),
           f"{sample['source_file']} -> {tgt_name}")
+    # ...and every one of them, not just the sample: one lucky first element is not the rule.
+    unbound = [lk for lk in kept
+               if not ({re.sub(r"\(\)$", "", (nodes[lk["target"]].get("label") or "")
+                               .split(".")[-1])}
+                       | {Path(nodes[lk["target"]]["source_file"]).stem}
+                       | {re.sub(r"\(\)$", "", (nodes[lk["target"]].get("label") or "")
+                                 .split(".")[-1]).lstrip("_")})
+               & GP.bound_names(ROOT / lk["source_file"])]
+    check("EVERY surviving python cross-file edge has a binding, not just the first",
+          not unbound,
+          f"{len(unbound)} of {len(kept)}: "
+          + str([(lk['source_file'], nodes[lk['target']].get('label')) for lk in unbound[:3]]))
     check("bound_names reads imports, not any occurrence of the word",
           "json" in GP.bound_names(ROOT / "scripts" / "graph_prune.py")
           and "unsupported" not in GP.bound_names(ROOT / "scripts" / "graph_prune.py"))
