@@ -37,9 +37,9 @@ distribute a fork with confidence.
 | `httpx` | HTTP client | BSD-3-Clause |
 | `apscheduler` | proactive scheduler | MIT |
 | `sqlalchemy` | SQLite job store | MIT |
+| `psycopg`, `psycopg-binary` | Optional S30 Postgres adapter (`postgres` extra) | LGPL-3.0; retain bundled dependency notices |
 | `yt-dlp` | resolve a track for free playback | Unlicense (public domain) |
 | `ytmusicapi` | YouTube Music search | MIT |
-| `redis` (redis-py) | optional L4 hot-cache | MIT |
 | `telethon` | Telegram user client (read/send) | MIT |
 | **`py-tgcalls` / `ntgcalls`** | **stream music into a Telegram voice chat** | **LGPL-3.0** |
 | `playwright` | headless browser driver | Apache-2.0 |
@@ -51,7 +51,7 @@ distribute a fork with confidence.
 Each installed package keeps its full license text in its `*.dist-info/` directory inside your
 environment; that is the authoritative copy.
 
-## The one copyleft dependency: `py-tgcalls` (LGPL-3.0)
+## Voice-chat copyleft dependency: `py-tgcalls` (LGPL-3.0)
 
 `py-tgcalls` and its native core `ntgcalls` are **LGPL-3.0**. They are pulled in **only** by the
 optional `channels` extra and used **only** for streaming audio *into* a Telegram group voice chat
@@ -62,9 +62,12 @@ optional `channels` extra and used **only** for streaming audio *into* a Telegra
 - You must (a) keep its LGPL license and notices, (b) not statically bundle a modified copy without
   also offering that modified source under LGPL, and (c) leave it replaceable by the end user (a
   normal `pip` dependency already satisfies this).
-- **If you want a 100%-permissive stack:** simply don't install the voice-chat streaming piece. Skip
-  `py-tgcalls` and Telegram **text** messaging still works via `telethon` (MIT); you only lose
-  in-call music streaming.
+- **To omit these voice-chat LGPL components:** skip `py-tgcalls`; Telegram **text** messaging
+  still works via `telethon` (MIT). The optional Postgres extra below is a separate LGPL dependency.
+
+The optional Postgres extra also uses Psycopg under its
+[upstream LGPL license](https://github.com/psycopg/psycopg/blob/master/LICENSE.txt).
+Keep its installed license and bundled client-library notices with any redistribution.
 
 ## Cloud services (Terms of Service, not open-source licenses)
 
@@ -77,6 +80,31 @@ when you sign up. They are **not** covered by this project's MIT license:
   custom wake words), **GitHub**, **ntfy**.
 - **Media:** `yt-dlp` / YouTube Music playback is intended for **personal use** — respect YouTube's
   Terms of Service in your jurisdiction.
+- **TypeSafe** (Jev / System One — typed contextual decisions, optional; see `14.R5`). Added
+  2026-09-20 and first wired at runtime on 2026-10-03 under the rule below. It selects among explicit
+  owner-supplied options; deterministic safety and authorization remain local code.
+
+### Why a proprietary service is acceptable here but a proprietary dependency is not
+
+The owner's requirement is free and open source, and it is **not** amended by anything in the list
+above. The line it draws — settled for the PinePhone and again for a WebXR headset — is that the
+requirement **binds what Afon depends on, not every service it talks to.** Every entry here is
+bring-your-own-key and has either a local engine behind it (Deepgram → `faster-whisper`,
+ElevenLabs → Kokoro/Piper) or no function that Afon needs to run.
+
+So a hosted proprietary service may be added **only** as a tier that is *absent by default*: with no
+key configured the feature is not degraded, it simply does not exist, and every code path around it
+behaves exactly as if the integration had never been written. A fork that sets no keys at all is a
+complete, functioning, wholly open-source assistant. That is the property the requirement protects,
+and it is testable rather than aspirational — which is why each such tier carries a gate asserting it
+(`14.R5` for TypeSafe).
+
+**TypeSafe is held to a stronger form of that rule than the rest of this list.** Today, a dead
+judgment provider cannot silently hand a contextual choice to the generative LLM: Afon asks whether
+to retry or proceed without a recommendation. If `14.R6` later places Jev in the *interruption* path,
+an absent key, expired key, timeout, 429 or 529 must leave `14.R4` bit-for-bit identical. A provider
+that can silence the assistant is a provider that has been
+given authority it was never granted.
 
 ## Pretrained models
 

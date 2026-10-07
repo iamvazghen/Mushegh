@@ -61,6 +61,10 @@ than no prose, because it is the thing an auditor reads instead of the code.
 - Messaging/outbound: `send_telegram`, `send_email`, `send_push`, `place_call` (Twilio — a wrong
   number or wrong words cannot be recalled).
 - Machine: `file_op` (deletes), `process_op` (kill/start), `run_powershell`, `browser`.
+- Summarising a book: `book` — gated only on the `guide` action, which is the one paid call in
+  the summarizer. `check`, `outline` and `preflight` spend nothing and are not gated, because the
+  cost estimate is the thing the owner needs to hear and a gate in front of it teaches him to skip
+  it. A guide is also refused outright until that estimate has been given.
 - Calendar/home/Notion: `create_event`, `ha_call` (locks/alarms/covers especially),
   `notion_append`, `notion_comment`, `notion_create_page`.
 - Creating a document: `create_document`, the one creation path since 06.F1 — it puts a file in
@@ -133,6 +137,40 @@ Letting an agent edit its own code is safe here because the capability is delibe
 Net effect: the worst case is an uncommitted bad edit (caught by tests) or a committed change you can
 `git_revert`. Your work cannot be lost.
 
+### 4b. Code written by an external CLI (2026-10-06)
+
+Afon can also delegate coding to the CLIs installed on the host — Claude Code, Codex and MiniMax
+Code. The guardrails are **different in kind** from the ones above, because the agent is not Afon
+and its instructions are not binding:
+
+- **Isolation, not instruction.** Each brief gets its own `git worktree` on its own new branch,
+  outside the repository. The executor never has your checkout as its working directory, so a
+  refused or abandoned run leaves your branch, your commit and your working tree byte-identical.
+  The constraints in the brief ("do not commit, do not push") are there to save a wasted paid run;
+  the isolation is what makes them unnecessary.
+- **Four conditions, in code, in order.** A diff becomes a commit only on a worktree Afon created,
+  with a green suite, with zero schema migrations, and with your explicit approval of the diff
+  (D-08). The migration scan reads files the executor *created* as well as the ones it changed —
+  `git diff HEAD` alone does not show a new file, which is how a `CREATE TABLE` in a brand-new
+  module would otherwise have passed.
+- **An approval is re-proved, not remembered.** The approval queue is durable, so you may answer an
+  hour later; the other three conditions are checked again at the moment of the commit rather than
+  trusted from when the question was asked.
+- **No discard primitive, here either.** The entire git vocabulary of that path is
+  `worktree add`, `add`, `diff`, `rev-parse` and `commit`. A refusal **keeps** the worktree and
+  tells you where it is; cleaning it up is yours, because losing a proposal is worse than leaving a
+  directory behind.
+- **No credentials.** The child's environment is an allowlist built from nothing: `PATH` and the
+  executor's own API key, never `.env`, the vault, your biometric templates or any `AFON_*`
+  setting. A secret added to the environment next year is withheld without anyone editing that
+  list.
+- **No shell.** Every invocation is argv form with `stdin` closed, and a spec naming a command
+  interpreter is refused when it is constructed. On Windows a `.cmd` shim re-parses its arguments,
+  so a brief containing a command metacharacter is refused rather than quoted.
+
+Net effect: the worst case is a directory you delete and a paid run you did not get value from.
+Nothing an external CLI does can reach your branch without your approval of the exact diff.
+
 ---
 
 ## 5. Protocols (privileged routines)
@@ -180,8 +218,12 @@ personal context).
 
 ## 9. Network & privacy posture
 
-- **Local-first.** Audio capture, wake-word, VAD, and (optionally) STT/TTS run on your machine.
-  Cloud STT/TTS (Deepgram/ElevenLabs) are opt-in quality choices behind provider flags.
+- **Local audio path; self-hosted state; cloud inference.** Audio capture, wake-word, VAD, and
+  (optionally) STT/TTS run on your machine, and every store is on hardware you control. The
+  reasoning LLM is remote by default — so prompt content, and any tool output it needs to see,
+  leaves the machine. Cloud STT/TTS (Deepgram/ElevenLabs) are opt-in quality choices behind
+  provider flags. This is stated as three separate facts on purpose: "local-first" as a single
+  label reads as a promise the inference path does not keep.
 - **Loopback by default.** The brain WebSocket (`/voice`, `/control`) and the HTTP sidecar
   (`/talk` for the iPhone Siri path) bind `127.0.0.1`. To reach them from a phone/glasses, bind
   `0.0.0.0` **and set `AFON_API_AUTH_TOKEN`** — remote clients must then present the token as

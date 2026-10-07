@@ -1,5 +1,18 @@
 # Home Assistant control (Phase 11 / TODO 4.10)
 
+> **Status 2026-10-03 — this system is DARK, and wiring it is the cheapest win available.**
+> The code below is complete and correct; **no token is installed, so it controls
+> nothing.** Under [`DECISIONS.md`](DECISIONS.md) D-46 dark work is not progress, and this
+> is roadmap **M20**: install the long-lived token, verify the connection live, and the
+> desk lamp becomes the second half of the north-star loop in [`ROADMAP.md`](ROADMAP.md).
+>
+> Two constraints to respect when you do: the Home Assistant token is **1 of exactly 4**
+> permitted credentials (D-62), and the confirmation policy below is the enforcement behind
+> D-07 and D-13 — lighting scenes flow silently, alarm panels and covers confirm, and
+> **door locks refuse outright** (D-13, `28.R4`): a typed confirm is not physical presence,
+> so there is no confirmation path that opens one. Reading a lock still works.
+> Full system view: [`subsystems/28-iot-orchestration.md`](subsystems/28-iot-orchestration.md).
+
 Afon controls a **local** Home Assistant instance over its REST API — the privacy-respecting smart-
 home choice (no cloud vendor in the loop). Two tools:
 

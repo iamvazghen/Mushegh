@@ -20,7 +20,7 @@ Read this before changing anything, Afon, so you edit the right file. Repo root 
   voice/clarify/confirm rules. `validate_vault()` checks L3. **Editing this changes his whole voice.**
 - `memory.py` — `MemoryStore`: L1 learned facts + L2 journal (Markdown). `recall()` blends keyword +
   optional semantic. Module-level `STORE`.
-- `cache.py` — L4 hot-cache (`CACHE`): in-process TTL + optional Redis, fail-open.
+- `cache.py` — L4 hot-cache (`CACHE`): in-process TTL, fail-open. No daemon (O3.2).
 - `semantic.py` — L5 optional embedder (`INDEX`); no-op without `sentence-transformers`.
 - `proactive.py` — Phase 10 tick: budget, quiet hours, `confirm_required`/`needs_clarification`,
   `CONFIRM_TIER`. `health.py` feeds it; `modes.py` (focus/lockdown) gates it.

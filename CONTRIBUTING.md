@@ -1,6 +1,6 @@
 # Contributing to OpenAfon
 
-Thanks for your interest. OpenAfon is a from-scratch, local-first framework for building your own
+Thanks for your interest. OpenAfon is a from-scratch, self-hosted framework for building your own
 voice-first AI companion (**Afon**). Contributions — bug reports, fixes, new tools, docs — are
 welcome.
 

@@ -7,7 +7,8 @@
 **An open-source framework for building your own 24/7, voice-first, multi-device AI companion — "Afon".**
 
 Wake-word listening · streaming natural voice · its own reasoning LLM + tools · six-layer memory ·
-proactive companion · phone / laptop / glasses · self-improving — local-first, self-hosted, yours.
+proactive companion · phone / laptop / glasses · self-improving — **self-hosted state, cloud
+inference**, yours.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
@@ -49,16 +50,18 @@ configured yet" instead of crashing, so you light up integrations one at a time.
 
 ### Where the work is planned
 
-Three documents, all tracked in this repo, none of them generated:
+All tracked in this repo. One of them is generated, and says so at the top:
 
 | Document | What it is |
 |---|---|
-| **[`docs/SYSTEMS.md`](docs/SYSTEMS.md)** | The canonical plan: 50 subsystems × **floor / raise / elite**, every task with a named test that decides whether it is done, plus a scoreboard the build checks against the checkboxes. |
+| **[`docs/systems-plan.json`](docs/systems-plan.json)** | The canonical execution registry: 50 subsystems × **floor / raise / elite**, every task with a named gate, a verification kind, and the evidence behind its status. Edit this, then render. |
+| **[`docs/SYSTEMS.md`](docs/SYSTEMS.md)** | **Generated** from the registry — a one-screen dashboard: live counts, per-system status, the next open task. Never edited by hand. |
+| **[`docs/SYSTEMS-DETAILS.md`](docs/SYSTEMS-DETAILS.md)** | The long-form rationale the registry was built from: options weighed with the losers named, budgets, rollbacks. Historical, not authoritative. |
 | **[`docs/MASTER-PLAN.md`](docs/MASTER-PLAN.md)** | The long-range shape — what this is meant to become. |
-| **[`TODO.md`](TODO.md)** | The running engineering log: what was built, what it broke, and what it measured. |
+| **[`TODO.md`](TODO.md)** | The running engineering log: what was built, what it broke, what it measured. It does not move execution state on its own. |
 
-Current position: **159 of 370** tasks green — the floor tier essentially complete, the raise tier
-under way.
+Current position lives in the dashboard's snapshot, generated with it. It is deliberately not
+copied here: a hand-maintained score is the first number to go stale.
 
 ### Why a framework
 
@@ -258,6 +261,9 @@ codebase runs CPU-local-only or cloud-quality just by flipping provider flags. *
 Markdown under `memory/`; its *skills* are `skills/*.md` — all editable without touching code.
 
 Notable knobs added for safety/memory:
+- `TYPESAFE_API_KEY` + `AFON_JEV_ENABLED` — optional typed contextual decisions. Jev selects among
+  explicit options; the generative LLM only phrases the result. Safety, confirmation, privacy and
+  autonomy budgets remain deterministic code. Without a key, Afon asks rather than silently choosing.
 - `AFON_VAULT_WRITABLE` — `true` only on the host that *owns* the vault; lets Afon save notes
   into it (`write_vault`). Off on the laptop (its mirror gets clobbered by the one-way sync).
 - `AFON_SESSION_IDLE_RESET_MINUTES` — after this idle gap the brain journals the prior conversation
@@ -273,10 +279,10 @@ Notable knobs added for safety/memory:
 | **L1 Learned** | durable facts it saves (`remember`/`recall`/`forget`) | `memory/learned/*.md` |
 | **L2 Journal** | daily summaries + a durable log of proactive nudges | `memory/journal/*.md` |
 | **L3 Vault** | your Obsidian knowledge base (read always; **write** on the authoritative host) | `AFON_VAULT_PATH` |
-| **L4 Hot-cache** | fronts the slow paths (search, utilities) | in-process TTL + optional Redis |
+| **L4 Hot-cache** | fronts the slow paths (search, utilities) | in-process TTL |
 | **L5 Semantic** | recall by *meaning*, not just keywords | optional local embedder |
 
-L4/L5 are graceful accelerators: no Redis → in-process cache; no embedder → keyword recall. The
+L4/L5 are graceful accelerators: the cache needs no service at all; no embedder → keyword recall. The
 Markdown layers are always the source of truth.
 
 ---
@@ -339,13 +345,16 @@ reverts cleanly if anything regresses.
 
 ## Testing & benchmarks
 
-- **`uv run python bench/run_all_tests.py`** — the single gate: **201 tests, all green**. Each
+- **`uv run python bench/run_all_tests.py`** — the single gate; the live count is in the dashboard's
+  snapshot rather than here, so it cannot drift. Each
   capability has a hermetic `bench/test_*.py` (offline, no real network/keys). Network/fleet tests
   report **SKIP** (not FAIL) when their backend is unreachable, so an offline run still passes. The
   same suite runs on `git push` via `scripts/githooks/pre-push`, so nothing lands red.
 - **Every task in the plan carries a named gate.** `bench/test_systems_plan.py` fails the build if a
-  task in [`docs/SYSTEMS.md`](docs/SYSTEMS.md) has no gate, or if the scoreboard disagrees with the
-  checkboxes — a plan that can drift from the code is a plan that gets believed anyway.
+  task in [`docs/systems-plan.json`](docs/systems-plan.json) has no gate, if a completed task carries
+  no evidence, if a planned test is not declared on the task that needs it, or if
+  [`docs/SYSTEMS.md`](docs/SYSTEMS.md) has drifted from what the registry renders — a plan that can
+  drift from the code is a plan that gets believed anyway.
 - **`uv run python bench/efficiency_report.py`** — measures the hot paths (memory recall, cache, brain
   TTFT, full-turn latency, prompt size) against efficiency targets. See
   [`SOP.md`](SOP.md) §9 for how to act on the numbers.
@@ -377,7 +386,7 @@ configuration, memory, security, and licensing.
 
 1. Run `uv run afon-setup`, then work through **[`SOP.md`](SOP.md)** (Tailscale on every device,
    voice enrollment, VPS ticker, Google/Notion/Telegram logins, GitHub repo, optional
-   Redis/embedder, proactive switch-on) and **[`TESTING_GUIDE.md`](TESTING_GUIDE.md)** for the
+   embedder, proactive switch-on) and **[`TESTING_GUIDE.md`](TESTING_GUIDE.md)** for the
    real-device test plan.
 2. `uv run python bench/run_all_tests.py` → all green; `efficiency_report.py` → targets met.
 3. Run the **brain** as a service on an always-on host and the **edge** on your laptop (helper scripts
@@ -413,7 +422,8 @@ website/           # the Next.js documentation site (deploy to Vercel)
 deploy/vps/        # the always-on recurring-reminder ticker
 scripts/           # edge service install/uninstall helpers
 bench/             # the test suite + benchmarks + one-time login helpers
-docs/              # SYSTEMS.md (the plan), MASTER-PLAN, NEXT-UPGRADE-DECISION, home-assistant
+docs/              # systems-plan.json (the plan) + SYSTEMS.md (generated) + SYSTEMS-DETAILS.md,
+                   # MASTER-PLAN, NEXT-UPGRADE-DECISION, home-assistant
 TODO.md            # the running engineering log — what was done, and what it cost
 LICENSE · THIRD_PARTY_NOTICES.md · SECURITY.md · SOP.md · TESTING_GUIDE.md · .env.example
 ```
@@ -463,6 +473,6 @@ how to add a tool. By participating you agree to the **[Code of Conduct](CODE_OF
 ---
 
 <div align="center">
-<sub><b>OpenAfon</b> — build your own Afon. A from-scratch, local-first companion framework;
+<sub><b>OpenAfon</b> — build your own Afon. A from-scratch, self-hosted companion framework;
 Afon was the inspiration, not the implementation.</sub>
 </div>

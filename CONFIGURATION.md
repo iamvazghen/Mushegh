@@ -36,6 +36,10 @@ walks through the essentials; this section is for fine-tuning.
 | `AFON_OPENCLAW_DELEGATION_ENABLED` | If true, complex tasks are delegated to your OpenClaw fleet | `AFON_OPENCLAW_DELEGATION_ENABLED=true` |
 | `AFON_FLEET_AUTHORIZED` | Master switch for fleet delegation. Off by default. | `AFON_FLEET_AUTHORIZED=true` |
 | `AFON_COMPOSIO_API_KEY` | 250+ external apps via Composio | `AFON_COMPOSIO_API_KEY=ak_...` |
+| `TYPESAFE_API_KEY` | Optional TypeSafe Jev key for typed contextual decisions | provider key |
+| `AFON_JEV_ENABLED` | Enables Jev when a key is present; it never changes action authorization | `true` |
+| `AFON_JEV_MODEL` | Typed judgment model alias | `jev-latest` |
+| `AFON_JEV_TIMEOUT_SECONDS` | Maximum wait before the decision is held and the owner is asked | `8` |
 | `AFON_PROACTIVE_*` | Proactive engine: budget, threshold, quiet hours | see `.env` defaults |
 
 The setup wizard (`scripts/setup.sh`) writes most of these. Re-run it any time to update.
@@ -69,11 +73,11 @@ That's it. Next system prompt is your custom voice.
 
 ### Operating rules
 
-There is a second boilerplate, `personality/operating-rules.md`, that controls the **judgement
-calls** the LLM has to make: when to refuse, when to confirm, when to ask. It's loaded into
-every prompt as a separate section; edit that file (rather than `afon.md`) when you want to
-change "should I do this or check first?" rules. See the comments at the top of that file for
-the pattern.
+There is a second boilerplate, `personality/operating-rules.md`, that explains conversational and
+tool-use boundaries to the LLM. Hard refusal and confirmation are enforced in Python; editing this
+file cannot bypass them. Contextual choices with explicit owner-supplied options go to Jev when it
+is configured, and the LLM only verbalizes that typed result. See the comments at the top of the
+file for the prompt pattern.
 
 ### What goes in the persona
 
@@ -151,6 +155,13 @@ rather than picking a winner.
 
 Afon remembers across sessions in **five layers**:
 
+**S30 migration preparation:** `AFON_POSTGRES_DSN` is an optional secret-valued staging setting,
+not a backend switch. Leave it unset on the laptop. The staged client requires an explicitly
+selected `brain-server` role on Linux before importing its optional driver or opening a connection.
+Current runtime stores still use SQLite. The `postgres` dependency extra adds Psycopg; if using
+`uv sync`, retain all of your existing extras because sync prunes unlisted extras.
+See `docs/S30-MIGRATION.md` for the remaining parity, backup and authorized-cutover gates.
+
 | Layer | Where | What goes there | How it's written |
 |---|---|---|---|
 | **L0 Working** | `<state>/afon_session.json` | The rolling conversation thread | automatic |
@@ -165,7 +176,10 @@ Afon remembers across sessions in **five layers**:
   about you" digest. The LLM uses this for natural referencing ("as you mentioned…").
 - A live `recall(query)` call searches L1 + L2 + L3 + L5 in one go. If you ask "what do you know
   about my farm?", expect answers from all layers tagged [learned] / [journal] / [vault].
-- L4 (Redis) is optional — speeds up recall across restarts but degrades to in-process cache
+- L4 is an in-process TTL cache and needs no service. The optional Redis/Valkey tier was
+  **removed 2026-09-20** (O3.2, Jev p=0.98): it had never been enabled here, and a second
+  daemon on a host that has OOMed is not earned by one use case. If a restart-surviving cache
+  is ever wanted it belongs in Postgres, the only datastore the brain speaks to
   if absent.
 
 ### Curation
