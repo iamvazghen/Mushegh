@@ -42,6 +42,7 @@ import os
 import shutil
 import time
 from enum import Enum
+from pathlib import Path
 
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -51,6 +52,7 @@ from afon.brain import never_store
 __all__ = [
     "Brief", "BriefRefused", "Domain", "ExecutorSpec", "Result", "Tier",
     "SPECS", "PARSERS", "available", "candidates", "dispatch", "pick", "resolve",
+    "wants_task_file",
     "status",
     "storage_class",
 ]
@@ -241,18 +243,41 @@ SPECS: tuple[ExecutorSpec, ...] = (
         # from a real run. The registry records that as unverified rather than claiming it.
         parser="stream_json",
     ),
+    # Both agent ids below were PLACEHOLDERS until 2026-10-07, when the fleet config on the VPS
+    # was read: `personal` and `business` are real, live agents and have been all along (the full
+    # roster is ispir, finance, security, realty, business, creative-research, dev-systems,
+    # personal). Two things found at the same time are worth carrying here rather than in a doc:
+    #
+    #   * `--message-file <path>` exists, so the task does NOT have to be an argv string. On
+    #     Windows `openclaw` resolves to a `.CMD` shim whose arguments a command interpreter
+    #     re-parses, which is why `_batch_hazard` refuses a brief containing `&` or a quote. A file
+    #     removes the hazard instead of refusing the brief - which is exactly the fix that
+    #     function's own docstring named. `{task_file}` is substituted by `dispatch()`.
+    #   * `--deliver` defaults to FALSE, and Afon never passes it. So an agent turn produces a
+    #     reply and sends nothing to any channel - the owner-consent property for free, in the
+    #     transport rather than in a prompt. `test_fleet_transport.py` asserts the flag's absence.
+    #
+    # `--timeout` is given the brief's own deadline so the CLI exits with a transcript instead of
+    # being killed by `dispatch()`; a killed process loses the thing that explains what happened.
     ExecutorSpec(
         name="openclaw-personal",
         domains=(Domain.DAILY,),
         tiers=(Tier.PERSONAL,),
-        argv=("openclaw", "agent", "--agent", "personal", "-m", "{task}", "--json"),
+        argv=("openclaw", "agent", "--agent", "personal", "--message-file", "{task_file}",
+              "--timeout", "{timeout}", "--json"),
+        # The gateway binds the tailnet, so a CLI off the brain host needs these two to reach it.
+        # A URL and a token are not the owner's secrets - they are how this executor is addressed -
+        # but the allowlist withholds by default, so they had to be named.
+        env_allow=("OPENCLAW_GATEWAY_URL", "OPENCLAW_GATEWAY_TOKEN"),
         parser="openclaw_json",
     ),
     ExecutorSpec(
         name="openclaw-business",
         domains=(Domain.BUSINESS,),
         tiers=(Tier.CORPORATE,),
-        argv=("openclaw", "agent", "--agent", "business", "-m", "{task}", "--json"),
+        argv=("openclaw", "agent", "--agent", "business", "--message-file", "{task_file}",
+              "--timeout", "{timeout}", "--json"),
+        env_allow=("OPENCLAW_GATEWAY_URL", "OPENCLAW_GATEWAY_TOKEN"),
         parser="openclaw_json",
     ),
     ExecutorSpec(
@@ -391,12 +416,47 @@ async def pick(brief: Brief, *, correlation_id: str = "",
         return cands[0], arb
 
 
-def _argv(spec: ExecutorSpec, brief: Brief) -> list[str]:
-    """Substitute the brief into the spec's argv. The executable is resolved to a real path."""
-    repl = {"{task}": brief.task, "{acceptance}": brief.acceptance, "{repo}": brief.repo or ""}
+def _write_task(brief: Brief) -> Path:
+    """Put the brief's text where an executor can read it without a shell seeing it.
+
+    Mode 0600 where the platform honours it: the brief is the owner's business, not the machine's.
+    """
+    import tempfile
+
+    fd, name = tempfile.mkstemp(prefix="afon-brief-", suffix=".txt", text=True)
+    path = Path(name)
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(brief.task)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:  # noqa: S110 - Windows ignores the mode; the temp dir is already per-user
+        pass
+    return path
+
+
+def _argv(spec: ExecutorSpec, brief: Brief, task_file: str = "") -> list[str]:
+    """Substitute the brief into the spec's argv. The executable is resolved to a real path.
+
+    ``{task_file}`` is the one substitution that is not a plain string: `dispatch()` writes the
+    task to a temporary file and passes its path, which is how an executor that supports it
+    (`openclaw agent --message-file`) sidesteps the batch-shim re-parsing hazard entirely rather
+    than having the brief refused for containing a quote.
+    """
+    repl = {
+        "{task}": brief.task,
+        "{acceptance}": brief.acceptance,
+        "{repo}": brief.repo or "",
+        "{task_file}": task_file,
+        "{timeout}": str(brief.timeout_s),
+    }
     argv = [repl.get(part, part) for part in spec.argv]
     argv[0] = shutil.which(argv[0]) or argv[0]
     return argv
+
+
+def wants_task_file(spec: ExecutorSpec) -> bool:
+    """Whether this executor reads its task from a file rather than from argv."""
+    return "{task_file}" in spec.argv
 
 
 def _batch_hazard(argv: list[str]) -> str:
@@ -437,9 +497,16 @@ async def dispatch(brief: Brief, *, chosen: str | None = None) -> Result:
         raise BriefRefused(f"a {brief.domain.value} brief must not carry a repo path")
 
     spec = resolve(brief, chosen=chosen)
-    argv = _argv(spec, brief)
+    # A task handed over in a file is never re-parsed by anything, so it is written before the
+    # argv is built and removed in the `finally` below whatever happens.
+    handoff: Path | None = None
+    if wants_task_file(spec):
+        handoff = _write_task(brief)
+    argv = _argv(spec, brief, task_file=str(handoff) if handoff else "")
     hazard = _batch_hazard(argv)
     if hazard:
+        if handoff is not None:
+            handoff.unlink(missing_ok=True)
         raise BriefRefused(hazard)
     started = time.monotonic()
     code, out, err = -1, "", ""
@@ -462,6 +529,10 @@ async def dispatch(brief: Brief, *, chosen: str | None = None) -> Result:
         err = f"{spec.name} is not installed on this host"
     except Exception as e:  # noqa: BLE001 — an executor must never take the brain down with it
         err = f"{spec.name} failed to start: {e}"
+
+    finally:
+        if handoff is not None:
+            handoff.unlink(missing_ok=True)
 
     # Parse before judging. A JSON event stream read as prose is how a reported FAILURE gets
     # spoken as a result: codex emits `turn.failed` and openclaw can carry `status: ok` over a
@@ -544,7 +615,13 @@ def _texts_of(obj: object) -> list[str]:
     found: list[str] = []
     if isinstance(obj, dict):
         for key, value in obj.items():
-            if key in {"text", "message", "content", "summary", "result", "output", "answer"}:
+            # `reply`/`replyText`/`response` were added 2026-10-07 for the fleet. The exact key
+            # `openclaw agent --json` uses is NOT documented and no real run has been made, so the
+            # set is widened rather than guessed at: a key this misses leaves the raw JSON line as
+            # the transcript, which reads as noise, while a key it includes too eagerly only ever
+            # adds a string a person could read. Erring toward reading is correct here.
+            if key in {"text", "message", "content", "summary", "result", "output", "answer",
+                       "reply", "replyText", "response"}:
                 if isinstance(value, str) and value.strip():
                     found.append(value.strip())
                 else:

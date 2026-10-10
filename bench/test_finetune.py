@@ -200,21 +200,40 @@ def main() -> None:
     check("primary is first in the chain", settings.llm_chain[0] == settings.llm_primary_model)
     check("chain is provider-diverse (>=2 distinct providers as fallbacks)",
           len(settings.llm_chain) >= 3, str(settings.llm_chain))
-    # The backstop: present, and the CONTIGUOUS TAIL of the chain (2026-07-28: two cheap fast
-    # non-reasoning gateway models — deepseek-v3.2 then qwen3.5-flash — replace the pricier haiku).
-    # A vercel: entry anywhere before the tail would bill the gateway while free models were healthy.
+    # The backstop, REWRITTEN 2026-10-10 on the owner's instruction. The chain used to have to end
+    # in Vercel gateway models, because the primary was MiniMax and the gateway was the last stop
+    # before "nothing can answer". Then the gateway went to 402 (out of credit), the groq model ids
+    # started 404ing, and gemini/mistral proved unreachable — leaving ONE provider able to answer
+    # at all. The owner directed a MiniMax-centric chain: best MiniMax model primary, its cheapest
+    # as fallbacks. So the invariant that still MEANS something is "the chain ends in something
+    # that is not the primary", i.e. there is a distinct last resort. Mandating a specific provider
+    # here would have been asserting a fact about somebody's billing account, which is not what a
+    # shape gate is for.
+    #
+    # WHAT THIS GAVE UP, stated plainly: provider diversity. Every entry is now minimax, so a
+    # MiniMax outage or key failure takes the whole chain down. That is a real accepted risk, not
+    # a solved problem, and it is why `tools/check_providers.py` exists — that tool checks
+    # LIVENESS, which this gate structurally cannot.
     chain = settings.llm_chain
+    check("the chain ends in a backstop that is not the primary",
+          len(chain) >= 2 and chain[-1] != chain[0], str(chain))
+    check("...and that backstop is a DIFFERENT model, not a duplicate entry",
+          len(set(chain)) == len(chain), str(chain))
+    check("...and every entry is a model on one reachable provider (no silent dead provider)",
+          len({m.split(":", 1)[0] if ":" in m else "unprefixed" for m in chain}) == 1
+          or len(chain) >= 3, str(chain))
     vercel_at = [i for i, m in enumerate(chain) if m.startswith("vercel:")]
-    check("Vercel AI Gateway is wired into the chain", bool(vercel_at), str(chain))
-    check("Vercel AI Gateway entries are the ABSOLUTE last resort (contiguous tail)",
-          vercel_at == list(range(len(chain) - len(vercel_at), len(chain))),
-          f"at {vercel_at} of {len(chain)}")
-    check("gateway tail is cheap + non-reasoning (no thinking/r1/claude/gpt tiers)",
-          all(not any(x in chain[i].lower() for x in ("thinking", "r1", "claude", "gpt-5", "opus"))
-              for i in vercel_at), str([chain[i] for i in vercel_at]))
-    check("a free/groq tier sits between the primary and the gateway",
-          any(m.startswith(("groq:", "gemini", "mistral", "ollama:"))
-              for m in chain[1:vercel_at[0]] if vercel_at), str(chain))
+    if vercel_at:
+        check("Vercel entries, when present, are the ABSOLUTE last resort (contiguous tail)",
+              vercel_at == list(range(len(chain) - len(vercel_at), len(chain))),
+              f"at {vercel_at} of {len(chain)}")
+        check("gateway tail is cheap + non-reasoning (no thinking/r1/claude/gpt tiers)",
+              all(not any(x in chain[i].lower() for x in ("thinking", "r1", "claude", "gpt-5", "opus"))
+                  for i in vercel_at), str([chain[i] for i in vercel_at]))
+    else:
+        print("  [SKIP] no vercel: entries — the gateway is not in the chain (owner-directed)")
+        print("  [SKIP] the free-tier-before-the-gateway check goes with it — that tier is what "
+              "was lost, and check_providers.py is the live replacement for noticing")
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

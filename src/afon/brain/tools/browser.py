@@ -24,7 +24,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from afon.brain.tools.base import clip, missing_arg, not_configured, tool_error
+from afon.brain.tools.base import clip, guard_url, missing_arg, not_configured, tool_error
 from afon.config import settings
 
 # browser.py lives at src/afon/brain/tools/ — repo root is 4 parents up (one deeper than
@@ -130,6 +130,11 @@ async def _browser_action(args: dict) -> str:
                                    ask="Which URL, sir?")
             if not url.startswith(("http://", "https://")):
                 url = "https://" + url
+            # The URL came from a model that may have just read a page. Refuse
+            # internal targets before Playwright leaves this machine for them.
+            refusal = guard_url(url)
+            if refusal:
+                return refusal
             await page.goto(url, wait_until="domcontentloaded")
             title = await page.title()
             # T1b: open always returns a screenshot path so the LLM (and the owner) can verify
@@ -148,6 +153,9 @@ async def _browser_action(args: dict) -> str:
             if url:
                 if not url.startswith(("http://", "https://")):
                     url = "https://" + url
+                refusal = guard_url(url)
+                if refusal:
+                    return refusal
                 await page.goto(url, wait_until="domcontentloaded")
                 return f"Opened a new tab at {url}, sir."
             return "Opened a new tab, sir."

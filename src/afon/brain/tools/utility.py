@@ -360,7 +360,21 @@ async def define_word(args: dict) -> str:
         return "Which word, sir?"
 
     async def fetch() -> str:
-        r = await http_get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}")
+        # The dictionary API is keyless and public, and on 2026-10-10 it returned 403 for EVERY
+        # word from this host — `http_get` raises on a non-2xx, so the "I couldn't find a
+        # definition" branch below was unreachable and every call ended in tool_error(). Measured
+        # live: "Define the word 'laconic'" scored 85.0 on three runs out of three with the raw
+        # class name read aloud. The graceful path has to be reachable from INSIDE fetch, not
+        # only for an empty result set.
+        #
+        # It must NOT be cached as the answer, and it must tell the model to fall back to its own
+        # knowledge rather than reporting a lookup failure as the definition — the owner asked for
+        # a word's meaning, and a model knows "laconic" without a dictionary.
+        try:
+            r = await http_get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}")
+        except Exception:  # noqa: BLE001 - blocked, offline, rate-limited: all mean the same here
+            return (f"No dictionary lookup available for '{word}' right now, sir — answer it from "
+                    f"your own knowledge instead.")
         entries = r.json()
         if not isinstance(entries, list) or not entries:
             return f"I couldn't find a definition for '{word}', sir."

@@ -190,7 +190,17 @@ def main() -> None:
     for sc in behavioral_suite.scenarios():
         for turn in sc.turns:
             want = None
-            if turn.expect_tools and all(e in _WRITE_TOOLS for e in turn.expect_tools):
+            # A turn with two or more expected tools is a COMPOUND request, and its class is
+            # `multi` whatever those tools do. Deriving "lookup" from "both of these are read
+            # tools" conflated the act/lookup axis with the how-many-intents axis, and it only
+            # worked by luck: most compound scenarios paired a read with a write, so they fell
+            # out of the comparison entirely and the question was never asked. Adding two
+            # all-read compound scenarios on 2026-10-09 exposed it — both were classified
+            # `multi`, correctly, and failed a holdout that insisted they should be `lookup`.
+            # The scenario's own category is the independent label for this, so use it.
+            if len(turn.expect_tools or ()) >= 2 and sc.category == "Combination":
+                want = "multi"
+            elif turn.expect_tools and all(e in _WRITE_TOOLS for e in turn.expect_tools):
                 want = "act"
             elif turn.expect_tools and all(e in _READ_TOOLS for e in turn.expect_tools):
                 want = "lookup"

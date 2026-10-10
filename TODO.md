@@ -78,7 +78,7 @@ work. Every estimate below assumes a trustworthy suite underneath it.
 
 ---
 
-## Part U — The executor brain (M41–M46) · **M41, M43, M44, M45, M46 built; M42 is the only one left**
+## Part U — The executor brain (M41–M46) · **all six built; M42 owes a live round-trip and a coordination row**
 
 Afon becomes the router. Each executor is a subprocess or an MCP server behind a typed
 adapter, never an interactive shell (D-80), and Jev picks among candidates code produced
@@ -87,7 +87,7 @@ adapter, never an interactive shell (D-80), and Jev picks among candidates code 
 | ID | Milestone | Done when | h |
 |---|---|---|---|
 | M41 | ~~**One executor adapter contract.**~~ **BUILT 2026-10-06, hermetically.** `src/afon/brain/executors/__init__.py` — Pydantic `Brief`/`Result`/`ExecutorSpec`, the routing table, `candidates()`/`resolve()`/`dispatch()`. Registry: `39.R1` in-progress | `bench/test_executor_contract.py` **58/58**, registered in the suite. Dark until M42–M45 call it (D-46) | 6 ✓ |
-| M42 | **OpenClaw goes live for daily-life work.** Take option (a) already written in `src/afon/brain/fleet.py`: the official `openclaw agent --agent <id> --json` CLI over SSH. No gateway spoofing, no client-id impersonation | `delegate_to_fleet` enabled; a real errand round-trips; the delegation leaves a row in `src/afon/brain/coordination.py` with a deadline and a verdict (D-05, 39.R1) | 5 |
+| M42 | **OpenClaw goes live for daily-life work.** Transport **BUILT 2026-10-07** — the local `openclaw agent --agent <id> --message-file <path> --timeout <s> --json` CLI. The agent ids `personal` and `business` are **real and live**, read off the VPS; the **SSH plan is declined** (D-91) because a remote shell re-parses the command string. Registry: `39.R7` | `bench/test_fleet_transport.py` **40/40**, registered — no shell, nothing delivered, the task in a file so a brief with `&` or a quote now runs instead of being refused. **Still owed:** a real errand round-trip (spends money on the fleet — the owner's call) and the `coordination.py` row with a deadline and a verdict | 5 |
 | M43 | ~~**Coding delegation lands under D-08.**~~ **BUILT 2026-10-06, hermetically.** `src/afon/brain/executors/landing.py` — a `git worktree` per brief, the four conditions in order, and `commit_approved()` as the second half because `ApprovalQueue` is durable rather than blocking. Registry: `39.R4` in-progress; D-90 records what writing it changed about condition 1 | `bench/test_coding_delegation.py` **98/98**, registered. It caught four real defects in my own code, and a fifth came from re-reading the design — see the log. **Blocked on T0.1 for real use:** a worktree is cut from HEAD, and the checkout has 171 uncommitted changes against a HEAD from 2026-09-15, so the path correctly refuses to delegate against code the owner has moved past | 7 ✓ |
 | M44 | ~~**A second and third coding executor behind the same contract.**~~ **BUILT 2026-10-06.** `mcode` is one `ExecutorSpec` row, measured from `mcode exec --help` — and it has the richest interface of the three: `--output-format stream-json`, `--output-schema` and an explicit `--permission` policy. No new module, no caller change, which was M41's whole claim. Registry: `39.R1` evidence | `bench/test_executor_contract.py` **109/109** (was 98). It caught a coding brief defaulting to the personal tier, which matched no executor and failed with a message that read as a missing install | 5 ✓ |
 | M45 | ~~**Jev picks the executor.**~~ **BUILT 2026-10-06.** `executors.pick()` over `judgment.arbitrate()` with a declared `route_purpose`. `resolve()` stays the authority; `pick()` is the policy, so the refusal and the fallbacks live in different places on purpose. Registry: `39.R5` | `bench/test_executor_arbitration.py` **43/43**, registered — an uninstalled executor is not even present in the outbound payload, and every failure mode (timeout, outage, no key, disabled, a service object that raises) keeps the deterministic choice silently | 6 ✓ |
@@ -240,6 +240,48 @@ Not restated here — these are the standing surfaces, and they are authoritativ
   behind several cancelled tasks still needs deleting, and three owner decisions are open.
 
 ## Log
+
+### 2026-10-07 (T0.1 + M42) — the backlog landed, and the transport plan was wrong
+
+**T0.1 is done.** Three weeks and 173 paths committed on `afon/land-2026-10` in seven reviewable
+chunks: the charter and registry; the executor brain; the toolchain jobs; Bookroom; the browser
+gate and never-store; the graph-gate fix; the graph-memory deletion; and one honest batch of 117
+files for which I had no per-file provenance — splitting *that* into themes would have meant
+inventing attributions, so it says so in its own message and points at the registry.
+
+**What that unblocked, immediately and measurably.** `landing.py` refuses to cut a worktree while
+the checkout has moved past HEAD. Before the commit it reported *171 uncommitted changes*; after,
+it returns clean. The delegation path went from unusable to usable by committing, which is exactly
+what the refusal was for.
+
+**M42's plan said SSH, and the plan was wrong.** `ssh host "openclaw agent -m '…'"` hands a
+command *string* to a shell on the far end, which re-parses it — the same class `_batch_hazard`
+refuses for a Windows `.CMD` shim, with a full shell instead of a batch interpreter. The contract's
+`_no_interpreter` validator already refused `ssh`, so **the plan and the code contradicted each
+other and the code was right.** Declined in D-91; the transport is the local CLI against the
+gateway.
+
+**Then `openclaw agent --help` on the live VPS replaced three of my guesses:**
+
+- **`--message-file` exists.** The task goes over in a file, so nothing re-parses it. This is
+  strictly better than what it replaces: `_batch_hazard`'s own docstring said the fix was to hand
+  the task over in a file rather than guess at quoting. A brief reading *Draft a reply about "the
+  boiler" & the rent* used to be **refused**; it now runs, verified byte for byte.
+- **`--deliver` defaults to false**, and Afon never passes it, nor any channel or recipient. So a
+  fleet turn produces a reply and **sends nothing**. The consent gate lives in the transport rather
+  than in a prompt — the only place a model cannot be talked out of it.
+- **`--timeout` exists**, so the CLI gets the brief's deadline and exits with a transcript instead
+  of being killed. A killed process loses the half that matters at 2 AM.
+
+**And the agent ids were never placeholders.** `personal` and `business` are real and have been
+throughout. The specs were correct by accident; they are correct on purpose now.
+
+**Two gaps the measurement exposed, reported rather than quietly fixed.** The laptop's `openclaw`
+is **2026.2.14** against the VPS's **2026.9.3** — seven months, and the older client may not
+have `--message-file` at all. That is precisely what D-88's daily job exists to close, and it has
+not run. And **`personal` and `business` both run `minimax/MiniMax-M2.7` as primary** — a paid
+model — with a free one only as fallback, which contradicts the stated split of personal-on-free
+and corporate-on-best. That is the owner's config on his own host, so it is reported.
 
 ### 2026-10-06 (T0.2 + M44–M46) — the suite was not green, and nine reasons why
 

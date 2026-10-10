@@ -1,0 +1,373 @@
+{
+  "exists": 31,
+  "does_not_exist": [
+    "yaroslavholub/stable-diffusion-webui",
+    "cobotar/cowrie",
+    "dbnomics/dbnomics",
+    "e2b-dev/secure-runtime",
+    "frankfurter/frankfurter",
+    "krillinai/krillin",
+    "music-prince/snscrape",
+    "premethod/pptx",
+    "pslmodels/taxcalc",
+    "reflex-dev/langflow",
+    "steipete/claude-code-slack",
+    "systeminformation/systeminformation",
+    "tavily/tavily-python"
+  ],
+  "unknown": [],
+  "results": {
+    "yaroslavholub/stable-diffusion-webui": {
+      "repo": "yaroslavholub/stable-diffusion-webui",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "cobotar/cowrie": {
+      "repo": "cobotar/cowrie",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "SSH honeypot",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "dbnomics/dbnomics": {
+      "repo": "dbnomics/dbnomics",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Keyless macro API client",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "e2b-dev/secure-runtime": {
+      "repo": "e2b-dev/secure-runtime",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Claude Code sandboxed bash",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "frankfurter/frankfurter": {
+      "repo": "frankfurter/frankfurter",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Keyless ECB FX",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "krillinai/krillin": {
+      "repo": "krillinai/krillin",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Audiobook TTS pipeline",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "miniflux/v2": {
+      "repo": "miniflux/v2",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Self-hosted feed reader",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "moneyphp/money": {
+      "repo": "moneyphp/money",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Exact money arithmetic",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "morluto/rea": {
+      "repo": "morluto/rea",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Reverse-engineering agent skills",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "music-prince/snscrape": {
+      "repo": "music-prince/snscrape",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "No-key X search",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "navidrome/navidrome": {
+      "repo": "navidrome/navidrome",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Self-hosted music server",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "nicolargo/glances": {
+      "repo": "nicolargo/glances",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Host monitoring",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "nodejs/undici": {
+      "repo": "nodejs/undici",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "HTTP client pool",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "obra/superpowers": {
+      "repo": "obra/superpowers",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Mcode superpowers skill pack",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "ollama/ollama": {
+      "repo": "ollama/ollama",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Local VLM serving",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "openai/whisper": {
+      "repo": "openai/whisper",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Transcription candidate",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "panda-sandeep/dearagent": {
+      "repo": "panda-sandeep/dearagent",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "AgentMail OSS alternative",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "penpot/penpot": {
+      "repo": "penpot/penpot",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Self-hosted design assets",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "premethod/pptx": {
+      "repo": "premethod/pptx",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "PPTX writer",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "projectdiscovery/nuclei": {
+      "repo": "projectdiscovery/nuclei",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Attack surface scanner",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "promptfoo/promptfoo": {
+      "repo": "promptfoo/promptfoo",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Regression harness",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "pslmodels/taxcalc": {
+      "repo": "pslmodels/taxcalc",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Tax engine",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "pyannote/pyannote-audio": {
+      "repo": "pyannote/pyannote-audio",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Speaker diarization",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "python-telegram-bot/python-telegram-bot": {
+      "repo": "python-telegram-bot/python-telegram-bot",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Telegram SDK",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "ranaroussi/yfinance": {
+      "repo": "ranaroussi/yfinance",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Equity data",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "ranaroussi/quantstats": {
+      "repo": "ranaroussi/quantstats",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Risk statistics",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "rapidai/rapidocr": {
+      "repo": "rapidai/rapidocr",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "reflex-dev/langflow": {
+      "repo": "reflex-dev/langflow",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Claude Code scheduled tasks",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "reorproject/reor": {
+      "repo": "reorproject/reor",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Local knowledge notes",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "robertmartin8/pyportfolioopt": {
+      "repo": "robertmartin8/pyportfolioopt",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "rsheftel/pandas_market_calendars": {
+      "repo": "rsheftel/pandas_market_calendars",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Exchange calendars",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "ruvnet/claude-flow": {
+      "repo": "ruvnet/claude-flow",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Claude Code agent teams",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "searxng/searxng": {
+      "repo": "searxng/searxng",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Self-hosted metasearch",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "speechbrain/speechbrain": {
+      "repo": "speechbrain/speechbrain",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Jarvis speaker ID",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "stefan-jansen/empyrical-reloaded": {
+      "repo": "stefan-jansen/empyrical-reloaded",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Risk metrics",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "steipete/claude-code-slack": {
+      "repo": "steipete/claude-code-slack",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Claude Code Slack bridge",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "systeminformation/systeminformation": {
+      "repo": "systeminformation/systeminformation",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Windows system metrics",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "taskforcesh/bullmq": {
+      "repo": "taskforcesh/bullmq",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Durable job scheduler",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "tavily/tavily-python": {
+      "repo": "tavily/tavily-python",
+      "exists": false,
+      "detail": "HTTP 404",
+      "reason": "Claude Code web search",
+      "existence_verified": false,
+      "licence_verified": false
+    },
+    "twilio/twilio-python": {
+      "repo": "twilio/twilio-python",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Programmatic voice",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "umami-software/umami": {
+      "repo": "umami-software/umami",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Content analytics",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "unclecode/crawl4ai": {
+      "repo": "unclecode/crawl4ai",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "LLM-ready page extraction",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "xyflow/xyflow": {
+      "repo": "xyflow/xyflow",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Node-graph canvas",
+      "existence_verified": true,
+      "licence_verified": false
+    },
+    "yt-dlp/yt-dlp": {
+      "repo": "yt-dlp/yt-dlp",
+      "exists": true,
+      "detail": "HTTP 200",
+      "reason": "Media fetcher",
+      "existence_verified": true,
+      "licence_verified": false
+    }
+  }
+}

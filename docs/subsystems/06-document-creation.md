@@ -98,6 +98,36 @@ laser printer. Paper is a *destination*; it adds no writer and no verification p
    never its contents, and no context, tool argument, audit line or log carries the bytes.
    A local laser printer is the surface (H7); the print tool does not exist yet.
 
+### Proposed addition — close 06.R3 with a converter, not a writer (D-93)
+
+**[jgm/pandoc](https://github.com/jgm/pandoc)** (GPL-2.0, actively maintained,
+one static binary for Linux and Windows) — **subprocess adapter**, one file
+implementing the M41 contract.
+
+**Not an MCP server and explicitly not in-repo.** This is the
+`EXTERNAL-EXECUTORS.md` §6 lesson applied: the executor contract bounds an
+*agent*; a converter is a library, and routing a library through the contract
+buys none of its protections while costing all of its ceremony.
+
+**A base addition, and the cheapest correct door in the whole inventory.** It
+closes 06.R3 and does nothing else. Templates (06.R1) and in-place revision
+(06.R2) remain in-repo and are the larger pieces of this subsystem.
+
+**Licence, recorded rather than inherited:** GPL-2.0 is acceptable for a private,
+never-distributed install, and becomes a real obligation the day Afon is shared
+(D-57, D-60). It belongs in `THIRD_PARTY_NOTICES.md` when adopted.
+
+**Gate:** the planned `bench/test_document_revise.py`, which does not exist yet.
+PRINCIPLES §1 three commands, in order:
+
+```
+pandoc --version
+journalctl -u openafon-brain -n 200 | grep -i export
+ls -l ~/.afon/exports/
+```
+
+See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
+
 ## Benchmarks
 
 | # | Goal | Tier | Command / drill | Threshold | Last measurement |

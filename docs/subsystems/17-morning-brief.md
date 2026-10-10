@@ -31,11 +31,20 @@ module was written to stop.
 |---|---|
 | `src/afon/brain/daily_digest.py` | The digest itself: past-due tasks plus important unread mail, delivered on at most two channels per local day |
 | `src/afon/brain/schedule.py` | The day read as a whole — overlap, travel, no-break. Arithmetic on a sorted list, no model consulted |
-| `src/afon/brain/mynews.py` | The news section |
+| ~~`src/afon/brain/mynews.py`~~ | **Was** "the news section". It is not one, and does not belong in this table — see below |
 | `src/afon/brain/tools/day_shape.py` | Drafting routines and checking whether the day holds together |
 | `src/afon/brain/presence.py` | The context the trigger reads |
 | `clients/hud-spatial/src/App.tsx`, `src/afon/brain/hud.py` | The silent on-screen surface |
 | `src/afon/edge/edge_lite.py`, `src/afon/brain/telegram_bridge.py` | The two channels, both of which can carry the brief when it is asked for |
+
+**The news section is gone, and the row is kept struck through rather than deleted** so the
+correction is visible. This table claimed `mynews.py` supplied "the news section"; it does
+not. `src/afon/brain/daily_digest.py` contains no news, RSS or headline path at all —
+`scheduler.py` describes the digest as past-due tasks plus important unread email, which is
+everything it actually builds. The module was an *unprompted* proactive signal rather than a
+digest section at all, so it belonged to the D-34 breach, and 41.R4 closed that path. The
+author of the row conflated an ambient push with the brief; neither the brief nor
+`daily_digest.py` ever referenced each other.
 
 Two channels exist because the owner has two situations. The `push` channel is the timed
 briefing that reaches a phone with the laptop off; the `edge` channel appends the digest to the

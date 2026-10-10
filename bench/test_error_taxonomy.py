@@ -136,6 +136,21 @@ def main() -> None:
     check("not_configured(" in src or "tool_error(" in src,
           "a representative tool module routes failures through the shared helpers")
 
+    # A blocked keyless upstream must not become an exception the owner hears. Measured live on
+    # 2026-10-10: api.dictionaryapi.dev returned 403 for EVERY word from this host, `http_get`
+    # raises on a non-2xx, so define_word's graceful branch was unreachable and every call ended
+    # in tool_error(). "Define the word 'laconic'" then scored 85.0 on three runs out of three,
+    # with the owner hearing "(HTTPStatusError). I'll let the owner know."
+    from afon.brain.tools.utility import define_word
+
+    out = asyncio.run(define_word({"word": "laconic"}))
+    check("a blocked keyless upstream degrades instead of raising",
+          not tool_failed(out) or "no dictionary lookup available" in out.lower(), str(out)[:90])
+    check("...and it never reads a raw exception class name aloud",
+          "HTTPStatusError" not in out and "Traceback" not in out, str(out)[:90])
+    check("...and it hands the answer back to the model rather than failing the turn",
+          "your own knowledge" in out.lower(), str(out)[:90])
+
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     sys.exit(1 if failed else 0)
 

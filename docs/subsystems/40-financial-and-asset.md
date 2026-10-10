@@ -68,6 +68,43 @@ decision, read-only market alerts on watched symbols only. 40.R1 is the one surv
 raise task, so the floor is 3/3, the raise is 0/1, and there is no elite task left to
 pass.
 
+### Proposed addition — make the one permitted ledger actually parse (D-93)
+
+The single permitted artefact is `ledger.example.beancount`, a *format shape*, and
+the holdings read against it is `not yet measured`. That is the whole gap.
+
+**[beancount/beancount](https://github.com/beancount/beancount)** (GPL-2.0,
+6.0k★, pushed 2026-08-23) — in-repo import. A library, not an executor, so it
+bypasses the executor contract by `EXTERNAL-EXECUTORS.md` §6's own rule.
+
+**A base addition, not a capability.** It replaces a hand-rolled parser for a
+format this repository already names, and it makes no goal reachable that is not
+already listed. What it buys is that a date the owner mistyped in his own file
+stops becoming a confidently spoken wrong number.
+
+**It stays on the readable side of the D-12 line, which is the whole constraint.**
+A ledger file the owner types himself is data he already had; Afon may read it
+and writes nothing into it. Nothing here changes that, and nothing here may.
+
+**Licence, recorded rather than inherited:** GPL-2.0, acceptable for a private,
+never-distributed install, a real obligation if Afon is ever shared (D-57, D-60).
+It belongs in `THIRD_PARTY_NOTICES.md` when adopted.
+
+**Gate:** `bench/test_portfolio.py`, which exists and is `not yet measured`.
+PRINCIPLES §1 three commands, in order:
+
+```
+uv run bean-check ledger.beancount
+uv run python bench/test_portfolio.py
+journalctl -u openafon-brain -n 100 | grep -i quote
+```
+
+**What must not come with it:** any bank feed, statement ingest, or order
+placement. That is a different decision and is not taken here.
+
+See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
+
+
 ## Goals
 
 1. **No transaction ingest path exists anywhere** — no bank feed, no statement parser,

@@ -39,7 +39,7 @@ Afon's job that genuinely scales with his time.
 | `src/afon/brain/docstore.py` | brain | Local document retrieval over a temporary index, and where a synthesis is filed (41.R3) |
 | `src/afon/brain/tasks.py` | brain | Where a research task carries its budget and records that it stopped early (41.F3) |
 | `src/afon/brain/semantic.py`, `src/afon/brain/recall.py` | brain | Retrieval over what is already local, before anything leaves the host |
-| `src/afon/brain/mynews.py` | brain | An unprompted morning headline surface — **the live example of what D-34 forbids**, see below |
+| `src/afon/brain/mynews.py` | brain | An unprompted morning headline surface — **the example D-34 forbids**, a breach rather than a live one since 41.R4 closed the path, see below |
 | `src/afon/brain/proactive_signals.py`, `src/afon/brain/delivery.py` | brain | The path any ambient research surface would enter, and the interruption budget it would be charged against |
 
 **Data flow.** A turn requests research, the budget is stated on the task, `web.py`
@@ -47,19 +47,80 @@ resolves sources through its fallback chain, `citations.py` records what was act
 fetched, and the answer is composed only from those pages. Synthesis is filed into
 `docstore.py` rather than left in the transcript, so it is retrievable later.
 
-**The honest gap, and a live violation.** 41.R1 (reliability weighting) and 41.R2
-(contradiction surfacing) are open, so today's synthesis has no way to say that a
-forums answer and a primary source do not carry the same weight. Separately,
-`src/afon/brain/mynews.py` is a proactive news-of-interest source that once each morning
-surfaces top headlines as a proactive signal so Afon mentions them unprompted. That is
-content discovery nobody asked for, and D-34 names S41 as a system it applies to. The
-module is real and wired, not merely present: `news_signals` is registered as a source in
-`src/afon/brain/proactive.py` and fires while `8 <= now.hour < 10`. The honest reading is
-that it is a S15-shaped feature that survived in a module the S15 cancellation did not
-name. It is not fixed here, but it is no longer unowned: `41.R4` — "No unprompted
-content feed: the ambient morning news push is removed, or it fires only as a reply to
-something the owner asked for (D-34)" — tracks it, with a planned gate of
-`bench/test_no_unprompted_feed.py`.
+**The honest gap, and a violation that has since been closed.** 41.R1 (reliability
+weighting) and 41.R2 (contradiction surfacing) are open, so today's synthesis has no way
+to say that a forums answer and a primary source do not carry the same weight.
+
+The second half of this paragraph used to be a live breach. `src/afon/brain/mynews.py`
+is a news-of-interest source that once each morning surfaced top headlines as a
+proactive signal, so Afon mentioned them unprompted — content discovery nobody asked
+for, and D-34 names S41 as a system it applies to. It was not merely present on disk:
+`news_signals` was registered as a source in `src/afon/brain/proactive.py` and fired
+while `8 <= now.hour < 10`. That is a S15-shaped feature that survived in a module the
+S15 cancellation never named.
+
+**It is closed now.** `41.R4` — "No unprompted content feed: the ambient morning news
+push is removed, or it fires only as a reply to something the owner asked for (D-34)"
+— removed the registration, and `src/afon/brain/proactive.py` carries a comment at the
+old seam saying why. The path is closed *at the source*, not filtered downstream, where
+a threshold could be argued with. `bench/test_no_unprompted_feed.py` proves it without
+relying on a grep: `mynews` is absent from the 16 registered signal sources, an AST
+parse shows no brain module imports it, the old seam in `proactive.py` makes no call to
+`news_signals` or `MyNews`, the engine's `_gather()` is exercised with all 16 sources
+stubbed so nothing leaves the process, and `mynews.py` is asserted to still be on disk —
+the decision was to close the path, not to delete a file, because on-demand news is
+legitimate when asked for.
+
+**The residual, stated plainly:** a grep for `mynews` still matches two *source* files —
+the module itself and that explanatory comment — plus two stale `.pyc` artefacts. The
+comment is working as intended, and it is why the gate parses rather than greps.
+
+### Proposed addition — take the extraction, and take the deletion with it (D-93)
+
+The re-review's sharpest result here was a **pair**: one addition and one
+deletion, where the deletion is the part that makes the addition defensible.
+
+**[adbar/trafilatura](https://github.com/adbar/trafilatura)** (Apache-2.0,
+6.9k★, pushed 2026-10-06, PyPI 2.3.1 the same day) — in-repo import plus its own
+CLI, so the 2 AM check is one command. It extracts real article text instead of
+nav chrome, which is what makes a cited URL resolve to something the owner
+actually read.
+
+**But take `src/afon/brain/mynews.py` out of `src/afon/brain/proactive.py` in the
+same breath.** An extraction library pointed at a feed nobody asked for is the
+unprompted push with better typography. The deletion is free and is D-34; the
+addition is only correct once the feed is gone.
+
+**That precondition is now met**, so this proposal has collapsed to one half. 41.R4
+removed the registration before this document was written; what remains outstanding is
+`trafilatura` itself. Read this paragraph as a constraint that is satisfied rather than
+a task awaiting a deletion — the pair idea still holds, and it holds for the honest
+reason that the harder half was done first.
+
+**Goal 7's gate passes today** (10/10, 2026-10-04) and that is a fact about D-34, not
+about extraction quality. `trafilatura` does not make it pass and never did — it was
+already green before the library was proposed. Stating that matters, because a
+dependency that appears in the same paragraph as a passing gate will be read as the
+reason the gate passes.
+
+**What this does not cover:** goals 41.R1 (weighting) and 41.R2 (contradiction)
+are **policy, not libraries**, and this document's own open question 1 already
+says the weight must be *readable data*, not a per-turn judgement.
+
+**Gate:** `bench/test_citations.py` (44/44, 2026-10-04) for the citation ledger and
+attribution, and `bench/test_no_unprompted_feed.py` (10/10, 2026-10-04) for the
+deletion. PRINCIPLES §1 three commands, in order:
+
+```
+uv run trafilatura --url <the cited url> --output-format json
+uv run python bench/test_citations.py
+journalctl -u openafon-brain -n 200 | grep -iE "proactive|signal"
+```
+
+**Not proposed:** fuzzy relative-date parsers anywhere near it — inferring "next
+week" is the opposite of D-56's conservative branch, and it writes into a
+`KEEP_FOREVER` row. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
+
 
 ## Goals
 
@@ -82,17 +143,28 @@ something the owner asked for (D-34)" — tracks it, with a planned gate of
 
 | Goal | Tier | Command or drill | Threshold | Last measurement |
 |---|---|---|---|---|
-| 1 | B1 | `uv run python bench/test_citations.py` | 100% of web-sourced factual claims carry a citation; every citation resolves to a fetched page; 0 uncited | registry records 41.F2 done; run not reproduced here — not yet measured |
-| 2 | B1 | `uv run python bench/test_citations.py` [7] | a task that exhausts its budget says so; 0 silent truncations | registry records 41.F3 done; run not reproduced here — not yet measured |
+| 1 | B1 | `uv run python bench/test_citations.py` | 100% of web-sourced factual claims carry a citation; every citation resolves to a fetched page; 0 uncited | **44/44, 2026-10-04** (run reproduced here for the first time) |
+| 2 | B1 | `uv run python bench/test_citations.py` [7] | a task that exhausts its budget says so; 0 silent truncations | **44/44, 2026-10-04** — the budget block is 10 of those checks |
 | 3 | B1 | `uv run python bench/test_web_fallback.py` | a dead primary key falls through the chain and returns a degraded answer; 0 hard failures of the turn | registry records 41.F1 done; run not reproduced here — not yet measured |
 | 4 | B1 | `uv run python bench/test_citations.py` [weighting] | a low-weight source cannot outrank a high-weight one for the same claim; 0 comparisons made without weights | not yet measured (41.R1 open — no weighting exists to test) |
 | 5 | B1 | `uv run python bench/test_citations.py` [conflict] | two disagreeing sources produce both plus a stated disagreement; 0 silently chosen winners | not yet measured (41.R2 open) |
 | 6 | B1 | `uv run python bench/test_document_create.py` [research output] | a filed synthesis is retrievable by title; 0 orphaned files | not yet measured (41.R3 open) |
-| 7 | B4 | `grep -rlniE 'mynews\|news_digest\|research_digest' src/afon/brain/`, then the planned `bench/test_no_unprompted_feed.py` (41.R4 — does not exist yet) | 0 modules that surface research unprompted | not yet measured — `src/afon/brain/mynews.py` matches today, which is the D-34 tension recorded above |
+| 7 | B4 | `uv run python bench/test_no_unprompted_feed.py` (41.R4). The grep below is context, **not** the assertion | 0 modules that surface research unprompted | **10/10, 2026-10-04.** The gate parses; the grep is expected to print 2 files |
 
-Goal 7's threshold is currently expected to fail. It is written anyway, because a system
-that states its own violation is in better shape than one that omits the check, and
-because the alternative is a doc that reads as though the boundary holds.
+Grep, for context, and expected output as of 2026-10-04 — `mynews.py` (the module,
+retained on purpose) and `proactive.py` (the comment recording the removal). Two stale
+`.pyc` files also match, which is a build artefact rather than a finding:
+
+```
+grep -rlniE 'mynews|news_digest|research_digest' src/afon/brain/
+```
+
+Goal 7's threshold is written the other way round from how it used to be. It previously
+read "expected to fail", on the grounds that a system stating its own violation is in
+better shape than one omitting the check. It now passes, and the honest caveat has
+inverted: **a reader who greps and sees two files may conclude the boundary is broken.**
+It is not — nothing collects from that module — but the grep cannot show that, which is
+precisely why the gate exists.
 
 ## Failure modes
 

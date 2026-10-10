@@ -59,6 +59,24 @@ handler must never be a shell string.
 timestamps — the inputs to the 60-day cull. Confirmation and refusal records go to
 `audit.py`.
 
+### A smaller belt, not a bigger one (D-93)
+
+**The verdict for this subsystem is SUBTRACT, and the re-review confirmed it.**
+153 schemas and 155 handlers against a 90–100 target (D-06) is the problem; no
+repository fixes it. The correct action is deletion, and this document's open
+question 3 — which handlers go first — is the entire job, answered from
+`src/afon/brain/tool_usage.py`.
+
+The one conditional: if the "core schemas already spend 7418 of 11000 catalogue
+tokens" figure must be **exact** rather than estimated,
+**[openai/tiktoken](https://github.com/openai/tiktoken)** (MIT) would make it so,
+imported in one function behind the budget check in `_tools_for_turn()`. It is not
+proposed now, because no gate is waiting on the precision.
+
+**A narrower belt is a faster, less confidently wrong Afon**, which is the
+symptom this document names. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
+
+
 ## Goals
 
 1. **No tool reaches execution with an unvalidated payload** (D-04); every handler

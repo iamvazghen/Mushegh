@@ -79,6 +79,43 @@ one scheduling input — "the house is empty" — is today a laptop activity pol
 than a house fact, so the safe default until room presence lands is that the routine does
 not run at all.
 
+### Proposed addition — a vacuum that is not a new daemon (D-93)
+
+**[Hypfer/Valetudo](https://github.com/Hypfer/Valetudo)** (Apache-2.0, 9.8k★,
+pushed 2026-09-25) — subprocess adapter over its HTTP API.
+
+**Why this one survives D-42 when a music server would not.** Valetudo is
+firmware that runs **on the vacuum**, not a service Afon would own and operate.
+It is the rare dependency that adds a capability without adding a thing to be
+down at 2 AM.
+
+**It is the strongest un-darkening candidate in this subsystem.** A cloud-free
+vacuum is planned, not integrated, and the household-cleaning routine has a date
+and no actuator behind it.
+
+**What stays in-repo, and why.** Queue and history, and volume ducking during
+speech, remain handlers in `src/afon/brain/tools/music.py` and
+`src/afon/brain/tools/localplay.py`. This document's own open question 1 is right
+that a brain-side queue is the wrong shape for the path that never asks it — a
+vacuum cleaned on a schedule, not queued by speech.
+
+**Gate:** the planned `bench/test_media_queue.py`, which does not exist yet. One
+confirmation pass against valetudo.cloud is required **before** an adapter is
+written, because the API surface is not read in this review. PRINCIPLES §1 three
+commands, in order:
+
+```
+curl -s http://<vacuum-host>/api/v1/status | jq
+journalctl -u valetudo -n 100
+journalctl -u openafon-brain -n 100 | grep -i vacuum
+```
+
+**Not proposed:** mopidy, which is the obvious answer for the music side and is
+a *server* — a new daemon under systemd, refused by D-42 and §1. S42's routing
+already works without one.
+
+See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
+
 ## Goals
 
 1. Stop reaches whichever path is playing, local or music room, and leaves the other

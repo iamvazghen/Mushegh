@@ -1,7 +1,7 @@
-"""37.R4 — what class of data each store holds, declared before any retention rule is written.
+"""37.R4 â€” what class of data each store holds, declared before any retention rule is written.
 
-Jev p = 0.95, conf 0.93 — the highest-confidence directive in the whole evaluation:
-*classify data first — biometric, financial, medical, ordinary — before writing any retention rule;
+Jev p = 0.95, conf 0.93 â€” the highest-confidence directive in the whole evaluation:
+*classify data first â€” biometric, financial, medical, ordinary â€” before writing any retention rule;
 every other rule, retention included, depends on knowing which class a thing is.*
 
 Two design decisions worth stating, because both were the alternative to writing something false:
@@ -15,7 +15,7 @@ same as a string while letting the handling rule pick the strictest itself (``st
 
 **The gate is discovery-based, not list-based.** ``unclassified()`` walks the live state root and
 reports anything with no declaration. A test that only checked the declarations against each other
-would pass forever while a new store appeared beside them — which is the failure this whole
+would pass forever while a new store appeared beside them â€” which is the failure this whole
 directive exists to prevent, and the same shape as the HUD section that was emitted and never drawn
 (P1.2).
 
@@ -26,10 +26,11 @@ is checkable; written in a document, it is a promise.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
-#: The four classes Jev named. Strictest first — `strictest()` depends on this order, and the order
+#: The four classes Jev named. Strictest first â€” `strictest()` depends on this order, and the order
 #: is a judgement worth stating: biometrics identify the body and cannot be reissued; a medical fact
 #: is the most damaging thing here to disclose; a financial fact is recoverable but exploitable.
 BIOMETRIC = "biometric"
@@ -65,7 +66,7 @@ def _s(name: str, classes: tuple[str, ...], leaves_host: bool, why: str) -> Stor
 STORES: tuple[Store, ...] = (
     # ---- biometric: the three files that must never leave this laptop --------------------------
     _s("voiceprint.json", (BIOMETRIC,), False,
-       "the owner's speaker embedding — the thing the speaker gate compares against"),
+       "the owner's speaker embedding â€” the thing the speaker gate compares against"),
     _s("faces", (BIOMETRIC,), False,
        "owner.npy, the face embedding used as the confirm tier's second factor"),
 
@@ -93,7 +94,7 @@ STORES: tuple[Store, ...] = (
     _s("afon_presence.sqlite", (ORDINARY,), True, "which device he is at"),
     _s("afon_work.sqlite", (ORDINARY,), True, "background work rows"),
     _s("afon_session.json", (ORDINARY,), True, "the resumable session pointer"),
-    _s("approvals.json", (ORDINARY,), True, "pending approvals — summaries, not payloads"),
+    _s("approvals.json", (ORDINARY,), True, "pending approvals â€” summaries, not payloads"),
     _s("governor.json", (ORDINARY,), True, "the autonomy ledger: counts, money, seconds"),
     _s("relationship.json", (ORDINARY,), True, "interaction style state"),
     _s("room_context.json", (ORDINARY,), True, "who else is in the room"),
@@ -102,23 +103,39 @@ STORES: tuple[Store, ...] = (
     _s("patterns.jsonl", (ORDINARY,), True, "learned routine patterns"),
     _s("delivery_ledger.json", (ORDINARY,), True, "what was already said, so it is not said twice"),
     _s("daily_digest_state.json", (ORDINARY,), True, "the last digest's watermark"),
+    # Found by the gate on 2026-10-08, not by reading: `day_plan.json` is written by
+    # `routines.plan_today` and read by the reminder scheduler, but nothing had ever
+    # CALLED plan_today, so the file never existed in a live state root and no one had to
+    # classify it. Adding a route for day planning made that tool fire for the first time,
+    # the file appeared, and the table that exists precisely to catch unclassified owner
+    # data did its job on the first day it was given something real to find. Same shape as
+    # the daily digest's watermark beside it: ordinary operational state that leaves the host.
+    _s("day_plan.json", (ORDINARY,), True, "today's plan as Afon understands it"),
     # Two files that were on disk in the live state root with no declaration here, which is
     # the exact failure this table exists to prevent: unclassified owner data. `audio_pref.json`
     # is written by the edge audio device picker; `restore_drill.json` is written by the backup
     # restore drill. Both are ordinary operational state and both may leave the host, the same
     # as the other preference and ledger files above them.
     _s("audio_pref.json", (ORDINARY,), True,
-       "which speaker he wants Afon to talk through — a device preference, not a biometric"),
+       "which speaker he wants Afon to talk through â€” a device preference, not a biometric"),
     _s("restore_drill.json", (ORDINARY,), True,
        "the last restore drill's verdict; operational history, and the reason a drill is run "
        "at all is to be able to say afterwards whether it would have worked"),
     _s("proactive_state.json", (ORDINARY,), True, "proactivity budget and quiet-hours state"),
+    # Added 2026-10-09 with brain/calibration.py. Declared on the day it was written rather than
+    # when a gate caught it, which is the point of having the table. It is ORDINARY because a
+    # calibration record is a confidence and an outcome â€” but `detail` carries a short label for
+    # what was decided ("office vs cafe"), and a decision label is about the owner's life, so it
+    # inherits the strictest class it can hold rather than being called operational.
+    _s("calibration.jsonl", (MEDICAL, FINANCIAL, ORDINARY), True,
+       "reported confidence paired with the outcome, for ECE/Brier; the detail string names the "
+       "decision being judged, so this is owner data wearing a metrics hat"),
     _s("errors.jsonl", (ORDINARY,), True,
        "scrubbed error records; the scrubber is what keeps this class honest"),
     _s("conversation_id", (ORDINARY,), True, "one opaque id"),
     _s("run", (ORDINARY,), True, "pid and lock files"),
     _s("shell", (ORDINARY,), True, "the 04.R4 shell working directory"),
-    _s("MAINTENANCE", (ORDINARY,), True, "the park marker — its presence is the whole content"),
+    _s("MAINTENANCE", (ORDINARY,), True, "the park marker â€” its presence is the whole content"),
     _s("MIGRATED.txt", (ORDINARY,), True, "the 30.F1 migration receipt"),
 
     # ---- stores outside the state root ---------------------------------------------------------
@@ -129,12 +146,12 @@ STORES: tuple[Store, ...] = (
        "classification is kept: a host that ran the staged adapters may still have one on "
        "disk, and unclassified owner data is the failure this table exists to prevent"),
     _s("!vault", (MEDICAL, FINANCIAL, ORDINARY), True,
-       "the Obsidian vault on the VPS — decisions, and the life they were about"),
+       "the Obsidian vault on the VPS â€” decisions, and the life they were about"),
     _s("!env", (ORDINARY,), False,
        "credentials. Not one of the four classes and never in git: secrets are not owner data, "
        "they are access to it"),
     _s("!contacts", (ORDINARY,), False,
-       "other people's handles and addresses — his to hold, not his to leak"),
+       "other people's handles and addresses â€” his to hold, not his to leak"),
     _s("goal_deviation_log.jsonl", (MEDICAL, FINANCIAL, ORDINARY), False,
        "14.R4's would-have-said log: goal text plus the window title he was looking at. Goals carry "
        "health and money targets and a title carries anything, so it declares what it may hold"),
@@ -159,7 +176,7 @@ STORES: tuple[Store, ...] = (
 
 
 def strictest(classes: frozenset[str] | set[str] | tuple[str, ...]) -> str:
-    """The strictest class in the set — what a handling rule must apply."""
+    """The strictest class in the set â€” what a handling rule must apply."""
     for c in STRICTEST_FIRST:
         if c in classes:
             return c
@@ -179,16 +196,22 @@ def classify(name: str) -> Store | None:
             return store
     if key.endswith(".bak"):
         return classify(key[: -len(".bak")])
+    # A TIMESTAMPED backup â€” `afon_tasks.sqlite.bak-20261010-111312` â€” is the same thing wearing a
+    # date, and it was undeclared until 2026-10-10 when taking one for a residue wipe tripped
+    # this gate. A backup is a rule, not an exemption, so the date must not change the class.
+    m = re.search(r"\.bak(?:[-_.].*)?$", key)
+    if m:
+        return classify(key[: m.start()])
     return None
 
 
-#: Things that appear in the state root but are not stores. Kept short on purpose — every addition
+#: Things that appear in the state root but are not stores. Kept short on purpose â€” every addition
 #: here is a hole in the gate, so each one has to be something that provably holds no owner data.
 _NOT_A_STORE = {"__pycache__", ".ds_store", "thumbs.db", ".gitignore", ".gitkeep"}
 
 
 def unclassified(root: Path | None = None) -> list[str]:
-    """THE GATE — every top-level entry in the live state root that has no declaration.
+    """THE GATE â€” every top-level entry in the live state root that has no declaration.
 
     Discovery-based on purpose: checking the declarations against each other would pass forever
     while a new store appeared beside them.

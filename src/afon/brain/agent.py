@@ -551,6 +551,25 @@ def _should_degrade(narrowed: bool, seen_tools: set, forced_name: str | None) ->
     return narrowed and not seen_tools and forced_name not in _NO_DEGRADE
 
 
+def _routes_to_one_tool(user_text: str) -> bool:
+    """True when the intent router maps this turn to exactly ONE tool.
+
+    Used to decide whether a clarifying question can still help. If the router already resolved
+    the utterance to a single tool, the object and the intent were both unambiguous enough for a
+    deterministic rule, and asking the owner buys nothing. If the router found nothing — the
+    genuinely vague shapes, "cancel it", "delete everything" — the question is still the right
+    move and this returns False.
+    """
+    try:
+        from afon.brain.intent_router import forced_tools
+
+        names = forced_tools(user_text or "")
+        return bool(names) and len(names) == 1
+    except Exception as e:  # noqa: BLE001 - routing must never decide a turn breaks
+        logger.debug(f"single-route check skipped: {type(e).__name__}: {e}")
+        return False
+
+
 # B3 — anti-fabrication hard stop. If B1 narrowed a turn to the one right tool and forced it, yet the
 # turn still ended with ZERO tools fired (a model in the chain rejected `required` and fell back to auto,
 # then narrated instead of calling), the spoken reply is unreliable — the classic "you have 5 unread"
@@ -606,8 +625,37 @@ def _clean_reply(text: str) -> str:
     text = re.sub(r"<tool_call>.*?</tool_call>", " ", text, flags=re.IGNORECASE | re.DOTALL)
     text = _TOOLCALL_TEXT_RE.sub(" ", text)
     text = _ARTIFACT_RE.sub(" ", text)
+    text = _strip_thinking(text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+#: MiniMax's OpenAI-compatible endpoint puts the reasoning INSIDE `content`, not in a
+#: `reasoning_content` field — verified 2026-10-10 against api.minimax.io: the response is
+#: `"<think>\n...reasoning...\n</think>\n\nParis"`. Measured on the same day: `thinking=false`
+#: returns 400 and neither `enable_thinking` nor `reasoning_split` nor `interleave_thinking`
+#: disables it, so the tag cannot be turned off at the source on this endpoint.
+#:
+#: That matters because Afon SPEAKS this string. Without this, every reply from MiniMax-M3 or
+#: any M2.x begins by reading its own reasoning aloud — worse than useless in a voice assistant,
+#: and the reason the primary was still the legacy non-thinking `MiniMax-Text-01`.
+#:
+#: Two shapes are handled: a CLOSED block, and an unterminated one, which is what a truncated
+#: generation looks like and must not be spoken from the opening tag onwards.
+_THINK_BLOCK_RE = re.compile(r"<(think|thinking)\b[^>]*>.*?</\1\s*>", re.IGNORECASE | re.DOTALL)
+_THINK_OPEN_RE = re.compile(r"<(think|thinking)\b[^>]*>.*\Z", re.IGNORECASE | re.DOTALL)
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove an inline reasoning block so it is never spoken."""
+    if not text or "<" not in text:
+        return text or ""
+    out = _THINK_BLOCK_RE.sub(" ", text)
+    # Unterminated (truncated mid-reasoning): drop from the opening tag to the end.
+    out = _THINK_OPEN_RE.sub(" ", out)
+    # A stray closing tag with no opener, which happens when only the tail was truncated away.
+    out = re.sub(r"</(?:think|thinking)\s*>", " ", out, flags=re.IGNORECASE)
+    return out
 
 
 # Sentence boundary for streaming: a .!?… followed by whitespace ends a speakable chunk. We feed
@@ -646,11 +694,17 @@ _SPEAKABLE_DIRECT = frozenset({
 _SPEAKABLE_CHANNEL_READS = frozenset({"list_events", "read_email", "notion_tasks", "check_telegram"})
 _CHANNEL_DIRECT_MAX = 360   # chars; longer channel reads still get the summary pass even when opted in
 
-# B5-lite: router-narrowed reads that take NO required args (calendar/email/telegram/tasks). When the
-# intent router pins the turn to exactly one of these, there's nothing for the model to decide — so we
+# B5-lite: router-narrowed reads that take NO required args (calendar/email/telegram/tasks/clock). When
+# the intent router pins the turn to exactly one of these, there's nothing for the model to decide — so we
 # fire it deterministically instead of asking a dodgy tool-caller to. Kills the Channels/Tasks-read
 # "tool didn't fire → 50" swing at its root (the scorer only needs the read to actually happen).
-_ZERO_ARG_READS = frozenset({"list_events", "read_email", "check_telegram", "notion_tasks"})
+#
+# `get_time` joined on 2026-10-07, and on the strongest possible grounds: a clock reading is the one
+# value a model is both able and tempted to invent. "It's half past ten" costs nothing to hallucinate
+# and everything to be wrong about. Firing the real clock removes the possibility rather than
+# discouraging it, and it was also the last completion_failure in 01.E1's compound set.
+_ZERO_ARG_READS = frozenset({"list_events", "read_email", "check_telegram", "notion_tasks",
+                             "get_time"})
 
 
 def _direct_speakable(calls: list[dict[str, Any]], outcomes: list[dict[str, Any]]) -> str | None:
@@ -961,6 +1015,24 @@ class AfonAgent:
             signals is not None
             and signals.needs_clarification
             and signals.outcome == "decided"
+            # A BOUND antecedent is the disambiguation. `self._reference` is resolved ~100 lines
+            # above, before the history is frozen, precisely so that "fix that one" can be acted
+            # on rather than questioned. Asking anyway makes the resolver dead code: measured
+            # 2026-10-10 on the Memory category, "Actually it's Petrova - can you fix that one?"
+            # resolved to Petrov and STILL produced "I want to get that right, sir - what exactly
+            # should I do with it?", because Jev judges the bare turn unclear in isolation and
+            # nothing told it the referent was already known. It is the same shape as the
+            # fabricated journal: the system knew the answer and asked anyway.
+            and self._reference is None
+            # And a turn the DETERMINISTIC router maps to exactly ONE tool already says what was
+            # asked, so a question adds a round trip without adding information. Measured
+            # 2026-10-10 on Memory: "When is my flight to London?" routes to `recall` alone, and
+            # Jev returned `unclear` on some turns and `unavailable` on others purely as model
+            # jitter — the same utterance scoring differently run to run. The genuinely vague
+            # shapes are untouched because they route to NOTHING: "Cancel it." and "Delete
+            # everything." both resolve to `[]` and still ask. Anything consequential remains
+            # behind the confirm gate, which is the backstop this leans on.
+            and not _routes_to_one_tool(user_text)
         )
         if needs_clarity:
             question = clarity_question()
@@ -985,15 +1057,28 @@ class AfonAgent:
         # whole string and so returns only the first matching route — for "look up X and remember
         # it" one half won and the other silently routed to nothing, which is precisely what the
         # Combination scenarios measure (51.5 against ~96 elsewhere). Empty for single-intent.
+        # 01.E1 — the clause router is asked on EVERY turn, not only when the phrase heuristic
+        # already said "multi". The two disagreed on 7 of 8 compound prompts, and `classify()`
+        # has always ORed them while this path used the weaker signal alone. The router SPLITS
+        # the utterance and routes each clause, so two routable tools is direct evidence of
+        # compound intent; the regex is only a fallback for a compound request whose clauses
+        # route nowhere (which is why the plan below is left empty in that case rather than
+        # forcing one).
         clause_plan: list[str] = []
-        if multi_intent:
-            try:
-                from afon.brain.intent_router import clause_tools
-                clause_plan = clause_tools(user_text)
-                if clause_plan:
-                    logger.info(f"B6 clause router: compound request needs {clause_plan}")
-            except Exception as e:  # noqa: BLE001 — routing must never break a turn
-                logger.debug(f"clause router skipped: {type(e).__name__}: {e}")
+        try:
+            from afon.brain.intent_router import clause_tools
+            clause_plan = clause_tools(user_text)
+            if clause_plan:
+                logger.info(f"B6 clause router: compound request needs {clause_plan}")
+        except Exception as e:  # noqa: BLE001 — routing must never break a turn
+            logger.debug(f"clause router skipped: {type(e).__name__}: {e}")
+        if len(clause_plan) >= 2 and not multi_intent:
+            # The router overrode the phrase heuristic, so the nudge it would have produced
+            # above was never added. Add it now: without it the second pass has no idea the
+            # turn is compound and simply answers the first clause.
+            multi_intent = True
+            messages.append({"role": "system", "content": _MULTI_INTENT_NUDGE})
+            logger.info(f"B6 clause router overrides the phrase heuristic: {clause_plan}")
 
         # 01.F3: the only place that knows all of intent, catalogue and prompt at once. Recorded
         # here rather than at the call sites so `respond` and `respond_stream` cannot drift apart
@@ -1046,8 +1131,15 @@ class AfonAgent:
         tr = turn_trace.current()
         if tr is not None:
             tr.note_prompt(prompt, [])
+        # D-92: a dedicated cheap tier may own this call. It sees only the selected option and its
+        # reply is prefix-validated below, so a weaker model degrades wording, never the decision.
+        # Unset (the default) walks the normal chain exactly as before.
         try:
-            msg = await self._llm.complete(prompt)
+            dedicated = settings.verbalizer_chain
+        except Exception:  # noqa: BLE001 - a config problem must not cost the verdict
+            dedicated = []
+        try:
+            msg = await self._llm.complete(prompt, only=dedicated or None)
             reply = _clean_reply(msg.content or "")
         except Exception as exc:  # noqa: BLE001 - wording failure must not erase a valid verdict
             logger.warning(f"Jev verdict verbalization failed: {type(exc).__name__}")
@@ -1635,7 +1727,13 @@ class AfonAgent:
             return plan.clarify
 
         # B5-lite: a narrowed zero-arg read needs no model round-trip — fire it and answer, guaranteed.
-        if narrowed and forced_name in _ZERO_ARG_READS:
+        # NOT on a compound turn. 01.E1: every tool the clause router plans for a two-clause
+        # request is a zero-arg read (`list_events`, `check_telegram`, `notion_tasks`,
+        # `read_email` are the whole set), so this shortcut fired the FIRST planned tool and
+        # returned — silently dropping the second clause on every compound turn whose halves
+        # are both reads. The completion pass below is what finishes a compound turn, and this
+        # return is what was preventing it from ever running.
+        if narrowed and forced_name in _ZERO_ARG_READS and not multi_intent:
             reply = await self._forced_zero_arg_read(messages, forced_name, on_progress)
             self._history.append({"role": "assistant", "content": reply})
             self._trim()
@@ -1650,6 +1748,39 @@ class AfonAgent:
         for i in range(self._max_tool_iters + len(clause_plan)):
             force_this = (i == 0 and force_first) or completion_pending
             completion_pending = False
+            # 01.E1 — a completion pass that forces a zero-arg read does not need
+            # the model at all. `_ZERO_ARG_READS` take no arguments, so the call
+            # cannot be malformed and there is nothing to deliberate about: the
+            # only thing a round-trip adds is an opportunity to dodge, which is
+            # exactly what the last remaining completion_failure was. The first
+            # pass is already handled above by B5-lite, so reaching here with a
+            # forced zero-arg read means the completion pass asked for one.
+            # 01.E1 — a completion pass that must run a zero-arg read does not need
+            # the model at all. The outstanding name is taken from the CLAUSE PLAN,
+            # not from `forced_name`: `_completion_force` can only name a tool that is
+            # in the advertised `turn_tools`, and a turn narrowed to one group has no
+            # `get_time` in it. So `forced_name` arrives as None, nothing is forced, the
+            # model re-answers, and on a clock it answers from memory - "The time is
+            # 14:15 UTC" with no tool call behind it. Reading the plan directly is what
+            # closes that.
+            outstanding_reads = [n for n in comp.clause_plan
+                                 if n not in seen_tools and n in _ZERO_ARG_READS]
+            if i > 0 and (force_this or outstanding_reads) and outstanding_reads \
+                    and not work_intent and comp.multi_intent:
+                # `i > 0` matters, and it cost a check to find out. Firing an outstanding read
+                # on the FIRST pass as well as on a completion pass looks harmless — the read
+                # is wanted either way — but it pre-empts the model on the very turn it was
+                # supposed to answer, and the model then calls the same read again.
+                # `test_brain_voice_grade.py` caught it as get_time firing twice where once was
+                # correct. A completion pass exists to finish a turn the model left half-done;
+                # on the first pass nothing has been declined yet, so there is nothing to finish.
+                result = await self._forced_zero_arg_read(messages, outstanding_reads[0],
+                                                          on_progress)
+                seen_tools.add(outstanding_reads[0])
+                messages.append({"role": "user", "content": result})
+                if all(n in seen_tools for n in comp.clause_plan):
+                    comp.done = True
+                continue
             choice = "required" if force_this else "auto"
             # Tool-tier: on a forced tool pass, go STRAIGHT to the reliable fallback tool-caller (groq)
             # instead of the primary, which dodges ~half its forced calls. Conversational turns keep the
@@ -2297,7 +2428,11 @@ class AfonAgent:
             return
 
         # B5-lite: a narrowed zero-arg read fires deterministically — no model round-trip to dodge.
-        if narrowed and forced_name in _ZERO_ARG_READS:
+        # `not multi_intent` is what the buffered twin already had and this one did not, and the
+        # two paths are supposed to be twins: `test_clause_completion.py` asserts they fire the
+        # SAME tools for the same request, and without the guard the stream fired the narrowed
+        # read on a compound turn and then fired the compound's tools too.
+        if narrowed and forced_name in _ZERO_ARG_READS and not multi_intent:
             reply = await self._forced_zero_arg_read(messages, forced_name, on_progress)
             spoken.append(reply)
             yield reply

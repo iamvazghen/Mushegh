@@ -1,0 +1,30 @@
+{
+  "overall": 0.0,
+  "verdict": "NOT MEASURED (no category had enough runnable scenarios)",
+  "basis": "runnable scenarios only; unconfigured and underpowered categories excluded",
+  "categories": {},
+  "underpowered": {
+    "Tasks": 1
+  },
+  "unconfigured": [],
+  "min_runnable_per_category": 2,
+  "scenarios": [
+    {
+      "id": "notion_create_cleanup",
+      "category": "Tasks",
+      "score": 85.0,
+      "weight": 1.0,
+      "desc": "Notion create (with cleanup)",
+      "runs": [
+        85.0
+      ],
+      "notes": [
+        "    \u201cAdd a task called behavioral-suite-temp due today.\u201d \u2192 85.0/100",
+        "        \u2713 fired ['notion_create_task']",
+        "        latency 14.4s (budget 10s)",
+        "        reply: Task added, sir."
+      ],
+      "latest_reply": "Task added, sir."
+    }
+  ]
+}

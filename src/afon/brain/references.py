@@ -70,12 +70,54 @@ _NON_REFERENTIAL = re.compile(
     re.I,
 )
 
+#: "it IS <Name>" is a value being stated, not the copula: "actually it is Petrova" means "that
+#: [name] is Petrova". The guard above was written for "it's raining" and "it is late", and was
+#: vetoing an entire correction turn over the very phrase carrying the new value. Measured
+#: 2026-10-10 on the Memory category: `memory_update` turn 2 resolved to nothing, so the owner was
+#: asked a clarifying question about a correction he had just made.
+_IT_IS_A_VALUE_RE = re.compile(r"\bit(?:['’]s|\s+is|\s+was)\s+(?:Dr\s+|Mr\s+|Mrs\s+|Ms\s+|Prof\s+)?"
+                               r"[A-Z][a-z]{2,}")
+
+#: A proper noun in substitution position is what the owner is changing something TO, never the
+#: thing the pronoun points at. "Change that to Petrova" refers back to Petrov; Petrova is the
+#: replacement. The self-contained check in `resolve` treats ANY noun in the turn as making the
+#: turn self-contained, which made "change that to Dr Petrov" - the same name as the antecedent -
+#: fail to resolve, because the replacement value competed with itself for the referent.
+#: A proper noun that FOLLOWS a value-introducer is naming the new value, not the referent.
+#: `to`/`into` cover "change that to Petrova"; `is`/`was`/`called` cover "actually it is Petrova",
+#: which is the other way the owner states a correction. Extending the set is safe because a turn
+#: with no pronoun returns at the `_PRONOUN_RE` check before any of this is consulted — so
+#: "the owner is Petrov" is still correctly declined rather than bound to something.
+#: ...and the contraction arm covers "actually IT'S Petrova", which is the phrasing the Memory
+#: scenario ACTUALLY uses. The first cut handled only "it is <Name>" with a straight apostrophe and
+#: a space, so the live turn still declined and the clarifying question survived the fix — the same
+#: typographic-apostrophe trap that made four genuine admissions score `overconfident` in
+#: shared/uncertainty.py. Deliberately no re.I on `_IT_IS_A_VALUE_RE`: `[A-Z][a-z]{2,}` must stay
+#: case-sensitive or every ordinary word becomes a proper noun.
+_TO_BEFORE_PROPER_RE = re.compile(
+    r"(?:\b(?:to|into|is|was|be|been|becomes|became|called|named)\s+|\bit['’]s\s+)"
+    r"(?:Dr\s+|Mr\s+|Mrs\s+|Ms\s+|Prof\s+)?\.?\s*$", re.I)
+
 #: What counts as a concrete thing a pronoun may point at. Deliberately narrow: a filename, a
 #: quoted string, or a capitalised multi-word name. A common noun ("the report") is excluded
 #: because the last common noun in a conversation is almost never the referent.
 _FILENAME_RE = re.compile(r"\b[\w][\w.-]*\.[a-z]{1,5}\b")
 _QUOTED_RE = re.compile(r"[\"'“‘]([^\"'”’]{2,60})[\"'”’]")
 _PROPER_RE = re.compile(r"\b(?:[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})*)\b")
+
+
+def _replacement_candidates(text: str) -> set[str]:
+    """Proper nouns in the turn that name a REPLACEMENT value rather than a referent.
+
+    Defined after `_PROPER_RE` because it reads it. "Change that to Petrova" refers back to
+    Petrov; Petrova is what it is changing TO, so it cannot also be the thing referred to.
+    """
+    out: set[str] = set()
+    for m in _PROPER_RE.finditer(text or ""):
+        before = (text or "")[max(0, m.start() - 14):m.start()]
+        if _TO_BEFORE_PROPER_RE.search(before):
+            out.add(m.group(0))
+    return out
 
 #: Words that look proper because they start a sentence or are shouted, but name nothing.
 _NOT_PROPER = {
@@ -259,13 +301,20 @@ def resolve(text: str, history: list[dict] | None = None) -> Reference | None:
             return None
 
     # --- a bare pronoun with exactly one recent concrete candidate -----------------------------
-    if _NON_REFERENTIAL.search(text):
+    # "it is Petrova" names a value; the copula guard is about "it's raining" and "it is late".
+    # Vetoing the whole turn on that basis made every "actually it is <Name>" correction
+    # unresolvable, which is a correction shape the owner uses constantly.
+    if _NON_REFERENTIAL.search(text) and not _IT_IS_A_VALUE_RE.search(text):
         return None
     pm = _PRONOUN_RE.search(text)
     if not pm:
         return None
-    # A pronoun in the same breath as its own antecedent needs no help.
-    if _candidates(text):
+    # A pronoun in the same breath as its own antecedent needs no help — but a noun in
+    # SUBSTITUTION position ("change that to Petrova") is the replacement value, not a second
+    # referent, and must not make the turn look self-contained. Measured 2026-10-10: without this
+    # carve-out "change that to Dr Petrov" declined to resolve because Petrov competed with itself.
+    replacements = _replacement_candidates(text)
+    if [c for c in _candidates(text) if c not in replacements]:
         return None
     for msg in _recent(history):
         cands = _candidates(msg)

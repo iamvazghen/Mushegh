@@ -121,6 +121,35 @@ def _audit_dir() -> Path:
     return audit_dir()
 
 
+def _owner_day(now: datetime) -> str:
+    """The owner's calendar day for `now`, as ``YYYY-MM-DD`` — used to name the daily file.
+
+    This used to be ``now.strftime("%Y-%m-%d")`` on a UTC timestamp, which filed the trail by the
+    UTC day while the rest of the system files by the owner's day. For any timezone ahead of UTC
+    that means the first two hours of the local day land in *yesterday's* file: a voice command at
+    half past midnight is on the record as the previous evening's work, and `recent()` — which
+    takes the last file alphabetically — reads back the wrong day during exactly that window.
+
+    It was found on 2026-10-10 by `test_audit_integrity.py` failing just after local midnight, and
+    it had survived every prior run because it can only fail inside a two-hour band each night.
+    That is the same shape as the clock-dependent failures D-43 exists to catch, one timezone over.
+
+    Only the FILE NAME is local. The `ts` inside the line stays UTC, because an instant is an
+    instant and the verifier hashes the line itself.
+    """
+    try:
+        from afon.config import settings
+
+        tz = (settings.user_tz or "").strip()
+        if not tz:
+            raise ValueError("no owner timezone configured")
+        from zoneinfo import ZoneInfo
+
+        return now.astimezone(ZoneInfo(tz)).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001 - a bad tz must not stop the trail being written
+        return now.strftime("%Y-%m-%d")
+
+
 def _redact(args: dict | None, secret_values: list[str] | tuple[str, ...] = ()) -> dict:
     out: dict = {}
     for k, v in (args or {}).items():
@@ -222,7 +251,7 @@ def record(
         # Value-level scrub: remove any real secret that slipped into args or the result text.
         for sv in secrets:
             payload = payload.replace(json.dumps(sv, ensure_ascii=False)[1:-1], "***redacted***")
-        path = d / f"{now:%Y-%m-%d}.jsonl"
+        path = d / f"{_owner_day(now)}.jsonl"
         # 45.R10: chain the line, so `python -m afon.brain.audit_verify --verify` can prove this file
         # was not edited after it was written. The digest is computed AFTER the scrub above, because
         # a hash of a line that is about to be rewritten is a hash of a line that never existed — and

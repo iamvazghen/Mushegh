@@ -63,10 +63,23 @@ async def main() -> None:
     check("a synonym counts as known -> ASK, not error",
           missing_arg("t", {"text": ""}, "query", "text", ask="Which one, sir?") == "Which one, sir?")
     # The error must be logged with the offending keys, or a wrong-key bug is invisible in the
-    # logs — but the SPOKEN string must not leak them. tool_error() prints the type only.
+    # logs — but the SPOKEN string must not leak them.
+    #
+    # This assertion used to require "ValueError" to appear in the spoken text, using the
+    # exception class name as a proxy for "this is an error message, not a question". That proxy
+    # was over-specified and contradicted the repo's own rule that tool failures speak in the
+    # owner's voice and stay detectable "not raw exception names" — measured live on 2026-10-10,
+    # when the owner heard "I couldn't complete the definition just now (HTTPStatusError)". The
+    # contract that actually matters is the failure MARKER, because `tool_failed()` keys on it.
+    # So: keys must not appear, the marker must, and now neither does a raw class name — which is
+    # strictly more than was asserted before.
     spoken = missing_arg("t", {"entity": 1}, "query", ask="Which one, sir?")
     check("the spoken error stays generic (no raw key names read aloud)",
-          "entity" not in spoken and "ValueError" in spoken, repr(spoken))
+          "entity" not in spoken, repr(spoken))
+    check("...and it carries the failure marker tool_failed() depends on",
+          "i couldn't complete the" in spoken.lower(), repr(spoken))
+    check("...and it does not read a raw exception class name aloud",
+          "ValueError" not in spoken and "HTTPStatusError" not in spoken, repr(spoken))
 
     # ---- the sweep, both halves, on real handlers ----------------------------------
     # (handler, mis-keyed args -> must ERROR, empty args -> must still ASK)

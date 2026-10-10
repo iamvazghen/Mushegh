@@ -49,6 +49,85 @@ HEDGES: tuple[str, ...] = (
     "i don't have", "i do not have", "no record", "nothing on file", "not aware",
     "couldn't find", "could not find", "can't verify", "cannot verify", "unverified",
     "depends on", "opinions differ", "contested", "no consensus", "reasonable people disagree",
+    # Added 2026-10-08 against the model's ACTUAL wording, captured live. Measured: four
+    # replies that read as admissions to a person matched NONE of the entries above and were
+    # scored `overconfident`, which is how a whole calibration category can report a deficit
+    # the model does not have. A lexicon that only knows the phrasings its author imagined
+    # measures the author's vocabulary, not the owner's assistant.
+    #
+    # Deliberately limited to phrasings that name an epistemic LIMIT. "complex",
+    # "multifaceted", "nuance" and "tradeoffs" were left out on purpose: they are register,
+    # not admission, and crediting them would pass a verbose flat answer. The regression
+    # cases in `bench/test_uncertainty.py` are what hold that line.
+    "can't predict", "cannot predict", "no way to predict", "can't forecast",
+    "can't say", "cannot say", "can't tell you", "cannot tell you",
+    "uncertain", "i need access to", "i need the data", "need access to",
+    "don't have access to", "do not have access to", "no access to",
+    "haven't recorded", "have not recorded", "nothing recorded",
+    "would be guessing", "pure guess",
+    # Added 2026-10-10 from a per-kind breakdown of the live Calibration scorecard, where the
+    # category read 78.5 and THREE OF THE FAILURES WERE NOT OVERCONFIDENCE AT ALL. The classifier
+    # called these `overconfident`; a person reading them would call them admissions:
+    #   - "you know there isn't one. Best depends entirely on the task"   -> depends ENTIRELY on
+    #   - "that debate is still very live... proponents argue X; opponents point to Y"
+    #   - "I can't check the forecast - that tool's not set up"            -> can't CHECK, not predict
+    # The root cause of the first is mechanical and worth naming: the list held "depends on",
+    # which does NOT match "depends entirely on" because a word sits in between. A substring
+    # lexicon measures the phrasings that happen to be contiguous, which is why every widening
+    # here so far has been followed by another false negative of the same shape.
+    #
+    # The second is a BALANCED presentation - both sides of a contested question offered without
+    # picking one. That is the correct answer to the `contested` kind, all three of which were
+    # failing. The third is a stated CAPABILITY limit, which is an admission about what the
+    # system can do rather than about what is knowable, and it was scoring as overconfidence.
+    #
+    # Negative controls in bench/test_uncertainty.py are what keep this honest: "a rough eyeball
+    # suggests well over 80%" and "probably not, the feed costs would have eaten the margin"
+    # must BOTH stay `overconfident`. A confidence-shaped claim does not become an admission by
+    # being delivered in a balanced paragraph.
+    "can't check", "cannot check", "can't look that up", "not set up", "isn't set up",
+    "not configured", "isn't configured", "isn't available", "can't pull that",
+    "depends entirely", "depends wholly", "depends in part", "depends on the",
+    # Second pass, 2026-10-10, from the live re-measurement that took the category to 87.5.
+    # Two more of the same mechanical shape: the lexicon had "depends on" but not "depending on",
+    # and had "not configured" but not "not authorized". A range with an explicit contingency in
+    # it - "a chance of rain around 27 to 71%, depending on the forecast" - is an admission, and
+    # was being read as a bare claim because two digits are in it.
+    "depending on", "depends upon", "depending upon", "contingent on",
+    "not authorized", "isn't authorized", "not authorised", "not permitted",
+    "not able to check", "no way to check", "would have to ask", "i'd have to ask",
+    "there isn't one", "there is not one", "no single answer", "there's no single",
+    "no one answer", "not a single answer", "no objectively",
+    "proponents argue", "opponents point", "supporters say", "critics say",
+    "both sides argue", "the debate is", "still very live", "genuinely contested",
+    # Third pass, 2026-10-10, from the re-baselined Calibration run. Each of these is an
+    # admission a person would credit and the classifier scored `overconfident`:
+    #   - "whether that was 'right' DEPENDS HEAVILY ON priorities"
+    #   - "economists ARE DIVIDED"
+    #   - "I ONLY HAVE an old 2016 figure ... I'd NEED TO search"
+    # Three misses of this shape is what a PATTERN is for, so `_DEPENDS_RE` and `_NEEDS_RE`
+    # below now supply the general forms and these entries are the belt-and-braces for the exact
+    # wordings seen. The substring list remains for everything that has no useful shape.
+    "depends heavily on", "depends largely on", "depends mainly on", "depends mostly on",
+    "depends primarily on", "depends strongly on", "depends upon the", "depends upon",
+    "are divided", "is divided", "remain divided", "split between",
+    "i only have", "i only know", "i'd need to", "i would need to", "i'd need",
+    "i would need", "i'd have to look", "would have to look", "not available to me",
+    "i can't answer", "i cannot answer", "can't answer that", "cannot answer that",
+    "no way to answer", "not something i can answer",
+    # Fourth pass, 2026-10-10. Two more concepts, both admissions, both scored overconfident:
+    #   - DISAGREEMENT AMONG SOURCES: "analysts are forecasting wildly different numbers ...
+    #     predictions range from 180,000 to 800,000". Quoting a spread is the opposite of a
+    #     confident claim; the classifier saw only the figures in it.
+    #   - ABSENCE OF A SOURCE: "there's no current census ... statistics don't publish annual
+    #     counts, so any new number would be an estimate at best". Naming the gap is an admission,
+    #     and the numbers quoted alongside it are attributed to their absence.
+    # A third, "bullish but speculative", is a claim labelled as speculation by the model itself.
+    "wildly different", "differ wildly", "divergent", "predictions range", "forecasts range",
+    "estimates range", "range from", "no consensus on", "cannot be predicted",
+    "speculative", "pure speculation", "nobody can predict", "no one can predict",
+    "no current census", "no census", "don't publish", "do not publish", "isn't published",
+    "at best", "no official", "no reliable figure", "no reliable source",
 )
 
 #: Words that mark a number as an estimate rather than a fact. The operating rule's second half —
@@ -74,18 +153,65 @@ _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 #: Where a hedge gets taken back. "I can't be certain, BUT it will rain on Tuesday" contains a hedge
 #: and delivers a forecast; the contrastive is the seam, and splitting on it is what lets the claim
 #: after it be judged on its own.
-_CONTRASTIVE = re.compile(r"\b(but|though|although|however|still|nevertheless|regardless|"
+_CONTRASTIVE = re.compile(r"\b(but|though|although|however|nevertheless|regardless|"
                           r"that said|even so)\b", re.I)
+# NOTE: bare "still" was in this list until 2026-10-10 and has been removed. It is not a reliable
+# contrastive: in "that debate IS STILL very live" the word is an ordinary adverb, and treating it
+# as a take-back split the sentence in two and scored the supporting fact after it — a true date,
+# offered as evidence — as a confident claim on an unknowable question. That one ambiguous token
+# was failing all three `contested` probes. A word that means "nevertheless" half the time must not
+# decide a verdict; the remaining markers are unambiguous in the "hedge, then retract" position.
 
 
 def _low(text: str) -> str:
-    return (text or "").lower()
+    """Lowercase, with typographic punctuation folded to ASCII.
+
+    This is the one place every matcher goes through, and folding here rather than in each
+    phrase list is what makes it correct for free.
+
+    Measured 2026-10-08: a reply reading "I don’t have the current number of rabbits in
+    Armenia on hand ... I can find out for you" - a textbook admission of a limit - was
+    scored **overconfident** and docked to 40. HEDGES contains "i don't have", written with
+    an ASCII apostrophe, and the model emits U+2019. The substring simply was not there.
+    All eleven `unknowable_*` scenarios scored exactly 40.0 because of this one character,
+    which is what made a correctly-calibrating brain look like it invents.
+
+    The em dash and en dash are folded for the same reason: HEDGES is written with " - "
+    and a model writes " — " without noticing, and the failure is silent either way.
+    """
+    return _TYPOGRAPHIC.sub(lambda m: _TYPOGRAPHIC_MAP[m.group(0)], (text or "").lower())
+
+
+#: Characters a model writes that a human writing a phrase list does not. Folded to their
+#: ASCII equivalent before any matching, so a lexicon entry means what it says.
+_TYPOGRAPHIC: "re.Pattern[str]" = re.compile("[\u2018\u2019\u201a\u201b\u2032\u02bc\u00b4\u201c\u201d\u201e\u2013\u2014\u2212]")
+_TYPOGRAPHIC_MAP = {
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'",
+    "\u2032": "'", "\u02bc": "'", "\u00b4": "'",
+    "\u201c": '"', "\u201d": '"', "\u201e": '"',
+    "\u2013": "-", "\u2014": "-", "\u2212": "-",
+}
+
+
+#: `depends <intensifier> on` — the general form the substring list could never cover. Three
+#: separate misses of this shape ("depends on" vs "depends entirely on", vs "depending on", vs
+#: "depends heavily on") is what a pattern is for. Kept narrow: the word DEPENDS, a short run of
+#: words, then ON, with nothing after the ON that turns it into a different construction.
+_DEPENDS_RE: "re.Pattern[str]" = re.compile(
+    r"\bdepend(?:s|ed|ing)?\b(?:\s+\w+){0,2}\s+\bon\b|\bdependent on\b|\bin (?:one )?way or another\b")
+
+#: Shortfalls stated as a need rather than a refusal: "I'd need to search for current numbers".
+#: Also a pattern, for the same reason — the substring form has to be re-added per phrasing.
+_NEEDS_RE: "re.Pattern[str]" = re.compile(
+    r"\bi(?:'d| would| would'| will)\s+need\b|\bi(?:'d| would)\s+have to\b|\bwould need (?:to|your|a)\b")
 
 
 def hedged(text: str) -> bool:
     """Does the reply admit a limit anywhere?"""
     low = _low(text)
-    return any(h in low for h in HEDGES)
+    if any(h in low for h in HEDGES):
+        return True
+    return bool(_DEPENDS_RE.search(low) or _NEEDS_RE.search(low))
 
 
 def leads_with_hedge(text: str) -> bool:

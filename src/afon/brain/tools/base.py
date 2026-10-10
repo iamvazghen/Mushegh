@@ -75,6 +75,14 @@ def classify_error(err: Exception) -> ErrorKind:
         code = err.response.status_code
         if code in (401, 403):
             return ErrorKind.AUTH
+        # 402 Payment Required was falling through to BAD_ARGS with everything else, which is the
+        # worst of both: it told the owner "that call was malformed" when the call was fine and the
+        # service wanted paying, and a caller that retries on bad_args retries forever. Measured
+        # 2026-10-10 — Jina's scrape endpoint returns 402 for every URL on this account, so
+        # scrape_url reported a malformed call for a quota problem on a correctly-built request.
+        # It is an access/entitlement failure, which is what AUTH means.
+        if code == 402:
+            return ErrorKind.AUTH
         if code == 404:
             return ErrorKind.NOT_FOUND
         if code == 429:
@@ -98,12 +106,33 @@ def not_configured(what: str, needs: str) -> ToolResult:
         ErrorKind.NOT_CONFIGURED)
 
 
+#: How a kind is described to the OWNER, in words. The exception's class name is deliberately
+#: absent: it is logged above for the operator, and putting "HTTPStatusError" into a sentence the
+#: model then reads aloud hands the owner a traceback class he cannot act on. Measured live on
+#: 2026-10-10: `define_word` hit a dictionary API that 403s every request, and the owner heard
+#: "I couldn't complete the definition just now (HTTPStatusError). I'll let the owner know." —
+#: a raw exception name, and third person, to the owner himself. The repo's own rule is that tool
+#: failures "speak in his voice and stay detectable as failures (not raw exception names)".
+_KIND_PHRASE = {
+    ErrorKind.AUTH: "the service turned that down, sir — the key or the plan needs attention",
+    ErrorKind.NETWORK: "the connection failed",
+    ErrorKind.RATE_LIMIT: "the service is rate-limiting",
+    ErrorKind.UNAVAILABLE: "the service is unavailable",
+    ErrorKind.NOT_FOUND: "there was nothing to read",
+    ErrorKind.BAD_ARGS: "that call was malformed",
+    ErrorKind.REFUSED: "it declined on purpose",
+    ErrorKind.NOT_CONFIGURED: "it isn't set up",
+}
+
+
 def tool_error(what: str, err: Exception) -> ToolResult:
     kind = classify_error(err)
     logger.warning(f"tool '{what}' failed [{kind.value}]: {type(err).__name__}: {err}")
-    return ToolResult(
-        f"I couldn't complete the {what} just now ({type(err).__name__}). I'll let the owner know.",
-        kind)
+    phrase = _KIND_PHRASE.get(kind, "something went wrong")
+    # "i couldn't complete the" must stay verbatim: `tool_failed()` keys on it, and a digest or
+    # proactive caller would otherwise read a dead integration's failure aloud as though it were
+    # data. Only the payload after the marker changed.
+    return ToolResult(f"I couldn't complete the {what} just now — {phrase}, sir.", kind)
 
 
 def missing_arg(tool: str, args: dict, *names: str, ask: str) -> str:
@@ -262,6 +291,60 @@ def policy_for(url: str) -> HttpPolicy:
     return best[1] if best else DEFAULT_HTTP_POLICY
 
 
+#: Reused clients, keyed by the event loop that created them and by the arguments that
+#: change the client's identity (timeout, headers, redirect policy).
+#:
+#: This exists because a client PER REQUEST cost a full TLS handshake on every outbound
+#: call - measured 2026-10-08 at ~1174 ms cold against ~232 ms warm on the same request.
+#: That is most of JEv's 400 ms arbitration budget spent on the socket rather than on the
+#: question, and it is paid by all 124 call sites in this module's reach.
+#:
+#: Keyed by loop because an httpx.AsyncClient is bound to the loop that created it. This
+#: repo's tests call asyncio.run repeatedly, so a module-global client works in production
+#: and fails across the suite. Dead loops are pruned so a long test run cannot accumulate
+#: clients; nothing is awaited on their behalf, because _client is synchronous and cannot.
+_CLIENTS: dict[int, tuple[Any, tuple[Any, ...], httpx.AsyncClient]] = {}
+
+
+def _hashable(value: Any) -> Any:
+    """A stable, content-based key for a client-construction argument.
+
+    Content, not identity, for containers: `_client` builds a fresh `headers` dict on every
+    call, so keying on `id()` handed back a different signature each time and the cache never
+    hit - which silently put the per-request handshake straight back. Identity is the honest
+    key only for objects with no value semantics (a MockTransport swapped per scenario).
+    """
+    if isinstance(value, dict):
+        return tuple(sorted((k, _hashable(v)) for k, v in value.items()))
+    if isinstance(value, (list, tuple)):
+        return tuple(_hashable(v) for v in value)
+    if isinstance(value, (set, frozenset)):
+        return frozenset(_hashable(v) for v in value)
+    try:
+        hash(value)
+        return value
+    except TypeError:
+        return ("<id>", id(value))
+
+
+def _client_signature(kw: dict[str, Any]) -> tuple[Any, ...]:
+    """Everything that makes one client different from another.
+
+    Built from ALL of kw, not a hand-picked few. Picking was the bug: `test_api_policy.py`
+    swaps a MockTransport in and out between scenarios through `_client`, and a key that
+    ignored `transport` handed back a cached client still wired to the previous one - four
+    checks failed because the second scenario quietly reused the first scenario's transport.
+    A cache key has to cover everything that affects the constructed object; anything less
+    is a correctness bug wearing a performance hat.
+    """
+    return tuple(sorted((name, _hashable(kw[name])) for name in kw))
+
+
+def close_http_clients() -> None:
+    """Drop the cached clients. Safe to call at any time; used at shutdown and by tests."""
+    _CLIENTS.clear()
+
+
 def _client(url: str = "", **kw: Any) -> httpx.AsyncClient:
     kw.setdefault("timeout", policy_for(url).timeout)
     # Follow 3xx so a provider that moved hosts (e.g. an API that now 301s to a new domain)
@@ -270,7 +353,28 @@ def _client(url: str = "", **kw: Any) -> httpx.AsyncClient:
     headers = {"User-Agent": _USER_AGENT}
     headers.update(kw.pop("headers", None) or {})
     kw["headers"] = headers
-    return httpx.AsyncClient(**kw)
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop: nothing to key on and nothing to reuse. This is the path the
+        # synchronous setup code takes, and it must keep working exactly as before.
+        return httpx.AsyncClient(**kw)
+
+    signature = _client_signature(kw)
+    key = id(loop)
+
+    # A closed loop's client can never be used again and holds a reference to that loop.
+    for stale in [k for k, (owner, _, _) in _CLIENTS.items() if owner.is_closed()]:
+        _CLIENTS.pop(stale, None)
+
+    cached = _CLIENTS.get(key)
+    if cached is not None and cached[1] == signature:
+        return cached[2]
+
+    client = httpx.AsyncClient(**kw)
+    _CLIENTS[key] = (loop, signature, client)
+    return client
 
 
 def _retryable(exc: Exception) -> bool:
@@ -289,10 +393,11 @@ async def _request(method: str, url: str, **kw: Any) -> httpx.Response:
     last: Exception | None = None
     for i in range(attempts):
         try:
-            async with _client(url) as c:
-                r = await c.request(method, url, **kw)
-                r.raise_for_status()
-                return r
+            # NOT `async with`: the client is shared, and closing it here would drop the
+            # connection pool every time - which is the cost this change exists to remove.
+            r = await _client(url).request(method, url, **kw)
+            r.raise_for_status()
+            return r
         except Exception as e:  # noqa: BLE001
             last = e
             if i + 1 >= attempts or not _retryable(e):
@@ -314,6 +419,27 @@ async def http_post(url: str, **kw: Any) -> httpx.Response:
 
 async def http_patch(url: str, **kw: Any) -> httpx.Response:
     return await _request("PATCH", url, **kw)
+
+
+def guard_url(url: str, *, allow_private_hosts: tuple[str, ...] = ()) -> str:
+    """Refuse a model-supplied URL that points somewhere it must not.
+
+    Returns an empty string when the URL is safe to fetch, or a refusal the tool
+    returns to the model verbatim. The message names the reason because "refused"
+    with no reason teaches the model to retry the same thing.
+
+    The rebinding caveat is not hidden: a hostname that resolves publicly here can
+    resolve privately when the client actually connects, and this check does not
+    close that (see ``afon.shared.netguard``). It refuses the obvious attempts
+    and every literal or plainly-internal destination, which is the class that
+    matters for a URL arriving from a page Afon has just read.
+    """
+    from afon.shared.netguard import check_url
+
+    verdict = check_url(url, allow_private_hosts=allow_private_hosts)
+    if verdict.ok:
+        return ""
+    return f"I won't open that — {verdict.reason}, sir."
 
 
 def clip(text: str, limit: int) -> str:

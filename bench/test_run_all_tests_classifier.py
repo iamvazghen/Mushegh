@@ -183,6 +183,9 @@ def main() -> int:
     STRUCTURAL = {
         "check_public_clean.py": "scans the tree for secrets — its subject IS the files",
         "test_doc_paths.py": "asserts documents cite real paths",
+        "test_doc_integrity.py": "asserts the documents themselves are sound - control characters, "
+                                 "phantom paths, dead surface claims, decision-number gaps. Its subject "
+                                 "is docs/, and its surface check reads src/ as text rather than importing it",
         "test_systems_plan.py": "asserts the plan's own structure",
         "test_layering.py": "parses imports; importing the layers would defeat it",
         "test_ops_scripts.py": "parses shell scripts",

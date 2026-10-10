@@ -74,6 +74,41 @@ happens afterwards, S31 owns the observation (D-13). The **RAID 1 NAS** would be
 destination for the restore drill: mounted, and proven by a restore onto scratch (M32), which
 is the only property that distinguishes it from a single disk with two filenames.
 
+### Proposed addition — make the copy checkable, not just present (D-93)
+
+Goal 1 asks for a restore drill that has **not yet run**, because the NAS is not
+mounted. The re-review's only candidate scoring above the adopt line, and the one
+Jev ranked first, addresses a different half of the same sentence.
+
+**[restic/restic](https://github.com/restic/restic)** (BSD-2, pushed 2026-10-01) —
+subprocess adapter over the NAS destination: `restic backup` / `check` /
+`restore --target`, driven by the existing `bench/test_backup_restore.py` timer.
+One static binary, no daemon, and it runs on the laptop too, so the drill is not
+VPS-only.
+
+**This is scoped to the destination and its verification.** It does not replace
+`src/afon/protocols/backup.py`, which owns the no-clobber guard, and it is not a
+second backup system. What it changes is the sentence this document already
+makes and cannot yet back: *a mirror is not a backup.* `restic check` turns
+"we have a copy" into "the copy is intact".
+
+**It does not unblock M32, and saying so is the point.** M32 needs the NAS
+*mounted*. This addition makes the drill worth running once it is; it does not
+make the volume appear.
+
+**Gate:** `bench/test_backup_restore.py`, which exists. PRINCIPLES §1 three
+commands, in order:
+
+```
+restic snapshots
+restic check --read-data-subset=5%
+journalctl -u openafon-brain -n 200 --no-pager | grep -i backup
+```
+
+**Not proposed:** litestream, which is the obvious SQLite-replication answer and
+would be a separate daemon — bought for a question the owner has not answered.
+Run `32.E1` instead. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
+
 ## Goals
 
 1. A backup is proven by restoring it, on a schedule, to a scratch copy. Threshold: **≥1**

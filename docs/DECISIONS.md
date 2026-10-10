@@ -1,6 +1,6 @@
 # Decisions — the OpenAfon charter
 
-**Status:** authoritative. Dated 2026-10-03; D-79–D-90 added 2026-10-06; D-83 amends D-12; D-88 extends D-07; D-90 implements D-08.
+**Status:** authoritative. Dated 2026-10-03; D-79–D-90 added 2026-10-06; D-83 amends D-12; D-88 extends D-07; D-90 implements D-08; D-91 corrects M42's transport.
 **Origin:** a 100-question interview with the owner, answered 2026-10-03, plus the
 [JARVIS blueprint](../TODO.md) it was measured against.
 **Relationship to the registry:** `docs/systems-plan.json` records *what is built and
@@ -1433,3 +1433,261 @@ non-destructive primitive that closes it.
 **Falsified by:** a commit on a branch or in a directory this module did not create; a refusal
 that leaves the owner's checkout changed in any way; a landing with no `delegate_coding` line in
 `audit.py`; or a schema statement reaching a commit.
+
+## D-91 — The fleet is reached by its own CLI with the task in a file; SSH is declined **(commit, 2026-10-07)**
+
+`TODO.md` M42 said: *"the official `openclaw agent --agent <id> --json` CLI **over SSH**."* The
+first half is right and the second half is wrong, and writing the transport is what showed it.
+
+**Why not SSH.** `ssh host "openclaw agent -m '…'"` hands a command *string* to a shell on the far
+end, which re-parses it. That is the same injection class `_batch_hazard` refuses for a Windows
+`.CMD` shim, except with a full shell instead of a batch interpreter — so it is the thing D-05
+names ("the moment an agent is handed an unconstrained interactive shell") arriving by the back
+door. The contract's own `_no_interpreter` validator already refused `ssh` as an executable, which
+means the plan and the code were in direct contradiction and the code was right. **The transport is
+the local `openclaw` CLI**, which is on the brain host in production and reaches the gateway with
+`OPENCLAW_GATEWAY_URL` + `OPENCLAW_GATEWAY_TOKEN` from anywhere else. Those two are allowlisted
+because they are how this executor is *addressed*, not the owner's secrets — but the allowlist
+withholds by default, so they had to be named.
+
+**Three things measured off `openclaw agent --help` on the live VPS (2026.9.3), each replacing a
+guess I had written:**
+
+- **`--message-file <path>` exists.** So the task is handed over in a file and nothing ever
+  re-parses it. This is strictly better than the refusal it replaces: `_batch_hazard`'s own
+  docstring said *"if a brief legitimately needs a `&`, the fix is to hand the task on stdin or in
+  a file — not to guess at quoting"*, and now it does. A brief that reads *Draft a reply about "the
+  boiler" & the rent* used to be refused; it runs.
+- **`--deliver` defaults to false**, and Afon never passes it, nor any `--channel`, `--reply-to`
+  or `--to`. So an agent turn produces a reply and **sends nothing**. The owner-consent gate for
+  fleet work therefore lives in the *transport* rather than in a prompt, which is the only place a
+  model cannot be talked out of it. The gate asserts no `"--deliver"` string literal exists in the
+  contract at all, not even commented out.
+- **`--timeout` exists**, so the CLI is given the brief's own deadline and exits with a transcript
+  instead of being killed by `dispatch()`. A killed process loses the thing that explains what
+  happened, which is the half that matters at 2 AM.
+
+**And the agent ids were never placeholders.** `personal` and `business` are real, live agents and
+have been throughout — read from `agents.entries` on the VPS on 2026-10-07, alongside `ispir`
+(router), `finance`, `security`, `realty`, `creative-research` and `dev-systems`. The specs that
+said `--agent personal` were correct by accident; now they are correct on purpose.
+
+**Two gaps this measurement exposed, recorded rather than quietly fixed:**
+
+1. **The laptop's `openclaw` is 2026.2.14; the VPS runs 2026.9.3** — seven months apart. The older
+   client may not have `--message-file` at all. This is precisely what D-88's daily update job
+   exists to close, and it has not run yet.
+2. **`personal` and `business` both run `minimax/MiniMax-M2.7` as primary**, which is a paid model,
+   with a free model only as a fallback. The owner's stated split is *personal on free models,
+   corporate on the best ones*. The fleet config contradicts it. That is the owner's configuration
+   on his own host, so it is reported, not changed.
+
+**Falsified by:** this path invoking a shell or an `ssh`; a fleet turn delivering a message to any
+channel; a task reaching the CLI as an argv string where `--message-file` is available; or a brief
+file outliving the call that created it.
+
+---
+
+## D-92 — The turn's judgement is Jev's and the verdict is already built; the renderer model is the open item **(ratifies 14.R5, 2026-10-07)**
+
+An earlier draft of this entry described the shape below as a proposal. Reading
+the code shows it is **shipped, gated and benchmarked**, so this entry ratifies
+what exists and names the one thing that is still undecided. Recording a
+built system as a plan is the drift `docs/README.md` exists to prevent.
+
+**What is already there.** `JudgmentService.assess_turn()` in
+`src/afon/brain/judgment.py` assembles **one** request carrying **four parallel
+questions** — `route` (a Choice over candidate groups that *code* produced),
+`clarity`, `urgency` and `tone` — and `src/afon/brain/agent.py` makes exactly
+one bounded call per turn, cited to D-72 and D-74. Four properties of that
+implementation are the design, and none of them are incidental:
+
+1. **One request, four questions.** Three sequential calls would spend three
+   budgets and could disagree with each other.
+2. **Code produces the options; Jev only ranks them.** An unknown route purpose
+   falls back to the tool wording rather than raising, so a typo in a caller
+   cannot take the turn down — and the gate asserts the key set, so the typo is
+   caught there instead.
+3. **The common turn pays nothing.** No candidates and no clarity question means
+   no call at all, and pure chatter is skipped outright.
+4. **The instructions carry the charter, not the prompt engineer.** `urgency`
+   says it "shapes framing and delivery priority only"; `tone` says "never
+   choose a register that invents feelings he did not express"; `clarity` asks
+   whether a reasonable person "would have to ask which one is meant", which is
+   D-56 written as a question rather than as a reminder.
+
+**The renderer is already fenced, which is stronger than a template.** The LLM
+sees only the *selected* option, never the question or the losing alternatives,
+is instructed to verbalize rather than choose, and its reply is **validated
+against a required prefix**. A model that omits or changes the prefix is
+replaced with a deterministic sentence, so prompt disobedience cannot reverse a
+typed choice.
+
+**What is genuinely undecided: which model does the verbalization.** Today
+`agent.py` uses the same `LLMClient` as the rest of the turn. The open question
+is whether a **small local model** should own that call, on three conditions:
+
+- it is handed a decision already made and may never add a fact, a number, a
+  probability or a recommendation;
+- a deterministic sentence must remain reachable, so the model's absence
+  degrades *tone* and not *function* — the shape the renderer already has;
+- it must cover **ru, uk, de and fr**, because the owner speaks five languages
+  and an English-only renderer would silently degrade every other turn. This is
+  the same gap D-78 records for TTS, and it is the binding constraint, not
+  model size.
+
+**A conversational model is declined, and the reason is the 2 AM test.** Its
+failure mode is "it said something weird", and for that there is no third
+command: the output is prose with no schema, no probability and no log line that
+separates *it misunderstood* from *it was fine and I dislike the phrasing*. Every
+other component in this system fails visibly. It is also structurally wrong for
+the charter — a conversational model fabricates the space between what was said
+and what was meant, which is what D-56 exists to prevent. A second Jev pass over
+the rendered text, asking whether it overstates, is the preferred alternative: same
+engine, same audit trail, and it fails visibly.
+
+**Falsified by:** a measured turn in which a small local renderer produces answers that
+are truthful but unusable *and* a second Jev pass does not flag the overstatement; or
+the prefix guard in `_verbalize_judgment` being removed; or a caller reaching Jev
+with options the code did not produce.
+
+**Now implemented as configuration (2026-10-07).** The open item above is no
+longer an open item; it is a setting. `AFON_VERBALIZER_MODELS` names a dedicated
+cheap tier for the verbalizer only, and `LLMClient.complete(only=...)` narrows
+that one call to it. Three properties, and each is gated:
+
+- **Off by default.** Blank walks the normal chain, `only=None`, byte-identical
+  to the previous behaviour. Gate: `bench/test_verbalizer_renderer.py` §1.
+- **A dedicated local model is usable at all.** The named entries are used *as
+  given* and are deliberately not intersected with the turn's own chain, because
+  a local Ollama model is configured separately and never appears in
+  `llm_chain`. The first draft of this work did intersect, which would have made
+  the feature silently useless; `bench/test_verbalizer_tier.py` §2 caught it.
+- **Narrowing never widens.** An empty or blank tier yields an empty chain, so a
+  misconfiguration cannot quietly hand the primary back and look like it worked.
+
+Note what was *not* built: `AFON_LLM_FAST_MODEL` and the `ollama` provider already
+existed, so a small model was always reachable. The only genuinely missing piece
+was the ability to say "this call only", and that is what `only` adds.
+
+Gates: `bench/test_verbalizer_tier.py` (10 checks) and
+`bench/test_verbalizer_renderer.py` (12 checks). The renderer gate is
+network-free on purpose — `bench/test_jev_judgment.py` makes a live Jev call and
+times out without connectivity, which is a property of this host and not of the
+change.
+
+---
+
+## D-93 — Every subsystem is re-reviewed against the 2 AM rule, and subtraction is the default answer **(proposed, 2026-10-07)**
+
+PRINCIPLES section 6 says 50 subsystems is already too many and that the default
+answer to a new capability is a handler in an existing system. This decision
+records that the four-slice re-review of all fifty documents produced that
+answer, so the next reader does not have to re-run the survey to find out.
+
+**What the review returned, per subsystem:** roughly **11 additions, 6 already
+covered, and a majority answering HANDLER, SUBTRACT or WIRE.** Four documents
+exist to record work that should not be built. Adding capability to a system
+that is being deleted is the failure the charter was written to prevent, so
+S46, S47, S48, S49 and S50 received **zero** additions.
+
+**"Base addition" and "significant improvement" are now named distinctions.**
+
+- A **base addition** is small, local, boring, and debuggable with three commands:
+  a protocol client, a parser, a test harness. Eleven were found.
+- A **significant improvement** changes what a system can do. Exactly one
+  candidate cleared that bar in this review, and it is `browser-use/jev-ultrafast`
+  for S05 - already held at spike question **M49** in `EXTERNAL-EXECUTORS.md`.
+
+**The highest-value items require no dependency at all**, and that is the finding
+rather than a shortfall: install the Home Assistant token (`28.F1`, four hours,
+un-darkens S28 and every IoT item downstream); write `emergency.md` by hand and
+delete `call` from `ACTIONS`; add the ArcFace enrolment driver behind
+`src/afon/brain/tools/camera.py`; and set `AFON_WHISPER_LANGUAGE`, which is
+currently unset, leaving `src/afon/edge/stt.py` pinned to `en` so that a
+Ukrainian turn during a cloud outage is answered in English.
+
+**Every cited path was verified before it was written down.**
+`subsystems/README.md` rule 1 is that a phantom path is worse than no path,
+because it will be trusted. The inventory in `INTEGRATIONS.md` was produced with
+a verifier that asserts each cited `src/afon/...` path exists and that the three
+recorded gaps really are still absent.
+
+**Falsified by:** a row in `INTEGRATIONS.md` whose cited path does not exist, or
+whose named gate turns out to be a dashboard; or a new subsystem appearing without
+an independent daemon or a distinct security boundary (D-42); or an addition
+made to a system carrying a deletion decision.
+
+---
+
+## D-94 — The Bookroom engine ships inside the SDK, so its external-application blocker is withdrawn **(commit, 2026-10-07)**
+
+`EXTERNAL-EXECUTORS.md` section 6 recorded a constraint that has since been
+removed at the source: *"The SDK wraps a separate application - a flat tree
+containing `book_pipeline.py` - imported from `BOOKROOM_APP_ROOT`, and that
+engine is not in the SDK repository. Every call reaches it, `extract` and
+`check` included."*
+
+That was true when written and is now false. The nineteen engine modules the SDK
+calls are vendored into the package and installed as package data, so
+`pip install bookroom-sdk` is the whole setup. The three-step owner prerequisite
+in that section reduces to: install the package, set a key.
+
+**The wrapper is faithful, and that is now measured rather than asserted.** The
+bundled copy and the application tree were driven over the same book with the
+same provider: `study-guide.md` is byte-identical, the PDF renders the same
+text, and seven of ten artifacts match exactly. Fifteen of nineteen modules are
+byte-exact copies. The four that are not are the documented deviations, each
+with a recorded reason: a provider label derived from the endpoint rather than a
+hardcoded literal, and two `pymupdf` imports replacing the deprecated `fitz`
+alias that printed a warning onto stdout.
+
+**Two defects were fixed in the SDK that this work exposed,** and both are the
+kind that only running for real finds. Two clients with different providers in
+one process silently shared the engine's module-level configuration, so the
+second ran the first's endpoints; and a manifest generated by MiniMax recorded
+`"Google Gemini API"` because the value had been captured at import time, before
+the endpoint was patched.
+
+**What would make the owner stop relying on the SDK path:** a change to the
+application that does not reach `python/bookroom_sdk/_engine`, since the vendored
+copy is deliberately byte-identical to the app and therefore must be re-copied
+rather than hand-patched.
+
+**Falsified by:** an integrator reporting that the engine did not resolve from
+the installed package; or a report generated through the SDK whose
+`generation_provider` does not name the service that actually served it.
+## D-95 â€” Secrets resolve from environment first, then Infisical, with an `age` file as the offline floor **(proposed, 2026-10-09)**
+
+The owner asked for keys to be stored through Infisical. That is adopted, with an ordering
+that keeps the 2 AM rule (`PRINCIPLES.md` Â§1) intact.
+
+**Infisical is not run as a local service.** `ARCHITECTURE.md` states this system has "no
+message broker, no container runtime, no policy service, no secrets manager, and no second
+database". Self-hosting Infisical means a server and a Postgres, which is exactly the
+addition that line forbids. So the integration is the **CLI or the v3 REST API against a remote
+workspace** (`AFON_INFISICAL_*`), and nothing is vendored.
+
+**The ordering is the decision, not the product.** Environment wins, then Infisical, then an
+`age`-encrypted file. `age` (`FiloSottile/age`, BSD-3-Clause) earns the third slot because a
+secrets backend that can abort startup breaks the promise that anything broken is diagnosable in
+90 seconds â€” a brain that will not boot cannot be diagnosed at all.
+
+**Infisical's own licence is NOASSERTION.** Verified live 2026-10-09 against the GitHub API,
+both for the platform and for `Infisical/cli`. That is not a permissive licence and has not been
+read by hand. This is an open item, not a blocker for reading secrets at runtime, and it is the
+reason the `age` floor is kept rather than treated as redundant.
+
+**Hydration cannot raise.** `afon/shared/secrets.py` catches at both the per-backend and the
+whole-run level and returns a `SecretReport` carrying names and counts only. There is no field
+on that report that can hold a value, so `repr()` of it is loggable by construction.
+
+**No function in the module returns, logs, or formats a secret.** `redact()` masks to 2+2
+characters; `secret_status()` returns only `configured` or `missing`. `test_secrets_redaction.py`
+gates this with paired positive controls â€” a redaction asserted only by "the value is absent"
+also passes when the function returns nothing at all, which would be a gate that certifies
+nothing.
+
+**Falsified by:** a boot that fails when Infisical is unreachable; a secret appearing in any log,
+audit line, or `SecretReport`; or the owner moving to a self-hosted Infisical and finding that a
+second database has been introduced without the `ARCHITECTURE.md` line being amended first.

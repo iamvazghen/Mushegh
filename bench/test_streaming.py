@@ -16,6 +16,36 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+
+# This file says it is hermetic, and until 2026-10-08 it was not: every agent built here
+# stubbed `_llm` but still reached the REAL judgment service for its turn assessment.
+# `test_run_all_tests.py` classifies this "offline", so a live network call is a contract
+# break - and an intermittent one, because it only failed when Jev happened to answer "I
+# need clarification" for a test prompt ("tell me a long story") that has nothing to do
+# with streaming. The agent then returned the canned question instead of streaming, and a
+# streaming gate failed on a judgement it was never meant to test.
+#
+# The subject here is SENTENCES, so the assessment is stubbed to the boring case: nothing
+# is unclear, nothing needs arbitrating. Same shape as `_Stub` in
+# `test_jev_turn_assessment.py`, applied once for the whole file.
+class _OfflineJudgments:
+    async def assess_turn(self, _text, *, groups=(), arbitrate=True, ask_clarity=True,
+                          correlation_id=""):
+        from afon.brain.judgment import TurnSignals
+        return TurnSignals(candidates=(), group=None, urgency=None, tone=None, clarity=None,
+                           outcome="disabled", latency_ms=0.0)
+
+    async def consider(self, _text, *, correlation_id=""):
+        return None
+
+
+def _make_hermetic() -> None:
+    from afon.brain import agent as _agent
+    _agent.JUDGMENTS = _OfflineJudgments()
+
+
+_make_hermetic()
+
 passed = failed = 0
 
 

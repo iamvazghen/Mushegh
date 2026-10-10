@@ -29,6 +29,42 @@ screens text against them; `MemoryStore.remember()` and `journal_append()` refus
 and `ErrorKind.REFUSED` is its own outcome, so a refusal is reported as a refusal instead of filed
 as an error. The gate is `bench/test_never_store.py` (50/50).
 
+### Proposed addition — close the one hole the guard admits (D-93)
+
+The guard is honest about its own gap: an unlabelled secret passes, and **a
+credential in a language the patterns do not cover passes**. The owner speaks
+five languages, and with `34.R4` un-deferred a real export is now the first
+plausible route for a sensitive note to reach a store.
+
+**[Yelp/detect-secrets](https://github.com/Yelp/detect-secrets)** (Apache-2.0,
+actively maintained) supplies the keyword, regex and entropy coverage the four
+tuned patterns do not have. Its failure direction also matches this document's
+stated trade-off exactly: a false positive is an unremembered harmless sentence
+and a false negative is the leak.
+
+**Door: subprocess adapter, not in-process.** `detect-secrets scan` over
+`audit_log/` on the hygiene schedule. Importing it would pull its transitive
+dependency set into the brain's interpreter for a *secondary* screen.
+
+**It does not change what the guard claims.** `never_store.py` remains the only
+thing on the write path, and the ceiling stays `declared=` with no override. This
+is a second opinion behind the guard, not a replacement for it — which is also
+why it does not touch the 50/50 gate.
+
+**Gate:** `bench/test_never_store.py`, which exists, plus a sweep over the audit
+log in a language the patterns miss. PRINCIPLES §1 three commands, in order:
+
+```
+uv run python bench/test_never_store.py
+detect-secrets scan audit_log/
+grep -c '"decision": "refuse"' audit_log/*.jsonl
+```
+
+**Not proposed:** trufflehog, which detects better and is the wrong shape — a
+second binary, an AGPL dependency, and live credential *verification* beside a
+write-boundary screen. See [INTEGRATIONS.md](../INTEGRATIONS.md) §6.
+
+
 **The finding worth more than the feature: refusing in the store was not enough.** `agent.py`
 records the arguments of every tool call it dispatches, and audit redaction is key-based — so
 `remember({"text": "my password is …"})` was refused by the memory store and then written to the

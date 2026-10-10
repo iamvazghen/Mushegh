@@ -7,6 +7,7 @@ just by flipping provider flags. See `.env.example` for the full surface.
 
 from __future__ import annotations
 
+import os
 from enum import Enum
 
 from pydantic import AliasChoices, Field, SecretStr
@@ -402,6 +403,15 @@ class Settings(BaseSettings):
     # Optional two-tier: a fast model tried FIRST (prepended to the chain) for snappier first words;
     # the normal chain stays as the quality fallback. Blank = single-tier. e.g. "llama-3.1-8b-instant".
     llm_fast_model: str | None = None
+    # D-92: a CHEAP, DEDICATED tier for the Jev verdict verbalizer only. The verbalizer may restate
+    # a decision but never make one, so it does not need the turn's own reasoning model, and its
+    # required-prefix guard means a weaker model degrades wording rather than correctness. Blank =
+    # off, and the verbalizer then walks the normal chain exactly as it does today. Comma-separated
+    # model entries, e.g. "ollama:qwen3:0.6b,groq:llama-3.1-8b-instant".
+    #
+    # This is deliberately NOT llm_fast_model: that one is prepended for *every* call, including the
+    # main turn. This one narrows one specific call without touching the rest.
+    verbalizer_models: str = ""
     # Tool-tier routing: on a FORCED tool turn (a clear command / data-read / narrowed intent), start
     # the chain PAST the primary. The non-thinking primary (MiniMax-Text-01, chosen for conversational
     # speed/cost) is a poor tool-caller — it dodges ~half of forced calls, so every tool turn otherwise
@@ -755,7 +765,7 @@ class Settings(BaseSettings):
     proactive_action_reports: bool = True
     proactive_tick_seconds: int = 300            # how often the tick evaluates signals
     proactive_quiet_hours: str = "23:00-07:00"   # no unprompted voice in this window (local time)
-    proactive_daily_budget: int = 6              # max unprompted interjections per day
+    proactive_daily_budget: int = 3              # max unprompted interjections per day (D-29: three, enforced here)
     proactive_relevance_threshold: float = 0.6   # only speak when a signal's urgency clears this
     proactive_repeat_suppress_minutes: int = 120  # don't repeat the same interjection within this
     # An exceptionally urgent signal (>= this) may still reach him in quiet hours — as a silent
@@ -904,11 +914,50 @@ class Settings(BaseSettings):
         return [m for m in chain if not (m in seen or seen.add(m))]
 
     @property
+    def verbalizer_chain(self) -> list[str]:
+        """D-92: the dedicated cheap tier for verdict verbalization, or [] for off.
+
+        Order is preserved and duplicates dropped, matching `llm_chain`. Empty
+        means "no dedicated tier", and callers then use the normal chain.
+        """
+        out: list[str] = []
+        for entry in self.verbalizer_models.split(","):
+            entry = entry.strip()
+            if entry and entry not in out:
+                out.append(entry)
+        return out
+
+    @property
     def vision_chain(self) -> list[str]:
         """Ordered vision-capable models (provider-prefixed), deduped, blanks dropped."""
         seen: set[str] = set()
         return [m for m in (x.strip() for x in self.vision_models.split(","))
                 if m and not (m in seen or seen.add(m))]
+
+
+# Secrets that live outside the repo are resolved BEFORE Settings() exists: pydantic-settings
+# reads the process environment exactly once, at construction. Infisical first, `age` as the
+# offline floor, environment always wins. Hydration cannot raise — a brain that will not boot
+# cannot be diagnosed (PRINCIPLES.md §1).
+try:
+    from afon.shared.secrets import hydrate_environment as _hydrate_secrets
+    from afon.shared.secrets import InfisicalConfig as _InfisicalConfig
+
+    # config is the ONLY place allowed to read a credential out of the environment (36.F5), so
+    # the Infisical bootstrap token is read HERE and handed to the secrets module. It unlocks
+    # other secrets, but it is still a secret, and a second home for one is the value every
+    # unconfigured install actually ends up using.
+    _hydrate_secrets(infisical=_InfisicalConfig(
+        api=os.environ.get("AFON_INFISICAL_API", "") or "https://secrets.infisical.com/api/v3",
+        token=os.environ.get("AFON_INFISICAL_TOKEN", ""),
+        workspace=os.environ.get("AFON_INFISICAL_WORKSPACE_ID", ""),
+        project=os.environ.get("AFON_INFISICAL_PROJECT_ID", ""),
+        env=os.environ.get("AFON_INFISICAL_ENV", "dev"),
+    ), age_path=os.environ.get("AFON_AGE_SECRETS", ""))
+except Exception as _exc:  # noqa: BLE001 - last line of defence; never block the boot
+    import logging as _logging
+
+    _logging.getLogger(__name__).warning("secret hydration skipped: %s", type(_exc).__name__)
 
 
 settings = Settings()

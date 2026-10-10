@@ -37,6 +37,11 @@ EXEMPT = {
     "test_live_task_reminder_e2e.py": "live — Notion + a reminder announced through the edge",
     "test_model_tiers.py": "benchmark — compares TTFT across providers; costs tokens, not pass/fail",
     "test_voice_io.py": "live — real STT/TTS engines behind the phone voice path",
+    # Added 2026-10-08. Both drive real turns through the model to answer a question about
+    # runtime behaviour, so they cost tokens and take minutes; running them on every commit
+    # is how a gate gets ignored. The hermetic halves are registered above.
+    "test_clause_attribution.py": "live — drives real compound prompts through AfonAgent.respond to attribute each clause",
+    "test_trace_completeness_live.py": "live — real turns, real model, real filesystem; asserts a trace row per turn",
     # This file: it validates the registry, so registering it in the registry it validates
     # would be circular. It is run by the deploy preflight instead.
     "test_registry_complete.py": "self-referential — guards the registry itself",

@@ -12,6 +12,39 @@ of those are prose to the code. `44.R1` was retitled on 2026-10-03 to say exactl
 M26 is the milestone that closes it. Until M26 lands, "Safety > Privacy > Honesty >
 Helpfulness" is a claim, not a proven invariant.
 
+### Proposed addition — let a test generator write the conflict pairs (D-93)
+
+**[HypothesisWorks/hypothesis](https://github.com/HypothesisWorks/hypothesis)**
+(MPL-2.0 upstream; the GitHub license field reads `NOASSERTION`, so confirm before
+pinning) — an in-repo **dev** dependency, under `bench/` only, never on the
+brain's runtime path.
+
+**What it buys, stated narrowly.** M26 must enumerate the conflicting input
+pairs the grader is total over. A human inventing them will write the three they
+thought of; a generator produces the ones nobody listed. That is the difference
+between a suite and a sentence in a prompt.
+
+**What it does not buy, and this is the limit that matters:** it does **not**
+prove the value order is right. It proves the grader is total over the pairs.
+`44.R1` closes when a conflicting pair scores correctly — not when many pairs
+score correctly. Anyone reading a green hypothesis run as evidence that the
+priority order is correct has misread it.
+
+**Gate:** `bench/test_refusal_grades.py`, which exists. PRINCIPLES §1 three
+commands, in order:
+
+```
+uv run python bench/test_refusal_grades.py
+journalctl -u openafon-brain --since "1h" | grep -iE "grade|verdict|refus"
+python -c "from afon.brain.proactive import grade, PRECEDENCE; print(PRECEDENCE)"
+```
+
+**Not proposed:** promptfoo, which adds a Node toolchain to a Python repository
+for `44.R3` red-teaming, and whose own failure mode is a web report — which
+PRINCIPLES §1 treats as the tell of a non-boring dependency.
+See [INTEGRATIONS.md](../INTEGRATIONS.md) §6.
+
+
 ## Purpose
 
 What Afon is not allowed to do, and how a conflict between two of its values is settled.

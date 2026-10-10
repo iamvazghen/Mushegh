@@ -25,26 +25,26 @@ engineering log and may not change execution state on its own.
 
 ## Current Snapshot
 
-- 50 systems; 180 of 398 live tasks marked done.
-- States: 182 open, 31 in progress, 180 done,
+- 50 systems; 180 of 399 live tasks marked done.
+- States: 182 open, 32 in progress, 180 done,
   28 cancelled, 5 deferred. Cancelled and deferred
   tasks are listed below rather than deleted: the record is worth more than the count.
-- Runner: 241 entries, 241 distinct scripts,
-  238 of them `test_*.py`.
-- Tests on disk: 247, of which 9 are exempt from the
+- Runner: 251 entries, 251 distinct scripts,
+  248 of them `test_*.py`.
+- Tests on disk: 259, of which 11 are exempt from the
   hermetic suite (live, benchmark or self-referential).
 - Tools: 152 schemas, 154 handlers.
-- Gate readiness: 274 hermetic, 6 exempt,
+- Gate readiness: 275 hermetic, 6 exempt,
   12 outside the suite, 82 planned,
   and 24 manual.
-- Evidence: 102 dated plan notes, 95 unverified imports.
+- Evidence: 113 dated plan notes, 93 unverified imports.
 - Dark: 6 systems are code-complete but control nothing, holding 40 live tasks (14 marked done). Listed separately below; counting dark work as done is how this plan misleads its own author.
 
 ## Systems
 
 | System | Status | Floor | Raise | Elite | Next open task |
 |---|---|---:|---:|---:|---|
-| S01 Brain / Core Intelligence | built, not well structured | 3/3 | 4/7 | 0/3 | 01.E1 Multi-intent combinations ≥90 (last measured **51.5** — the one remaining real lever to Restated as compound... |
+| S01 Brain / Core Intelligence | built, not well structured | 3/3 | 4/7 | 0/3 | 01.E1 Multi-intent combinations >=90. A/B on 2026-10-09/10, median-5, same code and same 5 scenarios: 83.4 on the... |
 | S02 LLM Integration | complete for now | 3/3 | 3/3 | 0/1 | 02.E1 A full outage of primary + first fallback is inaudible in the voice path: the owner |
 | S03 Tool Utilization | complete for now | 4/4 | 4/7 | 0/1 | 03.R1 TWO-STAGE TOOL SELECTION: the same work as `03.R7`, which carries the measurement and the matching gate. Kept... |
 | S04 Device Control | complete for now | 4/4 | 2/4 | 0/1 | 04.R2 Named targets resolve to the right machine when more than one is online (laptop, VPS, |
@@ -82,7 +82,7 @@ engineering log and may not change execution state on its own.
 | S36 Security & Access Control | complete for now | 7/7 | 0/4 | 0/1 | 36.R1 Session-scoped elevation: a confirmed sensitive action does not silently authorise the |
 | S37 Privacy & Data Governance | built, unproven by use — hygiene real, policy now enforced at the write boundary | 3/3 | 1/5 | 0/1 | 37.R1 Sensitivity classification — biometric, financial, medical, ordinary — with rules per |
 | S38 Communication Hub | built, not well structured | 3/3 | 0/3 | 0/1 | 38.R1 Triage: urgent / needs reply / FYI / ignore, learned from what the owner actually |
-| S39 Multi-Agent Delegation | built, thin | 3/3 | 0/6 | 0/1 | 39.R1 A routing policy: which kinds of work go to which agent, declared and testable. |
+| S39 Multi-Agent Delegation | built, thin | 3/3 | 0/7 | 0/1 | 39.R1 A routing policy: which kinds of work go to which agent, declared and testable. |
 | S40 Financial & Asset Management | **narrowed by decision 2026-10-03** — read-only market alerts on watched symbols only. Transaction ingest is a hard no (D-12). | 3/3 | 0/1 | 0/0 | 40.R1 Change notification — a threshold move raises a proactive signal. |
 | S41 Research & Synthesis | half-built | 3/3 | 0/5 | 0/1 | 41.R1 Source reliability weighting — not every page counts the same. |
 | S42 Media & Entertainment Control | built, not well structured | 3/3 | 0/3 | 0/1 | 42.R1 Queue and history — "play that again", "skip", "what was the last one". |
@@ -132,9 +132,9 @@ wins and why they must not be read as progress.
 
 ## Totals
 
-**Totals: 157 of 165 floor tasks green, 23 of 186 raise tasks, 0 of 47 elite tasks - 180 of 398.**
+**Totals: 157 of 165 floor tasks green, 23 of 187 raise tasks, 0 of 47 elite tasks - 180 of 399.**
 
-Excluding the 6 dark systems: **166 of 358**. That is the honest figure until a credential, a device or a decision unblocks them.
+Excluding the 6 dark systems: **166 of 359**. That is the honest figure until a credential, a device or a decision unblocks them.
 
 ## Evidence Review
 

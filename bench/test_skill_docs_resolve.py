@@ -38,9 +38,16 @@ sys.path.insert(0, str(ROOT / "src"))
 EXTERNAL = {
     "winget": "Windows package manager, named as prose in pc-control.md",
     "choco": "Chocolatey package manager, likewise",
-    # MCP tools are discovered at runtime from mcp_servers, so they are not in the static registry.
-    # The doc must say so — the check below enforces that, rather than trusting this entry.
-    "get_news": "MyNews MCP tool; daily-briefing.md must label it as MCP",
+    # Added 2026-10-09 with skills/integration-utilization.md and secrets-and-access.md. Each is
+    # named there as an EXTERNAL capability the playbook tells the model about, not as something
+    # the Afon registry can call. The distinction matters: the failure this test exists to catch
+    # is a doc telling the model to call something it has no handle on.
+    "graphify": "external CLI already running against this repo (graphify-out/); named as a capability, not an Afon tool",
+    "ghidra": "external disassembler; named as REA's analysis engine, which Afon does not and will not call",
+    "decompiler": "capability noun inside the REA description, not a command",
+    "mcp": "protocol noun (Model Context Protocol), not a tool name",
+    "maybe_correct": "afon/shared/uncertainty.py function named to locate the clarification path; internal, not callable",
+    "maybe_ask": "afon/shared/uncertainty.py function, same reason",
 }
 
 passed = failed = 0

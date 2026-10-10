@@ -21,7 +21,7 @@ from loguru import logger
 
 from afon.brain import citations
 from afon.brain.cache import CACHE
-from afon.brain.tools.base import clip, http_get, http_post, not_configured, tool_error
+from afon.brain.tools.base import clip, guard_url, http_get, http_post, not_configured, tool_error
 from afon.config import settings
 
 
@@ -237,6 +237,11 @@ async def scrape_url(args: dict) -> str:
         return "Which page should I open, sir?"
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    # Model-supplied, and therefore reachable from whatever the last page it read
+    # said. Refuse internal targets before this leaves the machine for them.
+    refusal = guard_url(url)
+    if refusal:
+        return refusal
     try:
         # Cache briefly so "read me that page" repeated in one session is instant.
         md = await CACHE.cached("scrape", key=url, ttl=300, factory=lambda: _scrape_chain(url))

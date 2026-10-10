@@ -32,6 +32,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from afon.brain import audit                      # noqa: E402
 from afon.brain import review                     # noqa: E402
+from afon.brain.audit import _owner_day           # noqa: E402
 from afon.shared import errors as _err            # noqa: E402
 
 passed = failed = 0
@@ -73,7 +74,11 @@ def main() -> int:
         audit_dir.mkdir()
         audit._audit_dir = lambda: audit_dir
         review._audit_dir = lambda: audit_dir
-        today = datetime.now(timezone.utc).date().isoformat()
+        # The daily audit file is named by the OWNER's calendar day, not UTC's — see
+        # audit._owner_day, pinned by six assertions in test_audit_integrity.py. This gate used
+        # UTC and therefore failed on its own between 00:00 and 02:00 local, asserting the old
+        # behaviour rather than the system.
+        today = _owner_day(datetime.now(timezone.utc))
 
         print("\n[1] the owner's own work is not 'unattended'")
         (audit_dir / f"{today}.jsonl").write_text("\n".join(json.dumps(r) for r in [

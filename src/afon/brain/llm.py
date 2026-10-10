@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 from loguru import logger
@@ -285,6 +285,16 @@ CHAIN_EXHAUSTED = "all LLM models failed"
 VISION_CHAIN_EXHAUSTED = "all vision models failed"
 
 
+def _dedupe(entries: Sequence[str]) -> list[str]:
+    """Order-preserving, blank-dropping dedupe. Used for a caller-supplied tier."""
+    out: list[str] = []
+    for entry in entries:
+        cleaned = entry.strip()
+        if cleaned and cleaned not in out:
+            out.append(cleaned)
+    return out
+
+
 class ChainExhausted(RuntimeError):
     """Every model in the failover chain refused — Afon has lost the ability to think, not just one call.
 
@@ -401,18 +411,28 @@ class LLMClient:
     def chain(self) -> list[str]:
         return self._chain
 
-    def _candidate_chain(self) -> list[str]:
-        """Return healthy entries first; if every entry is cooling down, try the full chain anyway."""
+    def _candidate_chain(self, only: Sequence[str] | None = None) -> list[str]:
+        """Return healthy entries first; if every entry is cooling down, try the full chain anyway.
+
+        ``only`` (D-92) replaces the chain for this one call, in the order given, before the
+        health ordering is applied. The entries are used **as given** and are deliberately not
+        intersected with ``self._chain``, for the same reason ``prepend_model`` is not: a dedicated
+        cheap tier is configured separately and will not appear in the turn's own chain at all, so
+        intersecting would make the feature useless. An ``only`` containing nothing usable yields an
+        empty chain rather than the full one, so a caller that asked for a narrow tier never
+        silently gets the primary back.
+        """
+        source = list(self._chain) if only is None else _dedupe(only)
         if not self._cooldown:
-            return self._deprioritise(list(self._chain))
+            return self._deprioritise(source)
         now = asyncio.get_running_loop().time()
-        healthy = [m for m in self._chain if self._unhealthy_until.get(m, 0.0) <= now]
+        healthy = [m for m in source if self._unhealthy_until.get(m, 0.0) <= now]
         if healthy:
-            skipped = [m for m in self._chain if m not in healthy]
+            skipped = [m for m in source if m not in healthy]
             if skipped:
                 logger.debug(f"LLM skipping cooling-down models: {skipped}")
             return self._deprioritise(healthy)
-        return self._deprioritise(list(self._chain))
+        return self._deprioritise(source)
 
     @staticmethod
     def _deprioritise(chain: list[str]) -> list[str]:
@@ -558,6 +578,7 @@ class LLMClient:
         tool_choice: str | dict[str, Any] = "auto",
         skip_primary: bool = False,
         prepend_model: str | None = None,
+        only: Sequence[str] | None = None,
     ) -> Any:
         """Non-streaming completion (used for tool-calling turns). Returns the message.
 
@@ -569,12 +590,15 @@ class LLMClient:
         (a non-thinking model) dodges a forced tool call, to reach a more reliable tool-caller.
         ``prepend_model`` tries a SPECIFIC model FIRST (then the normal chain as fallback) — used by the
         B5 thinking-tier escalation to reach a MiniMax reasoning model on a dodged forced turn.
+        ``only`` narrows this ONE call to a specific set of models (D-92): the dedicated cheap tier
+        used for verdict verbalization, which needs no reasoning model. ``None`` leaves the chain
+        untouched, so every existing caller behaves exactly as before.
         """
         last_err: Exception | None = None
         route_started = asyncio.get_running_loop().time()
         errors: list[dict[str, str]] = []
         failures = 0
-        chain = self._candidate_chain()
+        chain = self._candidate_chain() if only is None else self._candidate_chain(only=only)
         if skip_primary and len(chain) > 1:
             chain = chain[1:]
         if prepend_model:

@@ -35,6 +35,12 @@ TESTS = [
     ("Aggregate runner: network skip classification", "test_run_all_tests_classifier.py", "offline",
      ["checks passed ==="]),
     ("Phase 1: VAD + barge-in", "test_phase1_vad_bargein.py", "offline", ["checks passed ==="]),
+    ("Turn assembly: text+quiet beats a fixed silence timer for local STT", "test_turn_assembly.py",
+     "offline", ["checks passed ==="]),
+    ("Outbound URL guard: refuse internal + metadata targets; tools consult it", "test_netguard.py",
+     "offline", ["checks passed ==="]),
+    ("Unattended worker: report a raised tool as failed, never as used", "test_worker_progress.py",
+     "offline", ["checks passed ==="]),
     ("Phase 3: knowledge & channel tools + ispir-only", "test_phase3_tools.py", "offline",
      ["checks passed ==="]),
     ("Phase 4 + system/browser/protocols", "test_phase4_system_protocols.py", "offline",
@@ -74,6 +80,9 @@ TESTS = [
     ("D-79: a brief is assembled by code from a task record, and an acceptance check that "
      "restates the task is refused (M46)",
      "test_brief_assembly.py", "offline", ["ALL CHECKS PASSED ==="]),
+    ("D-05/D-84: the OpenClaw transport is the official CLI with the task in a file, never a "
+     "shell, and never passes --deliver (M42)",
+     "test_fleet_transport.py", "offline", ["ALL CHECKS PASSED ==="]),
     ("D-73/D-76/D-81: Jev picks the executor from the ballot code built, and an outage keeps the "
      "deterministic choice silently (M45)",
      "test_executor_arbitration.py", "offline", ["ALL CHECKS PASSED ==="]),
@@ -366,6 +375,15 @@ TESTS = [
      "test_memory_single_origin.py", "offline", ["checks passed ==="]),
     ("01.F2: calibrated uncertainty — an unknowable is not answered flat, an answerable is not refused",
      "test_uncertainty.py", "offline", ["checks passed ==="]),
+    ("S36: secrets never leak — redaction masks, the report carries no value, and a dead backend "
+     "cannot stop the boot",
+     "test_secrets_redaction.py", "offline", ["checks passed ==="]),
+    ("Calibration: a reported confidence can be scored — ECE/Brier against hand-computed values, "
+     "and None (never 0.0) when there is nothing to measure",
+     "test_calibration_metrics.py", "offline", ["checks passed ==="]),
+    ("S01-S50: the skill suite is reachable — every playbook reads, and the integration triggers "
+     "name tools that exist",
+     "test_skill_suite.py", "offline", ["checks passed ==="]),
     ("B1: intent router — high-precision intents narrow to the one right tool; multi-intent/chat untouched",
      "test_intent_router.py", "offline", ["checks passed ==="]),
     ("02.R2: the stable half of the system prompt is byte-identical between turns, so a prompt "
@@ -508,6 +526,29 @@ TESTS = [
     ("Jev turn assessment (01.R7): route, clarity, urgency and tone in ONE bounded call; ambiguity "
      "asks one question; a failed assessment stays silent; urgency never touches the budget",
      "test_jev_turn_assessment.py", "offline", ["ALL CHECKS PASSED ==="]),
+    # Added 2026-10-08 after TWO hand-found defects of the same class: `routine` and the
+    # day-planning tools shipped, were advertised every turn, and no route reached them, so
+    # 'drop focus mode' was answered 'I have deactivated focus mode' while it stayed active.
+    # This makes that class impossible to reintroduce silently.
+    ("Tool reachability: every core-advertised tool is routed, or exempt with a stated "
+     "reason — so a capability cannot rest on the model happening to volunteer it",
+     "test_tool_reachability.py", "offline", ["ALL CHECKS PASSED"]),
+    # Added 2026-10-08. All five were written during the S01 pass and then left unregistered,
+    # which `test_registry_complete.py` caught: a test that is never run in CI is
+    # indistinguishable from a passing test, and worse than no test because its presence
+    # implies coverage. Their absence was my omission, not a deliberate exemption.
+    ("Calibration recorded (01.F2): the verdict is on the row, so the score is derivable",
+     "test_calibration_recorded.py", "offline", ["PASSED", "FAILED"]),
+    ("Verbalizer tier (D-92): off by default, narrows one call when on, never silently substitutes",
+     "test_verbalizer_tier.py", "offline", ["PASSED", "FAILED"]),
+    ("Verbalizer renderer (D-92): with the tier off the reply is byte-identical to before",
+     "test_verbalizer_renderer.py", "offline", ["PASSED", "FAILED"]),
+    ("Doc integrity: no control characters, no phantom paths, no dead surface claims, no "
+     "duplicate or gapped decision numbers",
+     "test_doc_integrity.py", "offline", ["PASSED", "FAILED"]),
+    ("Interruption budget (D-29): the charter's own number, read from DECISIONS.md, plus a "
+     "focus block that zeroes the engine at maximum urgency",
+     "test_interruption_budget.py", "offline", ["PASSED", "FAILED"]),
     ("Spatial HUD (45.R6): bounded Afon control, search-only shell, real sources and loaders",
      "test_hud_modes.py", "offline", ["checks passed ==="]),
     ("Confirm seam (O2.5): all six exits from tool dispatch audit a decision, rule and turn id",
@@ -616,7 +657,14 @@ RUNNABLE_FAILURE = (
 #: throwaway file for the duration. Set before any test imports afon.brain.governor.
 os.environ.setdefault(
     "AFON_GOVERNOR_LEDGER",
-    str(Path(tempfile.gettempdir()) / "afon-test-governor.json"),
+    # The PID is load-bearing. A FIXED path was documented as "a throwaway file for the
+    # duration" while actually persisting every run, and `autonomy_max_calls` is 200 over a
+    # 24 h window - so the ledger kept accumulating (measured 162 calls, window opened the
+    # previous evening) until the governor started refusing calls and failing gates for
+    # reasons that had nothing to do with the code under test. That is the "deploy died on a
+    # different test each time, each passing in isolation" failure this line exists to
+    # prevent, rebuilt one level down. Each run now starts on a fresh budget.
+    str(Path(tempfile.gettempdir()) / f"afon-test-governor-{os.getpid()}.json"),
 )
 
 #: Override with AFON_TEST_TIMEOUT_S on a slower machine.

@@ -86,7 +86,7 @@ a silent omission. They are now tracked work:
 |---|---|---|
 | `28.R4` | D-13 | `lock` and `garage_door` are **confirm-gated** in `smarthome.py`, not refused. A typed confirm is not physical presence — a live blast-radius gap, and the most serious finding in the pass. Scoped to what D-13 actually names: alarm, cover, climate and water heater keep the confirm-gated middle tier, which the charter does not forbid |
 | `37.R5` | D-24 | The never-store set existed only as prose. A grep for `D-24` / `NEVER_STORE` across `src/afon/` returns nothing |
-| `41.R4` | D-34 | `mynews.py` is a live unprompted 08:00–10:00 feed, wired at `proactive.py:927`. No task tracked it |
+| `41.R4` | D-34 | `mynews.py` is a live unprompted 08:00–10:00 feed, wired at `proactive.py:927`. No task tracked it. **Since fixed:** the task was added, 41.R4 removed the registration, and `bench/test_no_unprompted_feed.py` is green 10/10 (2026-10-04). The row is kept as written because this file is the dated record of what the audit found |
 | `18.R4` | D-17 | `AFON_ELEVENLABS_API_KEY` is configured, so local TTS is not actually the default the decision requires |
 | `18.R5` | D-19 | `AFON_PORCUPINE_ACCESS_KEY` is configured, so the wake word is a cloud call, not on-device spotting |
 | `36.R4` | D-62 | The environment carries ~15 third-party credentials, not the four D-62 named. Every one needs a row mapping it to a decision |

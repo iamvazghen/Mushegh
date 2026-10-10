@@ -446,8 +446,16 @@ class JudgmentService:
             "questions": asked,
         }
         try:
+            # The arbitration cap has to reach the HTTP client, not just wrap the await.
+            # With only the service timeout passed down, `wait_for` cancelled an in-flight
+            # request that did not stop promptly: the deadline was honoured logically while
+            # the turn still paid the full wall clock (measured 2026-10-08: 957 ms median
+            # against a 400 ms cap, 0 of 25 inside it). Passing `cap` makes the client give
+            # up on its own at the same moment the deadline fires, so the documented budget
+            # and the real cost finally agree.
+            transport_timeout = min(self._timeout, cap)
             status, body = await asyncio.wait_for(
-                self._transport(payload, self._key, self._endpoint, self._timeout),
+                self._transport(payload, self._key, self._endpoint, transport_timeout),
                 timeout=cap,
             )
             if status < 200 or status >= 300:

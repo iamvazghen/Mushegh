@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import re
 
+from afon.brain import turn_trace
+
 # (regex, tool names). Order = priority; writes before reads so "remember to check my mail" -> remember.
 _ROUTES: list[tuple[re.Pattern[str], list[str]]] = [
     # -- writes / commands (outward ones stay confirm-gated downstream; forcing only picks the tool) --
@@ -77,9 +79,64 @@ _ROUTES: list[tuple[re.Pattern[str], list[str]]] = [
                 r"|\bdata retention\b|\bretention (policy|period)\b"
                 r"|\bwhat do you do with my (data|information)\b"
                 r"|\b(are you|is this) compliant\b", re.I), ["read_skill"]),
-    (re.compile(r"\bremind me\b|\bset (a |an )?reminder\b|\breminder to\b", re.I), ["set_reminder"]),
+    # "Remind me TO call mum" sets a reminder. "Remind me WHAT day it is" is a QUESTION — and
+    # measured 2026-10-10, the unguarded `\bremind me\b` routed that to `set_reminder` and the
+    # owner got a real reminder created at 09:00 to tell him the day of the week. A side effect
+    # from a sentence with no imperative in it.
+    #
+    # The discriminator is the word after "me": a question word means he is asking for the
+    # answer, not asking to be reminded later. `remind me to X` and `remind me about X` still
+    # set the reminder, which is the common case and the one the confirm gate covers.
+    (re.compile(r"\bremind me\b(?!\s+(what|whether|if|how|why|where|when|which|who)\b)"
+                r"|\bset (a |an )?reminder\b|\breminder to\b", re.I), ["set_reminder"]),
     (re.compile(r"\b(add|schedule|create|put|book|set up)\b[^.?!]{0,30}"
                 r"\b(calendar|event|meeting|appointment)\b", re.I), ["create_event"]),
+    # Day planning. Measured 2026-10-08: `autonomy_plan` named every block, the times and
+    # the stop point, and the brain narrated a 1005-character schedule with NO tool fired.
+    # `clause_tools` and `forced_tools` both returned [] for it, while `plan_today` and
+    # `plan_task` sat advertised in the core surface the whole time - so this was a missing
+    # route, not a model that chose to narrate. Day planning is a shipped, documented
+    # capability (schedule.py in S17 and S21) with working tools, so leaving it unrouted
+    # meant the tools were reachable and useless.
+    #
+    # Only the two tools that are actually advertised on such a turn are named here.
+    # `day_clashes` lives in a lazy group that did not activate for this text; forcing an
+    # unadvertised tool would hit the "forced but dodged" degrade path instead of working.
+    (re.compile(r"\bplan\b[^.?!]{0,20}\b(day|week|morning|evening|afternoon)\b"
+                r"|\bplan my (time|schedule)\b|\bblock out\b"
+                r"|\b(fit|slot) in\b[^.?!]{0,20}\b(work|task|meeting)\b"
+                r"|\bdeep[- ]work block\b", re.I), ["plan_today", "plan_task"]),
+    # Behavioural modes, entered AND left. `routine` had NO route at all, so every mode
+    # operation depended on the model happening to volunteer the tool: entering focus mode
+    # worked (93.0, the model chose `routine`), leaving it did not (50.0, runs [50,50,50]).
+    # Measured consequence of that gap: "You can drop focus mode now" was answered "I have
+    # deactivated focus mode" while `MODES.focus_active()` stayed True - a false claim about
+    # system state, which is worse than a low score because the owner acts on it.
+    (re.compile(r"\b(enter|start|turn on|switch (?:on|to)|put (?:yourself|you) (?:in|into)|"
+                r"drop|exit|leave|turn off|stop|cancel|end|clear|get out of)\b[^.?!]{0,26}"
+                r"\b(focus|lockdown|guest|commute)\b"
+                r"|\b(focus|lockdown|guest|commute)\s+mode\s+(on|off)\b", re.I), ["routine"]),
+    # Reading back state the owner can set elsewhere. Named by `bench/test_tool_reachability.py`
+    # as advertised-but-unrouted, and corroborated by the scenarios that exercise them:
+    # `fleet_status` 46.0 [46,46,46] because `task_status` had no route, `proactivity_list`
+    # swinging 50-93 because `list_reminders` had none, `knowledge_note_read` 73.0 because
+    # `read_vault_note` had none. All three are the `routine` shape again - the owner asks
+    # about a thing without naming the tool, so correctness rested on the model guessing.
+    (re.compile(r"\b(cancel|drop|remove|kill|delete)\b[^.?!]{0,20}\breminder\b"
+                r"|\breminders?\b[^.?!]{0,20}\b(cancel|drop|clear|delete)\b", re.I),
+     ["cancel_reminder"]),
+    (re.compile(r"\b(what|which)\b[^.?!]{0,20}\breminders?\b"
+                r"|\breminders?\b[^.?!]{0,20}\b(coming up|scheduled|set|do i have|any)\b"
+                r"|\bdo i have any reminders\b", re.I), ["list_reminders"]),
+    (re.compile(r"\b(open|read|show|pull up)\b[^.?!]{0,30}\b(note|notes)\b"
+                r"|\bnotes?\b[^.?!]{0,30}\b(vault|obsidian)\b", re.I),
+     ["read_vault_note", "search_vault"]),
+    (re.compile(r"\b(what'?s|what is) (waiting|pending)\b|\bwhat are you working on\b"
+                r"|\b(is|are|was|were)\b[^.?!]{0,20}\b(the )?"
+                r"\b(task|job|report|deep dive|analysis|write-?up)\b[^.?!]{0,26}"
+                r"\b(done|finished|complete|still running|ready)\b"
+                r"|\b(done|finished|complete)\b[^.?!]{0,20}\byet\b", re.I),
+     ["task_status", "whats_waiting"]),
     # open/fetch a specific URL/domain and read it => scrape (not the web_search route below).
     (re.compile(r"\b(open|go to|visit|fetch|scrape|read|pull up)\b[^.?!]{0,30}"
                 r"\b[\w-]+\.(com|org|net|io|co|dev|ai|gov|edu|uk)\b"
@@ -105,6 +162,27 @@ _ROUTES: list[tuple[re.Pattern[str], list[str]]] = [
                 r"|\b(when'?s|when is|what'?s|what is|where'?s|where is)\b[^.?!]{0,20}\bmy\b", re.I), ["recall"]),
     (re.compile(r"\bdefine\b|\bwhat does\b[^.?!]{0,30}\bmean\b|\bmeaning of\b"
                 r"|\bwhat'?s the definition of\b|\bdefinition of\b", re.I), ["define_word"]),
+    # 01.E1 / measured 2026-10-10: the Memory category sat at 65.0 and `memory_update` at 48.0,
+    # and this was the cause. A CORRECTION to something already stored — "actually it's Petrova,
+    # can you fix that one?", "change that to Petrova", "update the dentist one to Petrova" —
+    # routed to NOTHING, so the turn was never narrowed and the model either narrated or deflected.
+    #
+    # It routes to `remember`, not to a new "update" tool, because 30.R10's supersession already
+    # makes a corrected fact REPLACE its predecessor when the subject is declared. The correction is
+    # simply a write of the new value.
+    #
+    # PLACEMENT IS THE WHOLE GAME HERE, and it was wrong the first time round: sitting up beside
+    # the other memory routes it hijacked "change the subject line on that email" into a memory
+    # write. It now sits AFTER email, calendar, telegram, tasks and recall, so a concrete action
+    # beats a vague correction, and only a turn that reached here with nothing more specific is
+    # treated as "fix what you stored".
+    (re.compile(r"\b(fix|correct|change|update|amend|revise)\b[^.?!]{0,30}"
+                r"\b(that|this|it)\b(?!\s+(email|mail|message|file|folder|event|task|"
+                r"appointment|photo|contact|number|document|note)\b)"
+                r"|\bfix\b[^.?!]{0,20}\bthe \w+ one\b"
+                r"|\bupdate\b[^.?!]{0,20}\bthe \w+ one\b"
+                r"|\bactually\b[^.?!]{0,35}\b(is|it's|its|was|called)\b"
+                r"|\bscratch that\b[^.?!]{0,20}\b(it|that)\b", re.I), ["remember"]),
     (re.compile(r"\b(price|worth|value)\b[^.?!]{0,20}\b(bitcoin|btc|ethereum|eth|crypto|coin|token|"
                 r"solana|dogecoin|xrp)\b|\bhow much is\b[^.?!]{0,15}\b(bitcoin|btc|ethereum|eth|a coin)\b"
                 r"|\b(bitcoin|btc|ethereum|eth)\b[^.?!]{0,15}\b(price|worth|trading at)\b", re.I),
@@ -114,6 +192,30 @@ _ROUTES: list[tuple[re.Pattern[str], list[str]]] = [
                 r"|\b(stock|shares?) of\b", re.I), ["stock_price"]),
     (re.compile(r"\bweather\b|\b(temperature|forecast)\b|\bhow (hot|cold|warm) is it\b"
                 r"|\bis it (going to |gonna )?(rain|snow|sunny)\b", re.I), ["weather"]),
+    # 01.E1 — three read-only questions that routed to NOTHING, so the model answered from memory.
+    # Measured live on 2026-10-09, median-5:
+    #   "What skills do you have, and read me the one about git" -> 40.0, `missing tool(s):
+    #   ['list_skills','read_skill']`, and the reply listed capabilities it had never read.
+    #   "What did I write in my journal, and what objectives do I have running?" -> 40.0, both
+    #   tools missing, and the reply returned a plausible journal entry that did not exist.
+    # The second is the serious one: that is a fabricated history, produced by a model that was
+    # never handed the journal, and it sounded entirely convincing.
+    # Both tools used to be EXEMPT in test_tool_reachability.py on the grounds that listing is
+    # "answering a question, not executing a request" and journal reads "are prompted by the
+    # owner". Both were prompted by the owner here, and both produced fiction. The exemptions are
+    # gone; the reason is recorded there so it is not re-added on the same reasoning again.
+    (re.compile(r"\bwhat skills\b|\blist (your|the) skills\b|\bwhich skills\b"
+                r"|\b(what|which) playbooks?\b|\byour skills\b", re.I), ["list_skills"]),
+    (re.compile(r"\bread\b[^.?!]{0,25}\b(one|skills?|playbooks?)\b"
+                r"|\bopen\b[^.?!]{0,20}\b(skill|playbook)\b"
+                r"|\b(show|walk me through)\b[^.?!]{0,20}\b(skill|playbook)\b", re.I),
+     ["read_skill"]),
+    (re.compile(r"\bmy journal\b|\bthe journal\b|\bin (my|the) (journal|diary)\b|\bjournal\b"
+                r"|\bdiary\b|\bwhat did i write\b|\bwhat have i (written|noted|jotted)\b", re.I),
+     ["read_journal"]),
+    (re.compile(r"\b(my|our) (objectives?|goals?)\b|\bwhat (objectives?|goals?)\b"
+                r"|\b(objectives?|goals?)\b[^.?!]{0,18}\b(am i|running|active|in progress|have i)\b",
+                re.I), ["list_objectives"]),
     (re.compile(r"\b(search|look up|check)\b[^.?!]{0,20}\b(vault|my notes?)\b|\bin my (vault|notes)\b",
                 re.I), ["search_vault"]),
     (re.compile(r"\b(look up|search for|search online|google|find out|search the web)\b", re.I), ["web_search"]),
@@ -189,7 +291,13 @@ def clause_tools(user_text: str) -> list[str]:
 
     ordered: list[str] = []
     for clause in clauses:
-        for name in forced_tools(clause) or _clause_only_tools(clause):
+        routed = forced_tools(clause) or _clause_only_tools(clause)
+        # 01.E1 / open question 1: record EVERY clause, including one that routed
+        # to nothing. A clause absent from the plan is the signature of a routing
+        # failure, and it can only be told apart from a completion failure if it
+        # was written down when the plan was built.
+        turn_trace.note_clause(clause, tool=(routed[0] if routed else None))
+        for name in routed:
             if name not in ordered:
                 ordered.append(name)
 
@@ -217,7 +325,16 @@ _MULTI_INTENT_RE = re.compile(
     r"\b(and|then|also|plus|afterwards?|after that|as well as)\b[^.?!]{0,40}?\b("
     r"remember|note|save|send|set|add|schedule|create|draft|reply|look up|search|check|find|"
     r"play|turn|lock|unlock|email|message|text|remind|put|delete|cancel|summarise|summarize|"
-    r"write|tell|give|update)\b",
+    r"write|update"
+    # "and TELL ME the heading" is not a second capability, it is how the FIRST one's result gets
+    # reported back. Measured 2026-10-10: this mislabelled "Open example.com and tell me the page
+    # heading" as multi, and multi-intent turns SKIP router narrowing entirely (`_narrowed_tools`
+    # returns early), so `scrape_url` was never forced — the model chose `browser` instead, that
+    # failed, and the reply then answered from memory ("the heading is Example Domain"), which is
+    # the same fabrication shape as the journal one. `send`/`reply` stay unguarded because "and
+    # send me the link" genuinely IS a second action.
+    r"|(?:tell|give)(?!\s+me\b)"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -277,11 +394,26 @@ _WRITE_TOOLS = frozenset({
     "remember", "forget", "send_email", "draft_email", "send_telegram",
     "notion_create_task", "notion_complete_task", "notion_delete_task", "notion_update_task",
     "set_reminder", "create_event",
+    # Reading back what was set elsewhere is still state the owner asked to change.
+    "cancel_reminder",
+    # Day planning is a write, not a lookup: `plan_today` schedules the reminders for the
+    # commitments the owner names, so asking for a plan changes state on their timeline.
+    "plan_today", "plan_task",
+    # So are the behavioural modes: `routine` sets or clears focus/lockdown/guest/commute,
+    # which decides whether Afon interrupts at all. Leaving a mode is still a write.
+    "routine",
 })
 _READ_TOOLS = frozenset({
     "read_skill", "scrape_url", "list_events", "read_email", "check_telegram", "notion_tasks",
     "recall", "define_word", "crypto_price", "stock_price", "weather", "search_vault",
     "web_search", "get_time",
+    # Reading back state the owner set elsewhere: reminders, a vault note, task progress.
+    "list_reminders", "read_vault_note", "task_status", "whats_waiting",
+    # 01.E1, 2026-10-09. All three were routed after being MEASURED answering from memory:
+    # `list_skills` recited capabilities that were not on disk, and `read_journal` returned a
+    # journal entry that did not exist. None of them writes anything — they are reads that the
+    # model had to be made to perform instead of inventing.
+    "list_skills", "read_journal", "list_objectives",
 })
 
 #: A request whose OBJECT is a bare pointer with nothing to point at. "Send it" is a perfectly good

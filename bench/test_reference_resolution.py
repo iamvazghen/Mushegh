@@ -197,6 +197,42 @@ def main() -> None:
     check(len(current_segment([{"role": "assistant", "content": "Hello."}])) == 1,
           "a history with no user turns is left whole")
 
+    # ---- corrections, measured on the Memory category 2026-10-10 --------------------------
+    # `memory_update` scored 48.0 because its second turn - "actually it's Petrova, can you fix
+    # that one?" - resolved to NOTHING, and the owner was asked a clarifying question about a
+    # correction he had just made. Two mechanical causes, both here:
+    #   1. the copula guard ("it's raining", "it is late") was vetoing "it IS Petrova", which is a
+    #      value being stated rather than the copula;
+    #   2. the self-contained check counted a proper noun in SUBSTITUTION position as a competing
+    #      referent, so "change that to Dr Petrov" declined because Petrov competed with itself.
+    who = [{"role": "user", "content": "Remember that my dentist is called Dr Petrov."},
+           {"role": "assistant", "content": "Done, sir."}]
+    for label, text in [
+        ("change that to a new name", "Change that to Petrova"),
+        ("change that to the SAME name", "Change that to Dr Petrov"),
+        ("a correction phrased as a copula", "Actually it is Petrova - can you fix that one?"),
+        # The EXACT wording bench/behavioral_suite.py sends. Two things differ from the line
+        # above and both had to be handled before the live turn resolved: a typographic
+        # apostrophe (U+2019, not ') and NO space before the name. The first cut of this fix
+        # handled "it is <Name>" only, so the live turn still declined and the clarifying
+        # question survived — the same trap that docked four genuine admissions in
+        # shared/uncertainty.py. Pinned verbatim so it cannot be narrowed away again.
+        ("the live scenario's exact phrasing", "Actually it’s Petrova — can you fix that one?"),
+        ("an update to an unrelated name", "Update that to Smirnov"),
+    ]:
+        got = getattr(resolve(text, who), "antecedent", None)
+        check(f"a correction still binds its referent: {label}", got == "Petrov", str(got))
+
+    # ...and the guards those changes loosened must stay tight.
+    for label, text in [
+        ("the copula with no value", "It is late, sir"),
+        ("weather", "It's raining in Cologne today"),
+        ("an imperative object", "Make it quick"),
+        ("a self-contained reference", "Open Petrov report.md for me"),
+    ]:
+        got = getattr(resolve(text, who), "antecedent", None)
+        check(f"and the loosened guards still decline: {label}", got is None, str(got))
+
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     sys.exit(1 if failed else 0)
 

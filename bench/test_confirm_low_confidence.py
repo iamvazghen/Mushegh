@@ -37,6 +37,10 @@ os.environ.setdefault(
 
 from afon.brain import agent as agent_mod                              # noqa: E402
 from afon.brain import audit                                           # noqa: E402
+# The daily audit file is named by the OWNER's calendar day, not UTC's — see audit._owner_day,
+# pinned by six assertions in test_audit_integrity.py. This gate derived the name from UTC and
+# so failed on its own between 00:00 and 02:00 local, asserting the old behaviour.
+from afon.brain.audit import _owner_day                                # noqa: E402
 from afon.brain.proactive import CONFIRM_TIER, is_write, low_confidence  # noqa: E402
 from afon.shared import errors as _err                                 # noqa: E402
 
@@ -86,7 +90,7 @@ def main() -> int:
         audit_dir = Path(tmp) / "audit"
         audit_dir.mkdir()
         audit._audit_dir = lambda: audit_dir
-        today = datetime.now(timezone.utc).date().isoformat()
+        today = _owner_day(datetime.now(timezone.utc))
 
         ran: list[str] = []
 

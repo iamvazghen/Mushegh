@@ -72,6 +72,18 @@ def _read_lines(days: int) -> list[dict]:
         if not directory.is_dir():
             return []
         today = datetime.now(timezone.utc).date()
+        # The window must be built from the OWNER's day, not UTC's — `audit.record` names the
+        # daily file that way. Reading UTC here meant that between 00:00 and 02:00 local this
+        # surface looked for files that were not written yet and reported an EMPTY review: the
+        # owner's unattended work became invisible for two hours a night, with no error. A blank
+        # unattended surface is the single failure this module exists to prevent, so it reads the
+        # same rule the writer does (`audit._owner_day`, pinned in test_audit_integrity.py).
+        try:
+            from afon.brain.audit import _owner_day
+
+            today = datetime.strptime(_owner_day(datetime.now(timezone.utc)), "%Y-%m-%d").date()
+        except Exception:  # noqa: BLE001 - never let the clock take the surface down
+            logger.warning("review: owner-day lookup failed; falling back to the UTC day")
         wanted = {(today - timedelta(days=n)).isoformat() for n in range(max(1, days))}
         out: list[dict] = []
         for path in sorted(directory.glob("*.jsonl")):

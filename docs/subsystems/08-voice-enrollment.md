@@ -79,6 +79,44 @@ Not raw audio (D-24). The voiceprint is gitignored and never leaves the laptop.
 7. **Separation holds across a week of real turns with no manual threshold edits**
    (08.E1) — the D-43 bar.
 
+### 7.1 Proposed addition — derive the accept bar instead of hand-placing it (D-93)
+
+Goal 3 asks for a threshold derived from the measured band, and the profile
+currently scores **0.47 against a 0.60 target** with the number undated in
+source. This is the lowest measured number among the four subsystems M09 gates,
+and the re-review named what is missing.
+
+**[wenet-e2e/wespeaker](https://github.com/wenet-e2e/wespeaker)** (Apache-2.0,
+pushed 2026-09-22) — a production-oriented speaker verification toolkit carrying
+ECAPA-TDNN plus CAM++/ERes2Net/ReDimNet checkpoints, a **PLDA backend**, and
+**EER/DCF scoring**.
+
+**Door: in-process, and only in `bench/enroll_voice.py` and the bench.** Never by
+`src/afon/edge/speaker_gate.py` on the hot path. That separation is the entire
+safety margin: `speaker_gate.py` must stay exactly as inspectable at 2 AM as it
+is now, and swapping the embedder would invalidate the existing profile.
+
+**What it changes:** *which model* and *how the bar is placed and measured*. What
+it does not change: whether the recorded clips are any good. The dominant term in
+0.47 is capture quality and per-condition coverage, and **no library touches
+that** — goal 4 and goal 2 are the actual work, and this addition only gives
+them a number to aim at.
+
+**Gate:** `bench/test_phase5_identity_bench.py`, which exists. PRINCIPLES §1
+three commands, in order:
+
+```
+journalctl -u openafon-edge -n 200 | grep -i "speaker profile"
+cat "$AFON_SPEAKER_PROFILE" | python -m json.tool | grep -A5 separation
+uv run python bench/test_phase5_identity_bench.py
+```
+
+**Not proposed:** `deepinsight/insightface` or `SYSTRAN/faster-whisper`, both
+**already installed** — recommending them would be a phantom add. And
+`minivision-ai/Silent-Face-Anti-Spoofing` was rejected: 11.F3 is recorded done,
+and replacing a completed feature to fix a missing test inverts the rule. See
+[INTEGRATIONS.md](../INTEGRATIONS.md) §2.
+
 ## Benchmarks
 
 | # | Goal | Tier | Command / drill | Threshold | Last measurement |

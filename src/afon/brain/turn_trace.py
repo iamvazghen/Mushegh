@@ -162,6 +162,13 @@ class TurnTrace:
     catalogue_tokens: int = 0
     prefill_tokens: int = 0
     tools_fired: list[str] = field(default_factory=list)
+    # 01.F2 / B06 — the same reply scored under both hypotheses, because only the
+    # caller knows whether the question was unknowable. See note_answer.
+    calibration_if_unknowable: str | None = None
+    calibration_if_answerable: str | None = None
+    # 01.E1 — one entry per clause of a compound request, so a failure can be
+    # attributed to routing or to completion. See note_clause / clause_verdicts.
+    clauses: list[dict[str, Any]] = field(default_factory=list)
     stages_ms: dict[str, float] = field(default_factory=dict)
     reached: list[str] = field(default_factory=list)
     ok: bool = True
@@ -204,6 +211,74 @@ class TurnTrace:
     def fired(self, name: str) -> None:
         if name:
             self.tools_fired.append(name)
+            # 01.E1 / open question 1: a clause counts as satisfied only when the tool
+            # IT was routed to actually fires. A clause that routed to nothing can
+            # never be satisfied - it has no tool to fire - so it must not absorb a
+            # neighbouring clause's firing, or every unattributed tool would make an
+            # unrouted clause look handled.
+            for clause in self.clauses:
+                if clause["tool"] == name and not clause["fired"]:
+                    clause["fired"] = True
+                    clause["fired_by"] = name
+                    break
+
+    def note_clause(self, text: str, *, tool: str | None) -> None:
+        """Record one clause and the tool routed to it — ONE entry per clause.
+
+        ``clause_tools()`` is reached more than once per turn: ``classify()``
+        asks for the plan, then ``_prepare_turn`` asks again. A plain append
+        therefore recorded every clause twice, and because the second pass
+        re-added them with ``fired`` reset, a clause that had already succeeded
+        reappeared as a completion failure. That inflated the counts and made
+        the attribution wrong in exactly the direction that hides a routing
+        fault, so the entry is upserted by its text and the ``fired`` flag from
+        an earlier pass is preserved.
+
+        ``tool is None`` means the clause routed to nothing at all, which is the
+        signature of a routing failure. Every clause is written down, planned or
+        not, so an unrecorded clause is impossible and cannot look satisfied.
+        """
+        key = str(text)[:160]
+        for existing in self.clauses:
+            if existing["text"] == key:
+                existing["tool"] = tool
+                existing["planned"] = tool is not None
+                return
+        self.clauses.append({
+            "text": key,
+            "tool": tool,
+            "planned": tool is not None,
+            "fired": False,
+            "fired_by": None,
+        })
+
+    def clause_verdicts(self) -> list[dict[str, Any]]:
+        """Per-clause outcome. Read the third value before trusting the first.
+
+        * ``satisfied`` — the tool THIS clause was routed to actually fired.
+        * ``completion_failure`` — the clause was routed and its tool did not fire.
+        * ``unrouted`` — **no route exists for this kind of clause at all.**
+
+        ``unrouted`` is NOT a router mistake and must not be reported as one. It
+        means `_ROUTES` and `_CLAUSE_ONLY_ROUTES` have nothing to match, so
+        `clause_tools()` returns fewer than two tools, the turn never enters the
+        compound path, and any tool that does fire was the model's own choice
+        from the full catalogue rather than something the tracer planned. A
+        clause in this state is therefore **unmeasurable**: the tracer can only
+        attribute a firing to a clause it planned. Making it measurable means
+        writing the route.
+        """
+        return [
+            {
+                "text": clause["text"],
+                "tool": clause["tool"],
+                "outcome": ("satisfied" if clause["fired"]
+                            else "completion_failure" if clause["planned"]
+                            else "unrouted"),
+                "measurable": clause["planned"],
+            }
+            for clause in self.clauses
+        ]
 
     def note_model(self, model: str) -> None:
         """02.R1 — the model that actually answered, recorded where the chain knows it."""
@@ -214,9 +289,19 @@ class TurnTrace:
         """Close the row's account of WHY: what was read, how firmly it was put, and what it cost."""
         self.answer_tokens = _tokens(reply or "")
         try:
-            from afon.shared.uncertainty import hedged
+            from afon.shared.uncertainty import calibration, hedged
 
             self.confidence = "hedged" if hedged(reply or "") else "flat"
+            # 01.F2 / B06 — the verdict under BOTH hypotheses. The tracer cannot know
+            # whether the QUESTION was unknowable, and nothing in a confident wrong
+            # answer looks different from a confident right one, so guessing here would
+            # be the scorer grading its own opinion. Recording both makes the row
+            # answerable later: a turn that is `overconfident` under unknowable=True is
+            # a candidate flat answer, and `overhedged` under unknowable=False is a
+            # candidate refusal of something answerable. Aggregating the persisted rows
+            # is what turns B06's 59-60% into a per-turn number nobody has to re-run.
+            self.calibration_if_unknowable = calibration(reply or "", unknowable=True)
+            self.calibration_if_answerable = calibration(reply or "", unknowable=False)
         except Exception as e:  # noqa: BLE001 — an unlabelled turn is better than a lost one
             logger.debug(f"turn trace: confidence unavailable ({type(e).__name__})")
         try:
@@ -253,8 +338,20 @@ class TurnTrace:
             "catalogue_tokens": self.catalogue_tokens,
             "prefill_tokens": self.prefill_tokens,
             "tools_fired": list(self.tools_fired),
+            # The outcome is written into the row, not left to be re-derived. Rows
+            # persist to ~/.afon/traces/ and are read days later, by someone who
+            # should not have to reconstruct the verdict by hand.
+            "clauses": [
+                {**clause,
+                 "outcome": ("satisfied" if clause["fired"]
+                             else "completion_failure" if clause["planned"]
+                             else "unrouted")}
+                for clause in self.clauses
+            ],
             "sources": list(self.sources),
             "confidence": self.confidence,
+            "calibration_if_unknowable": self.calibration_if_unknowable,
+            "calibration_if_answerable": self.calibration_if_answerable,
             "model": self.model,
             "answer_tokens": self.answer_tokens,
             "stages_ms": dict(self.stages_ms),
@@ -281,9 +378,22 @@ def current() -> TurnTrace | None:
 
 def fired(name: str) -> None:
     """Record a tool firing against the current turn, if there is one. Safe anywhere."""
-    t = _CURRENT.get()
-    if t is not None:
-        t.fired(name)
+    trace = current()
+    if trace is not None:
+        trace.fired(name)
+
+
+def note_clause(text: str, *, tool: str | None) -> None:
+    """Record one clause and its routed tool against the current turn. Safe anywhere."""
+    trace = current()
+    if trace is not None:
+        trace.note_clause(text, tool=tool)
+
+
+def clause_verdicts() -> list[dict[str, Any]]:
+    """Per-clause outcomes for the current turn, or [] outside one."""
+    trace = current()
+    return trace.clause_verdicts() if trace is not None else []
 
 
 def add_stage(name: str, ms: float) -> None:

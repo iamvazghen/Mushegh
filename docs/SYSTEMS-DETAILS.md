@@ -2210,7 +2210,11 @@ narrated at milestones rather than on a timer.
 ## S17 · Morning Brief
 
 **Status** complete for now · **Surfaces** `src/afon/brain/daily_digest.py`,
-`src/afon/brain/mynews.py`, `src/afon/brain/tools/calendar.py`
+`src/afon/brain/tools/calendar.py`
+
+`src/afon/brain/mynews.py` was listed here as a surface and is not one. It was an
+unprompted proactive signal, not a digest section: `daily_digest.py` has no news path,
+and 41.R4 closed the ambient feed under D-34. See [17-morning-brief](subsystems/17-morning-brief.md).
 
 **The bar.** One brief, at the right time, that the owner would have assembled himself: what is
 fixed today, what is at risk, what changed overnight, what he asked to be reminded of — and nothing
@@ -4031,8 +4035,11 @@ decision record.
 ## S41 · Research & Synthesis
 
 **Status** half-built · **Surfaces** `src/afon/brain/tools/web.py`,
-`src/afon/brain/tools/browser.py`, `src/afon/brain/mynews.py`,
-`src/afon/brain/tools/documents.py`, `skills/`
+`src/afon/brain/tools/browser.py`, `src/afon/brain/tools/documents.py`, `skills/`
+
+`src/afon/brain/mynews.py` was listed here and no longer belongs: its unprompted path was
+closed by 41.R4 under D-34. The module survives on disk and is unreachable from any
+signal registry. See [41-research-and-synthesis](subsystems/41-research-and-synthesis.md).
 
 **The bar.** Ask a real question, get a real answer with sources, contradictions surfaced rather
 than smoothed, and a note of what he could not establish.

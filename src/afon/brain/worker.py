@@ -45,6 +45,28 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", _TAG_RE.sub(" ", text or "")).strip()
 
 
+def progress_line(step: int, used: list[str], failed: list[str]) -> str:
+    """One truthful sentence about what a step actually did.
+
+    Split into "used" and "failed" because those are different claims, and the
+    owner is the person who acts on this line. A step whose only tool call raised
+    must not be reported as a step that used that tool — that sentence is what a
+    human reads to decide whether the unattended work is going well.
+
+    Ported from adewaskar/jarvis ``announceTool``/``settleTool`` (MIT © 2026
+    Aditya Dewaskar), which splits the same two events for the same reason: badge
+    the attempt if you like, but never badge an outcome you have not seen.
+    """
+    parts = []
+    if used:
+        parts.append(f"used {', '.join(used)}")
+    if failed:
+        parts.append(f"failed {', '.join(failed)}")
+    if not parts:
+        return f"step {step}: nothing to report"
+    return f"step {step}: " + "; ".join(parts)
+
+
 _WORKER_SYSTEM = (
     "You are Afon working a task autonomously in the background for the owner. Work step by step "
     "using your tools: research with web/scrape/vault/Notion, draft and summarise, and for coding "
@@ -187,6 +209,7 @@ class TaskWorker:
                 ],
             })
             used: list[str] = []
+            failed: list[str] = []
             for tc in calls:
                 name = tc.function.name
                 try:
@@ -220,7 +243,13 @@ class TaskWorker:
                             logger.warning(f"work_on_task tool {name} failed: {type(e).__name__}")
                             result = f"tool {name} errored ({type(e).__name__}); work around it."
                             tool_ok = False
-                    used.append(name)
+                    # Settled, not announced: a tool only counts as *used* once it
+                    # actually returned. Before this, an unknown tool and a tool
+                    # that raised both landed in the same list as one that worked,
+                    # so the owner was told "used calendar" about a call that had
+                    # done nothing — and the owner is the only person who can act
+                    # on that sentence.
+                    (used if tool_ok else failed).append(name)
                     GOVERNOR.charge(calls=1, seconds=time.monotonic() - tool_started)
                     # 36.F7 — the record that did not exist before: an unattended tool call, with
                     # the actor that made it. `agent.py` audits the owner's calls in its dispatch
@@ -235,8 +264,8 @@ class TaskWorker:
                 # unbounded result is paid again on every later step of an unattended task.
                 messages.append({"role": "tool", "tool_call_id": tc.id,
                                  "content": bound_tool_result(result, name)})
-            if on_progress and used:
-                on_progress(f"step {step + 1}: used {', '.join(used)}")
+            if on_progress and (used or failed):
+                on_progress(progress_line(step + 1, used, failed))
         else:
             self.stopped_early = (f"I used all {self._max_steps} steps I gave myself")
 

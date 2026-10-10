@@ -31,6 +31,9 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from afon.brain.audit import _owner_day  # noqa: E402
+
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -82,7 +85,11 @@ class Harness:
         _err._turn.set(turn)
         messages: list[dict] = []
         asyncio.run(self.agent._execute_calls(messages, calls))
-        today = datetime.now(timezone.utc).date().isoformat()
+        # The daily audit file is named by the OWNER's calendar day, not UTC's (see
+        # audit._owner_day, and the six assertions pinning it in test_audit_integrity.py).
+        # Deriving the name from UTC here made this gate fail on its own between 00:00 and
+        # 02:00 local — it was asserting the old behaviour, not the system.
+        today = _owner_day(datetime.now(timezone.utc))
         p = self._dir / f"{today}.jsonl"
         if not p.exists():
             return []

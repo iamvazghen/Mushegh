@@ -42,7 +42,7 @@ boundary, so under D-42 this belongs to the S03 belt and the S36 credential stor
 | `src/afon/brain/tools/wolfram.py` | `compute` — exact numbers, never guessed | Wolfram app id |
 | `src/afon/brain/tools/notion.py` | Read, write, comment on shared pages | Notion internal integration token |
 | `src/afon/brain/tools/stock.py`, `src/afon/brain/stock.py` | Consumables and quotes | provider key |
-| `src/afon/brain/mynews.py` | Unprompted RSS headline signals; off unless configured | `AFON_MYNEWS_URL` |
+| `src/afon/brain/mynews.py` | RSS headline signals. Off unless configured, **and no longer collected** — 41.R4 closed the unprompted path under D-34; the module stays for a focused, asked-for session | `AFON_MYNEWS_URL` |
 | `src/afon/brain/webhooks.py` | The reverse direction: HMAC-SHA256 verified inbound POSTs | shared secret |
 | `src/afon/brain/telegram_bridge.py` | Bot API long-poll, so a message works with the laptop off | bot token |
 | `src/afon/brain/cache.py` | In-process TTL cache for slow-moving reads; the Redis tier was dropped 2026-09-20 | none |
@@ -74,6 +74,42 @@ TTL cache in memory. Credentials live in `.env`, gitignored.
    duplicated between `.env` and anything else.
 7. The credential set stays at four. Threshold: **4** tokens, and any addition is on the
    record as beating that list (D-62).
+
+### 7.1 Proposed addition — name the store goal 6 is about (D-93)
+
+Goal 6 says "one source, and it is not `.env`", and this document's own open
+questions admit the store has no name. The re-review named one.
+
+**[getsops/sops](https://github.com/getsops/sops) (MPL-2.0) with
+[FiloSottile/age](https://github.com/FiloSottile/age) (BSD-3)**, as a
+**subprocess adapter**: `sops -e` / `sops -d` driven by
+`src/afon/setup_wizard.py` and `bench/check_config.py`. No daemon, so it
+structurally cannot become the second failure domain that open question 1 is
+testing for.
+
+**This is a base addition, not a capability.** It replaces a hand-rolled scheme
+for a file that already exists; it makes no goal reachable that is not already
+listed. What it does buy is the honest version of goal 6: rotating a leaked key
+becomes one command instead of a hunt, no key sits in a pasteable plaintext
+file, and the result is still legible to a text editor in 2036 (D-54).
+
+**The limit, stated before anyone discovers it:** it does not protect against
+someone holding the VPS filesystem, because unattended decrypt needs the key on
+the host. A compromised host still wins.
+
+**Gate:** `bench/check_config.py`'s single-source case, which does not exist yet.
+PRINCIPLES §1 three commands, in order:
+
+```
+sops filestatus .env
+journalctl -u openafon-brain -n 200 --no-pager | grep -i "not configured"
+grep -c "_KEY\|_TOKEN" .env
+```
+
+**Not proposed:** trufflehog, which has better detector breadth and the wrong
+shape — a second binary, an AGPL dependency, and live credential *verification*
+is not what belongs beside a write-boundary screen. See
+[INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
 
 ## Benchmarks
 

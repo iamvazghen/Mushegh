@@ -239,6 +239,34 @@ def main() -> int:
             audit.record("remember", {"text": f"fact {i}"}, "Noted, sir.", ok=True)
         out = (d / f"{__import__('datetime').date.today():%Y-%m-%d}.jsonl")
         check("three lines were written", len(out.read_text(encoding="utf-8").strip().splitlines()) == 3)
+        # The daily file is named by the OWNER's calendar day, not UTC's. Between 00:00 and 02:00
+        # in Europe/Berlin those disagree, and the whole of that window's activity used to land in
+        # yesterday's file — found on 2026-10-10 when this line failed at 00:47 local, after
+        # surviving every earlier run because it can only fail for two hours a night.
+        from afon.brain.audit import _owner_day
+        import datetime as _dt
+        from zoneinfo import ZoneInfo
+        from afon.config import settings as _s
+
+        def _day_at(hour: int, minute: int, tz: str) -> str:
+            local = _dt.datetime(2026, 10, 10, hour, minute, tzinfo=ZoneInfo(tz))
+            return _owner_day(local.astimezone(_dt.timezone.utc))
+
+        berlin_midnight = _day_at(0, 30, "Europe/Berlin")
+        check("00:30 in Berlin is filed on the owner's day, not yesterday's",
+              berlin_midnight == "2026-10-10", berlin_midnight)
+        check("01:59 — the last minute before UTC catches up — is also the owner's day",
+              _day_at(1, 59, "Europe/Berlin") == "2026-10-10", _day_at(1, 59, "Europe/Berlin"))
+        check("midday is unaffected", _day_at(12, 0, "Europe/Berlin") == "2026-10-10")
+        check("late evening is unaffected", _day_at(23, 30, "Europe/Berlin") == "2026-10-10")
+        # An instant that is the 10th in New York is the 11th in Berlin, and it is filed on the
+        # OWNER's day — which is the rule. (It would only be wrong if the file followed the
+        # instant's own local zone, which is what the UTC bug did in reverse.)
+        ny_evening = _day_at(20, 30, "America/New_York")
+        check("an instant filed on the owner's day, not the origin zone's (NY 20:30 is Berlin's 11th)",
+              ny_evening == "2026-10-11", ny_evening)
+        check("the configured owner timezone is the one used",
+              (_s.user_tz or "UTC") == "Europe/Berlin")
         check("...and the file verifies end to end", verify_text(out.read_text(encoding="utf-8"))["ok"],
               str(verify_text(out.read_text(encoding="utf-8"))["problems"]))
         # A chain failure must cost the CHAIN, never the line.

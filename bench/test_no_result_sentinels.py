@@ -88,7 +88,12 @@ def main() -> None:
 
     print("\n[5] tasks — no matching background task returns a complete negative")
     from afon.brain.tools import tasks
-    r = asyncio.run(tasks.task_status({"query": "zzz-nonexistent"}))
+    # `topic`, not `query`. task_status' schema declares `topic` as required, and calling the
+    # function directly bypasses schema validation, so passing `query` sent an EMPTY topic -
+    # which is the "what is my task status?" path that legitimately lists EVERYTHING. The
+    # check therefore measured the unfiltered list, not the negative path it claims to, and
+    # failed on a 307-row table of suite residue rather than on the tool's behaviour.
+    r = asyncio.run(tasks.task_status({"topic": "zzz-nonexistent"}))
     check("task_status(none): complete sentence", _is_complete_sentence(r), r)
 
     print("\n[6] telegram — unconfigured check returns a complete note")

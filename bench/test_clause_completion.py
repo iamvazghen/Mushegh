@@ -114,9 +114,39 @@ class _OneToolThenStopLLM:
 
 
 def _agent(llm):
+    """An agent whose registry records what ACTUALLY ran.
+
+    The end-to-end checks below used to assert on the fake LLM's `fired` list — that is,
+    on the tool calls the MODEL chose to emit. That is the wrong signal, and it stopped
+    matching the code when the completion pass learned to run a read itself instead of
+    asking the model to (which is the whole point of B6: one fewer round-trip). Measured
+    2026-10-08 with the registry wrapped, every tool the plan names does run; the gate
+    could not see it, so it reported a failure that was never there.
+
+    `llm.fired` is still recorded below, because "the model was consulted" is a real and
+    separate question — it just is not the one this test asks. The gate's own comment is
+    the right instruction: assert the PLAN. A plan tool that ran is in `ran`; a plan tool
+    the model merely asked for is in `llm.fired`. Both are reported, so neither is hidden.
+    """
     a = AfonAgent()
     a._llm = llm
     a._self_improve = False
+    a.ran = []
+
+    original = dict(a._registry)
+
+    def _wrap(name, handler):
+        async def _call(*args, **kw):
+            a.ran.append(name)
+            result = handler(*args, **kw)
+            if hasattr(result, "__await__"):
+                return await result
+            return result
+        return _call
+
+    for name, handler in original.items():
+        if callable(handler):
+            a._registry[name] = _wrap(name, handler)
     return a
 
 
@@ -158,25 +188,31 @@ async def _run() -> None:
     a = _agent(buffered_llm)
     await a.respond(combo)
     buffered_fired = list(buffered_llm.fired)
+    buffered_ran = list(a.ran)
     # The assertion that matters is not "two tools fired" — an earlier version of this test
     # passed on that while the tool the request actually named never ran. Assert the PLAN.
-    check(all(n in buffered_fired for n in plan),
+    # On the tools that RAN, which is the whole claim: B6 completes both clauses, and the
+    # completion pass may run the outstanding read itself rather than spend a round-trip
+    # asking the model to. Both lists are printed so a divergence is visible either way.
+    check(all(n in buffered_ran for n in plan),
           "buffered path: every tool the clause plan names actually fires",
-          f"plan={plan} fired={buffered_fired}")
+          f"plan={plan} ran={buffered_ran} model_called={buffered_fired}")
 
     stream_llm = _OneToolThenStopLLM()
     b = _agent(stream_llm)
     async for _ in b.respond_stream(combo):
         pass
     stream_fired = list(stream_llm.fired)
-    check(all(n in stream_fired for n in plan),
+    stream_ran = list(b.ran)
+    check(all(n in stream_ran for n in plan),
           "streaming path: every tool the clause plan names actually fires",
-          f"plan={plan} fired={stream_fired}")
+          f"plan={plan} ran={stream_ran} model_called={stream_fired}")
 
-    # The point of unifying the decision path: the two modes must not disagree.
-    check(set(buffered_fired) == set(stream_fired),
+    # The point of unifying the decision path: the two modes must not disagree. Compared on
+    # what RAN, for the same reason as above - model_called is reported beside it, not used.
+    check(set(buffered_ran) == set(stream_ran),
           "both response paths fire the SAME tools for the same request",
-          f"buffered={buffered_fired} stream={stream_fired}")
+          f"buffered={buffered_ran} stream={stream_ran}")
 
     # The completion pass must narrow — proving it forced by name rather than nudging in prose.
     narrowed_passes = [c for c in buffered_llm.calls[1:] if len(c["tools"]) == 1]

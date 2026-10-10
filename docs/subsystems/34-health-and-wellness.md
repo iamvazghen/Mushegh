@@ -80,6 +80,37 @@ Open tasks: `34.R1` sleep tracking, `34.R2` nudges, `34.R3` weekly wellness summ
 a planned `bench/test_health_ingest.py` that does not exist yet), `34.E1` a month of
 nudges.
 
+### Proposed addition — parse the binary rather than pretend it is JSON (D-93)
+
+**[polyvertex/fitdecode](https://github.com/polyvertex/fitdecode)** (MIT, small
+and stable) or `dtcooper/python-fitparse` (MIT). **Pick one and stop looking** —
+neither is busy, and the choice is not load-bearing. FIT is a documented binary
+format, so a parser is the honest way to read it, not the Google Fit API these
+tools were originally written against.
+
+**Door: in-repo.** A library is a tool, not an executor, so it bypasses the
+executor contract entirely — which is `EXTERNAL-EXECUTORS.md` §6's own rule.
+The mapping from decoded messages to the `Reading` schema stays our work; the
+parser removes only the binary-format problem.
+
+**The capability change is `34.E1`, and it does not depend on this.** It depends
+on the owner syncing the watch. What the parser changes is the failure mode
+named in this document: today "no activity today" and "no file synced" are
+indistinguishable, and the tool is real, the answer is plausible, and nothing is
+behind it.
+
+**Gate:** the planned `bench/test_health_ingest.py`, which does not exist yet.
+PRINCIPLES §1 three commands, in order:
+
+```
+python -m afon.brain.vitals
+python -m afon.brain.inventory | grep -iE "vital|health|fit"
+journalctl -u openafon-brain -n 200 | grep -iE "vitals|health|fitness|fit"
+```
+
+See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
+
+
 ## Goals
 
 1. Ingest a real wearable export into the same store, whatever the device

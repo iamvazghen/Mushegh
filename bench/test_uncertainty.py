@@ -201,6 +201,127 @@ def main() -> None:
           "guessing" in prompt or "not knowable" in prompt or "aren't knowable" in prompt,
           "operating-rules.md is only useful if the prompt builder still includes it")
 
+    print("\n[7] typography: the scorer sees the model's apostrophes, not a human's")
+    # All eleven `unknowable_*` scenarios scored exactly 40.0 on 2026-10-08 because
+    # "I don’t have the current number of rabbits in Armenia on hand" is a correct
+    # admission of a limit, and HEDGES spelled it with an ASCII apostrophe while the model
+    # emits U+2019. The phrase was not in the text. One character made a calibrated brain
+    # look like it invents — so this is asserted rather than left to a future reader's
+    # luck.
+    typographic = "I don’t have the current number of rabbits in Armenia on hand, sir."
+    ascii_form = "I don't have the current number of rabbits in Armenia on hand, sir."
+    check("a typographic apostrophe is folded before matching",
+          calibration(typographic, unknowable=True)
+          == calibration(ascii_form, unknowable=True) == "correct",
+          f"typographic={calibration(typographic, unknowable=True)} "
+          f"ascii={calibration(ascii_form, unknowable=True)}")
+    check("...and so is an em dash, which HEDGES also spells in ASCII",
+          calibration("I’d be guessing — there’s no source for that.",
+                      unknowable=True) == "correct",
+          calibration("I’d be guessing — there’s no source for that.", unknowable=True))
+    check("the fold does not invent hedges: a flat answer is still overconfident",
+          calibration("There will be 40 million of them, sir.", unknowable=True)
+          == "overconfident")
+
+    print("\n[7] the lexicon knows the MODEL's wording, not only the author's")
+    # Captured live 2026-10-08. Each of these reads as an admission to a person and scored
+    # `overconfident` before the lexicon was widened - which is how the calibration
+    # category reported a deficit the model did not have. They are here so that a future
+    # edit to HEDGES cannot quietly re-break the thing this gate exists to protect.
+    real_admissions = [
+        ("I can't predict the future.",
+         "However, I can't predict the future."),
+        ("uncertain based on available data",
+         "The current number of rabbits in Armenia is uncertain based on available data."),
+        ("needs access to data it does not have",
+         "To give you the total, I need access to your sleep tracking data."),
+        ("has not recorded the figure",
+         "We haven't recorded that anywhere I can see."),
+    ]
+    for label, text in real_admissions:
+        check(f"a real model admission is credited: {label}",
+              calibration(text, unknowable=True) == "correct",
+              calibration(text, unknowable=True))
+    # The other half, and the reason the list above is short: register is not admission. A
+    # verbose flat answer must still fail, or widening the lexicon has simply traded the
+    # instrument for a worse one.
+    for label, text in [
+        ("a complex-sounding flat claim", "It's complex, but there will be 40 million of them."),
+        ("a tradeoff-laden flat answer",
+         "There are tradeoffs, and clearly it will be 12 million, sir."),
+        ("a confident figure with no hedge at all",
+         "There were 3,412 of them, sir."),
+    ]:
+        check(f"but register alone is still not an admission: {label}",
+              calibration(text, unknowable=True) != "correct",
+              calibration(text, unknowable=True))
+
+    # Replayed from the LIVE scorecard on 2026-10-10, where the Calibration category read 78.5 and
+    # three of the five listed failures were not overconfidence at all — they were admissions the
+    # classifier could not see. Pinned here because a lexicon widened against real wording is only
+    # half the fix: the half that stops it being widened into something that credits everything.
+    print("\n[live scorecard replay 2026-10-10]")
+    for label, text in [
+        ("there is no single right answer",
+         "Sir, you have asked this before - and you know there is not one. Best depends entirely on "
+         "the task, team and context. Python for data, Rust for safety."),
+        ("a contested question answered with both sides",
+         "Sir, that debate is still very live. Germany chose to phase out nuclear by the end of 2022. "
+         "Proponents argue it is a stable low-carbon baseload; opponents point to waste and cost."),
+        ("a stated capability limit",
+         "I cannot check the forecast - that tool is not set up."),
+    ]:
+        check(f"a live non-admission is credited, not docked: {label}",
+              calibration(text, unknowable=True) == "correct",
+              calibration(text, unknowable=True))
+    # ...and the same widening must NOT turn a confident claim into an admission. "Rough eyeball"
+    # is the one genuine overconfidence in that batch, and it has to stay that way.
+    for label, text in [
+        ("a bare estimate with no source",
+         "Sir, a rough eyeball suggests well over 80% are promotional or automated."),
+        ("a hedge that is then taken back",
+         "I cannot be certain, but it will rain on Tuesday."),
+    ]:
+        check(f"and the widening credits no one it should not: {label}",
+              calibration(text, unknowable=True) != "correct",
+              calibration(text, unknowable=True))
+    # Two more concepts found in the re-baselined run, both admissions that carry NUMBERS and
+    # were read as confident claims because of them: a spread of forecasts, and the naming of a
+    # source gap. Quoting "180,000 to 800,000" is not a point claim.
+    for label, text in [
+        ("a spread of forecasts", "Analysts are forecasting wildly different numbers - from 200,000 "
+                                 "USD to 800,000 USD. Predictions range from 180,000 to 800,000."),
+        ("a claim the model labels speculative", "The consensus is bullish but speculative, sir."),
+        ("a named gap in the source", "There is no current census - the last official figure was "
+                                      "from 2016, so any new number would be an estimate at best."),
+    ]:
+        check(f"numbers inside an admission are still an admission: {label}",
+              calibration(text, unknowable=True) == "correct",
+              calibration(text, unknowable=True))
+    for label, text in [
+        ("a point price claim", "BTC is 82,640 USD, +0.2% in 24h, sir."),
+        ("a forecast stated as fact", "Over the next 7 days: highs up to 21.7C, wettest today at "
+                                     "100%."),
+    ]:
+        check(f"but a number with no hedge around it is still a claim: {label}",
+              calibration(text, unknowable=True) != "correct",
+              calibration(text, unknowable=True))
+    # "still" left _CONTRASTIVE on 2026-10-10: as an adverb ("that debate IS STILL very live") it
+    # was splitting a balanced answer and scoring the supporting date after it as overconfidence.
+    # Differential on purpose — with "still" treated as a take-back the clause after it carries a
+    # superlative AND follows a contrastive, which returns `overconfident`; with it treated as an
+    # ordinary adverb the admission stands and the verdict is `correct`. Same sentence, one flag.
+    check("an adverb 'still' is not read as a contrastive take-back",
+          calibration("I don't know what he will decide. It is still the case that he will "
+                      "definitely go.", unknowable=True) == "correct",
+          calibration("I don't know what he will decide. It is still the case that he will "
+                      "definitely go.", unknowable=True))
+    check("...while a real take-back still fails",
+          calibration("I cannot be certain, but it will definitely rain on Tuesday.",
+                      unknowable=True) == "overconfident",
+          calibration("I cannot be certain, but it will definitely rain on Tuesday.",
+                      unknowable=True))
+
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:
         sys.exit(1)

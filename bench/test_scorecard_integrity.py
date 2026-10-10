@@ -93,20 +93,54 @@ def main() -> int:
     print("\n[2] a missing credential is a skip, not a score")
     blank = FakeSettings()
     check("a scenario with no need is runnable", bs.missing_credentials("", blank) == [])
-    check("a scenario needing web_search is skipped with a blank key",
-          bs.missing_credentials("web_search", blank) == ["brave_api_key"],
+    # web_search is a FALLBACK CHAIN (Tavily -> Brave -> Jina), and Jina's search endpoint is
+    # keyless. It was declared as requiring brave_api_key alone, which was true of the code
+    # before the chain existed and false after it - and the two wrong halves agreed with each
+    # other, so the suite quietly excluded a runnable capability from production-readiness.
+    check("a scenario needing web_search runs on a KEYLESS provider, so a blank box is runnable",
+          bs.missing_credentials("web_search", blank) == [],
           str(bs.missing_credentials("web_search", blank)))
-    check("...and runs once the key exists",
-          bs.missing_credentials("web_search", FakeSettings(brave_api_key="k")) == [])
+    check("...and it is not the case that any single key is required",
+          bs.missing_credentials("web_search", FakeSettings(brave_api_key="k")) == []
+          and bs.missing_credentials("web_search", FakeSettings(tavily_api_key="k")) == [])
+    check("a chain is declared for web_search, and it names the keyless link explicitly",
+          bs.NEEDS_ANY.get("web_search") == ("tavily_api_key", "brave_api_key", bs.KEYLESS),
+          str(bs.NEEDS_ANY.get("web_search")))
+    check("a chain with no keyless link and nothing configured IS reported missing",
+          bs.missing_credentials("probe_chain", blank) == []
+          and bs.NEEDS_ANY.get("probe_chain") is None,
+          "an unknown key stays runnable by design; this asserts the table shape, not the walk")
     check("notion needs BOTH its token and its database id",
           bs.missing_credentials("notion", FakeSettings(notion_token="t")) == ["notion_tasks_db_id"],
           str(bs.missing_credentials("notion", FakeSettings(notion_token="t"))))
     check("...and runs with both",
           bs.missing_credentials("notion", FakeSettings(notion_token="t", notion_tasks_db_id="d")) == [])
     check("two needs at once are all reported, not just the first",
-          bs.missing_credentials("telegram,calendar", blank) == ["telegram_bot_token",
-                                                                "google_refresh_token"],
+          bs.missing_credentials("telegram,calendar", blank)
+          == ["telegram_api_id", "telegram_api_hash",
+              "google_client_id", "google_client_secret", "google_refresh_token"],
           str(bs.missing_credentials("telegram,calendar", blank)))
+    # Both of these were declared as ONE field when the tool needs more. `configured()` in
+    # afon/brain/google.py is the authority: client id AND client secret AND refresh token.
+    # Declaring only the token marked the scenario runnable on a box that could then only
+    # return not_configured - a missing credential scored as a brain failure, which is the
+    # exact thing this scorecard was re-specified to stop doing.
+    check("calendar is gated on ALL THREE google fields, not just the refresh token",
+          bs.NEEDS["calendar"] == ("google_client_id", "google_client_secret",
+                                   "google_refresh_token"),
+          str(bs.NEEDS["calendar"]))
+    check("...and a refresh token alone does not make it runnable",
+          bs.missing_credentials("calendar", FakeSettings(google_refresh_token="t"))
+          == ["google_client_id", "google_client_secret"],
+          str(bs.missing_credentials("calendar", FakeSettings(google_refresh_token="t"))))
+    check("telegram is gated on the TELETHON reading credentials, not the sending bot token",
+          bs.NEEDS["telegram"] == ("telegram_api_id", "telegram_api_hash"),
+          "check_telegram reads DMs over Telethon; a bot token cannot answer it, and declaring "
+          "one made the scenario look runnable on a box that could only ever return not_configured")
+    check("...and a bot token alone does not make it runnable",
+          bs.missing_credentials("telegram", FakeSettings(telegram_bot_token="t"))
+          == ["telegram_api_id", "telegram_api_hash"],
+          str(bs.missing_credentials("telegram", FakeSettings(telegram_bot_token="t"))))
     check("an UNKNOWN need key is runnable rather than silently skipped",
           bs.missing_credentials("typo_key", blank) == [],
           "a typo that skipped a scenario would improve the score every time")

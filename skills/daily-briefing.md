@@ -8,7 +8,9 @@ compose ONE spoken paragraph in this order — skip any empty section silently:
 2. **Email** (`read_email`): count + only the senders/subjects that look like they need him
    today. Never read marketing mail aloud.
 3. **Tasks** (Notion `list_tasks`): overdue first, then due-today. Three max — he can ask for more.
-4. **News** (MyNews via MCP `get_news`): two headlines from categories he follows, one clause each.
+4. **News** (`news_brief`): two headlines from categories he follows, one clause each.
+   (An earlier draft named a news tool that was never in this registry — it came from a
+   different project's MCP server. `test_skill_suite.py` caught it; this name is the real one.)
 5. **Weather** (`weather`) only if it changes a decision (rain, extremes, travel day).
 
 Rules:
