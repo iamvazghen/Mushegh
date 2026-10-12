@@ -100,7 +100,7 @@ export default function Sidebar() {
 
       <div className="navhead">Links</div>
       <nav>
-        <a href="https://github.com/iamvazghen/OpenWatari" target="_blank" rel="noreferrer">
+        <a href="https://github.com/iamvazghen/Mushegh" target="_blank" rel="noreferrer">
           GitHub ↗
         </a>
         <a href="https://tailscale.com/" target="_blank" rel="noreferrer">

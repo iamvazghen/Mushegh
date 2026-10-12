@@ -17,8 +17,8 @@ export default function QuickStart() {
 
       <h2>1 · Clone & install</h2>
       <pre>
-        <code>{`git clone https://github.com/iamvazghen/OpenWatari mushegh
-cd mushegh
+        <code>{`git clone https://github.com/iamvazghen/Mushegh Mushegh
+cd Mushegh
 
 # Install the base + the stack you want (also installs the \`mushegh-setup\` CLI).
 # Cloud quality voice + 24/7 brain + channels + speaker-id + dev tools:

@@ -170,7 +170,7 @@ Two cooperating processes over one streaming WebSocket protocol:
 Requires **Python 3.11+** and [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
-git clone https://github.com/iamvazghen/OpenWatari Mushegh && cd Mushegh
+git clone https://github.com/iamvazghen/Mushegh Mushegh && cd Mushegh
 
 # 1. Install the base + the stack you want (this also makes `mushegh-setup` available):
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra dev

@@ -18,8 +18,8 @@ export default function Setup() {
       </ul>
 
       <h2>1 · Clone & install</h2>
-      <pre><code>{`git clone https://github.com/iamvazghen/OpenWatari mushegh
-cd mushegh
+      <pre><code>{`git clone https://github.com/iamvazghen/Mushegh Mushegh
+cd Mushegh
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra dev
 uv run mushegh-setup        # interactive .env generator`}</code></pre>
 

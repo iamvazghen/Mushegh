@@ -21,8 +21,8 @@ export default function InstallRun() {
         list the full set you intend to use in one command. The <code>mushegh-setup</code> wizard is
         installed with any set.
       </p>
-      <pre><code>{`git clone https://github.com/iamvazghen/OpenWatari mushegh
-cd mushegh
+      <pre><code>{`git clone https://github.com/iamvazghen/Mushegh Mushegh
+cd Mushegh
 
 # Everything (cloud voice + 24/7 brain + channels + speaker-ID + dev tools + cloud browser):
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra browse --extra dev
