@@ -9,7 +9,7 @@ export default function Features() {
         <strong>degrades gracefully</strong> — anything you haven't configured simply says
         “that isn't set up yet” instead of breaking. Tool schemas in{" "}
         <code>src/mushegh/brain/tools/</code> are the source of truth — <Link href="/tools">the
-        152-tool reference</Link> is generated from the live registry.
+        171-tool reference</Link> is generated from the live registry.
       </p>
 
       <h2>Voice (the whole point)</h2>
@@ -136,7 +136,7 @@ export default function Features() {
       </p>
 
       <div className="callout good">
-        <span className="k">All of it is gated.</span> 201 offline tests, every task in the plan
+        <span className="k">All of it is gated.</span> 262 offline checks, every task in the plan
         carrying the named test that decides whether it is done, and the suite runs before any push.
         See <Link href="/engineering">How it is built &amp; verified</Link>.
       </div>

@@ -98,8 +98,8 @@ BRAIN — always-on host / VPS (24/7)
         needs, with a one-turn warm decay so “reply to it” still has the tools it just used.
       </p>
       <p>
-        The reason is not only speed. Sending all 152 schemas costs roughly 17,500 tokens a turn, and
-        a model choosing between 152 tools mis-selects more often than one choosing between sixty —
+        The reason is not only speed. Sending all 171 schemas costs roughly 21,900 tokens a turn, and
+        a model choosing between 171 tools mis-selects more often than one choosing between sixty —
         so a fat catalogue buys latency <em>and</em> a worse router.
       </p>
       <div className="callout good">

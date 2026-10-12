@@ -13,7 +13,7 @@ export default function Engineering() {
         problem.
       </p>
 
-      <h2>The plan is a document with 370 rows in it</h2>
+      <h2>The plan is a document with 427 rows in it</h2>
       <p>
         <code>docs/SYSTEMS.md</code> breaks the assistant into <strong>50 subsystems</strong> — voice,
         memory, tools, identity, proactivity, safety — and gives each three tiers:
@@ -40,8 +40,9 @@ export default function Engineering() {
 
       <h2>One suite, and it runs before anything leaves the machine</h2>
       <p>
-        <code>uv run python bench/run_all_tests.py</code> runs <strong>201 tests</strong>, offline and
-        hermetic — no network, no keys, no real accounts. Tests that need a live backend report SKIP
+        <code>uv run python bench/run_all_tests.py</code> runs <strong>264 checks</strong>, 262 of them
+        offline and hermetic — no network, no keys, no real accounts. The other two need a live
+        backend and report SKIP
         rather than FAIL, so a run on a plane still means something.
       </p>
       <p>
@@ -185,12 +186,18 @@ export default function Engineering() {
       </p>
 
       <div className="callout">
-        <span className="k">Current position.</span> 163 of 370 tasks green — the floor tier
-        essentially complete across all 50 subsystems, the raise tier under way. Six floor tasks
-        remain open on purpose: three need the owner physically present (a voice re-enrolment sitting,
-        a face capture, a token from a device), and three are parked by a decision recorded in the
-        plan — the hardware they would serve does not exist yet, and building for it would be
-        speculation.
+        <span className="k">Current position.</span> The score is not written here on purpose:{" "}
+        <Link href="https://github.com/iamvazghen/Mushegh/blob/master/docs/SYSTEMS.md">
+          <code>docs/SYSTEMS.md</code>
+        </Link>{" "}
+        renders it from the registry, and a hand-typed score is the first number to go stale — it
+        stays true long after the plan moves. As generated it reads{" "}
+        <strong>158 of 165 floor tasks green, 23 of 187 raise, 0 of 47 elite — 181 of 399.</strong>{" "}
+        The floor tier is essentially complete across all 50 subsystems and the raise tier is under
+        way. The remaining floor tasks are open on purpose: some need the owner physically present
+        (a voice re-enrolment sitting, a face capture, a token from a device), and the rest are
+        parked by decisions recorded in the plan — the hardware they would serve does not exist yet,
+        and building for it would be speculation.
       </div>
     </>
   );
