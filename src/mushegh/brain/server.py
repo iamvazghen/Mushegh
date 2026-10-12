@@ -609,8 +609,9 @@ async def serve(host: str | None = None, port: int | None = None) -> None:
 
     # 22.R1 — this .env just started a serving brain: it is the rollback target from now on.
     try:
+        from pathlib import Path as _Path
         from mushegh.shared.config_guard import remember_good
-        remember_good(Path.cwd() / ".env")
+        remember_good(_Path.cwd() / ".env")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"config guard: could not keep the last-good .env: {e}")
 
