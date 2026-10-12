@@ -42,6 +42,7 @@ from mushegh.brain.tools import (
     notion,
     objectives,
     osint,
+    osint_advanced,
     osint_person,
     phone,
     portfolio,
@@ -70,7 +71,7 @@ _MODULES = [vault, memory, web, telegram, voicechat, music, localplay, system, b
             coding, skills, notion, tasks, contacts, documents, composio, channels,
             macros, multimodal, undo, hudui, activity, coaching, camera, objectives,
             approvals, relationship, phone, maps, wolfram, fitness, diagnose,
-            audioout, day_shape, inbox, privacy, stock, portfolio, bookroom, transit, osint, osint_person]  # noqa: E501
+            audioout, day_shape, inbox, privacy, stock, portfolio, bookroom, transit, osint, osint_person, osint_advanced]  # noqa: E501
 
 Handler = Callable[[dict], Awaitable[str]]
 
@@ -106,7 +107,7 @@ _LAZY_GROUPS: dict[str, list] = {
     "stock": [stock],                    # what the owner has and when it runs out — S47
     "money": [portfolio],                # read his ledger and value it; never moves any — S40
     "reading": [bookroom],               # the owner's own book summarizer — D-86
-    "osint": [osint, osint_person],      # Open Source Intelligence tools — Phase 1 & 2
+    "osint": [osint, osint_person, osint_advanced],  # Open Source Intelligence tools — Phase 1, 2 & 3
     # Live German transit (DB + KVB). Four schemas, so it is a LAZY group rather than core:
     # advertised on every turn it cost ~95t of the worst-case per-turn budget (10,094 against
     # a 9,999 ceiling) for four tools that are almost never needed in a given turn.
@@ -274,7 +275,13 @@ LAZY_GROUP_TRIGGERS: dict[str, tuple[str, ...]] = {
               "username available", "username check", "username search", "is username",
               "analyze website", "website info", "site analysis", "check website", "what tech",
               "analyze this", "analyze site", "tech stack", "what technology", "site tech",
-              "email verify", "is this email", "phone lookup", "what carrier", "who owns this"),
+              "email verify", "is this email", "phone lookup", "what carrier", "who owns this",
+              "breach check", "pwned", "data breach", "email leaked", "hacked email",
+              "reverse ip", "reverse dns", "co-hosted", "same server", "shared hosting",
+              "github profile", "github user", "show github", "github info", "git profile",
+              "company lookup", "business info", "company search", "who owns", "business registration",
+              "hash lookup", "check hash", "malware check", "file hash", "md5", "sha1", "sha256",
+              "virus check", "threat check", "is this malicious", "check this file"),
 }
 
 
