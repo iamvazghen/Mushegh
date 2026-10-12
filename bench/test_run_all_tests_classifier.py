@@ -195,6 +195,12 @@ def main() -> int:
         "test_unpark_gate.py": "drives scripts/unpark_check.py and parses preflight.sh; its subject "
                                "is the release checklist, not the assistant",
         "test_static_correctness.py": "AST checks over the source",
+        "test_source_compiles.py": "decodes and ast.parses every file under src/ — the text IS the "
+                                   "subject, and importing the package would defeat the check "
+                                   "(a file that cannot be decoded is precisely what it must catch)",
+        "test_cross_module_calls.py": "imports every brain module through importlib at runtime to "
+                                      "resolve the attributes it reaches for; a literal import list "
+                                      "is exactly what a static graph cannot see",
         "test_client_endpoints.py": "compares HTML clients against the server's routes as text",
         "test_enroll_script_parse.py": "parses the markdown enrolment script",
         "test_run_all_tests_classifier.py": "this file — asserts the runner's contract",
