@@ -1,0 +1,725 @@
+{
+ "core_modules": [
+  "browser",
+  "contacts",
+  "diagnose",
+  "inbox",
+  "localplay",
+  "memory",
+  "music",
+  "notify",
+  "protocols",
+  "reminders",
+  "routines",
+  "skills",
+  "system",
+  "tasks",
+  "telegram",
+  "utility",
+  "vault",
+  "web"
+ ],
+ "groups": [
+  {
+   "group": "activity",
+   "modules": [
+    "activity"
+   ],
+   "triggers": [
+    "activity tracking",
+    "am i wasting",
+    "focused",
+    "how long have i",
+    "how long was i",
+    "how much time",
+    "on my computer",
+    "on the computer",
+    "pause activity",
+    "pause tracking",
+    "productivity",
+    "resume tracking",
+    "screen time",
+    "screen-time",
+    "screentime",
+    "stop watching my screen",
+    "what am i doing",
+    "what have i been"
+   ]
+  },
+  {
+   "group": "approvals",
+   "modules": [
+    "approvals"
+   ],
+   "triggers": [
+    "anything pending",
+    "approval",
+    "approvals",
+    "approve",
+    "authorise",
+    "authorize",
+    "don't send it",
+    "dont send it",
+    "drop that one",
+    "go ahead and",
+    "go ahead and send",
+    "let it through",
+    "needs my sign",
+    "pending action",
+    "pending actions",
+    "permission to",
+    "reject that",
+    "sign off",
+    "sign-off",
+    "waiting for me",
+    "waiting on me"
+   ]
+  },
+  {
+   "group": "apps",
+   "modules": [
+    "composio"
+   ],
+   "triggers": [
+    "a pr",
+    "a repo",
+    "add a row",
+    "airtable",
+    "an issue",
+    "asana",
+    "calendly",
+    "coinbase",
+    "create a channel",
+    "discord",
+    "gdrive",
+    "github",
+    "gitlab",
+    "google doc",
+    "google drive",
+    "google sheet",
+    "hubspot",
+    "in slack",
+    "instagram",
+    "jira",
+    "linear",
+    "linkedin",
+    "my repos",
+    "on github",
+    "post a message",
+    "pull request",
+    "reddit",
+    "salesforce",
+    "send a message to",
+    "slack",
+    "spreadsheet",
+    "stripe",
+    "supabase",
+    "to slack",
+    "trello",
+    "youtube"
+   ]
+  },
+  {
+   "group": "audioout",
+   "modules": [
+    "audioout"
+   ],
+   "triggers": [
+    "airpod",
+    "airpods",
+    "audio output",
+    "earbuds",
+    "headphone",
+    "headphones",
+    "how loud",
+    "louder",
+    "mute",
+    "output device",
+    "play through",
+    "quieter",
+    "sound device",
+    "speak through",
+    "speaker",
+    "speakers",
+    "switch to my",
+    "talk through",
+    "too loud",
+    "too quiet",
+    "turn it down",
+    "turn it up",
+    "turn the sound",
+    "unmute",
+    "volume",
+    "which speakers"
+   ]
+  },
+  {
+   "group": "camera",
+   "modules": [
+    "camera"
+   ],
+   "triggers": [
+    "am i at my desk",
+    "are you watching",
+    "camera",
+    "can you see",
+    "do you recognise",
+    "do you recognize",
+    "enrol my face",
+    "enroll my face",
+    "in front of me",
+    "learn my face",
+    "look around",
+    "look at this",
+    "look through",
+    "point the camera",
+    "recognise me",
+    "recognize me",
+    "remember my face",
+    "remember what i look like",
+    "through the camera",
+    "webcam",
+    "who am i",
+    "who is here",
+    "who's here",
+    "with your eyes"
+   ]
+  },
+  {
+   "group": "channels",
+   "modules": [
+    "channels"
+   ],
+   "triggers": [
+    "channel ",
+    "from channel",
+    "latest from",
+    "latest video",
+    "lofi girl",
+    "mrbeast",
+    "new from",
+    "of videos",
+    "random from",
+    "random video",
+    "upload from",
+    "veritasium",
+    "what's new on",
+    "youtube channel"
+   ]
+  },
+  {
+   "group": "coaching",
+   "modules": [
+    "coaching"
+   ],
+   "triggers": [
+    "am i improving",
+    "am i progressing",
+    "check my french",
+    "check my german",
+    "check my level",
+    "check my progress",
+    "check my spanish",
+    "coaching",
+    "flashcard",
+    "how's my",
+    "hows my",
+    "language practice",
+    "learn german",
+    "my french",
+    "my german",
+    "my level",
+    "my spanish",
+    "practice",
+    "practise",
+    "quiz me",
+    "quiz my",
+    "review my",
+    "skill",
+    "test me",
+    "test my",
+    "vocab",
+    "vocabulary"
+   ]
+  },
+  {
+   "group": "coding",
+   "modules": [
+    "coding"
+   ],
+   "triggers": [
+    "branch",
+    "bug",
+    "code",
+    "coding",
+    "commit",
+    "diff",
+    "file a bug",
+    "function",
+    "git ",
+    "github issue",
+    "improve yourself",
+    "issue",
+    "lint",
+    "open an issue",
+    "pull request",
+    "push",
+    "refactor",
+    "repo",
+    "revert",
+    "run tests",
+    "run the test",
+    "self improve",
+    "self-improve",
+    "source",
+    "the suite",
+    "ticket",
+    "unit test",
+    "your code"
+   ]
+  },
+  {
+   "group": "compute",
+   "modules": [
+    "wolfram"
+   ],
+   "triggers": [
+    "calculate",
+    "compound",
+    "compute",
+    "convert",
+    "derivative",
+    "equation",
+    "how many",
+    "in dollars",
+    "in euros",
+    "in kilograms",
+    "in pounds",
+    "integral",
+    "percent of",
+    "solve",
+    "sunrise",
+    "sunset",
+    "what's the square",
+    "whats the square"
+   ]
+  },
+  {
+   "group": "dayshape",
+   "modules": [
+    "day_shape"
+   ],
+   "triggers": [
+    "adopt my routine",
+    "adopt the routine",
+    "back to back",
+    "back-to-back",
+    "check my day",
+    "clash",
+    "clashes",
+    "does my day",
+    "double booked",
+    "double-booked",
+    "draft my",
+    "most important",
+    "my day work",
+    "my routine",
+    "my routines",
+    "prioritise",
+    "prioritize",
+    "propose my",
+    "recommend",
+    "shape of my day",
+    "suggest what",
+    "what do i do next",
+    "what next",
+    "what should i do",
+    "what should i tackle",
+    "what should i work on",
+    "where do i start",
+    "will my day"
+   ]
+  },
+  {
+   "group": "docs",
+   "modules": [
+    "documents"
+   ],
+   "triggers": [
+    "a pdf",
+    "ask the document",
+    "close the document",
+    "decision record",
+    "document",
+    "draft a",
+    "draft me",
+    "in my vault",
+    "in the file",
+    "jot",
+    "make a note",
+    "meeting note",
+    "note that down",
+    "note you wrote",
+    "project brief",
+    "put that in",
+    "read the file",
+    "read this",
+    "save that to",
+    "the attachment",
+    "the doc",
+    "the pdf",
+    "this doc",
+    "this file",
+    "this report",
+    "to my vault",
+    "vault note",
+    "write a note",
+    "write it up",
+    "write me a",
+    "write that up",
+    "write up",
+    "wrote yesterday",
+    "you wrote"
+   ]
+  },
+  {
+   "group": "graph",
+   "modules": [
+    "graphmem"
+   ],
+   "triggers": [
+    "associate",
+    "association",
+    "connected to",
+    "connection between",
+    "how are",
+    "how is",
+    "knowledge graph",
+    "link ",
+    "linked to",
+    "map out",
+    "related to",
+    "relationship between",
+    "what's tied to",
+    "whats tied to"
+   ]
+  },
+  {
+   "group": "home",
+   "modules": [
+    "smarthome",
+    "voicechat"
+   ],
+   "triggers": [
+    "heating",
+    "home assistant",
+    "lamp",
+    "light",
+    "lock",
+    "music room",
+    "play in the room",
+    "smart home",
+    "stream music",
+    "thermostat",
+    "unlock",
+    "voice chat"
+   ]
+  },
+  {
+   "group": "macros",
+   "modules": [
+    "macros"
+   ],
+   "triggers": [
+    "branching",
+    "evening routine",
+    "every day at",
+    "every morning",
+    "if ",
+    "if then",
+    "macro",
+    "macros",
+    "morning routine",
+    "recurring",
+    "routine",
+    "set up a",
+    "shortcut"
+   ]
+  },
+  {
+   "group": "money",
+   "modules": [
+    "portfolio"
+   ],
+   "triggers": [
+    "how are my stocks",
+    "my assets",
+    "my holdings",
+    "my investments",
+    "my ledger",
+    "my positions",
+    "my shares",
+    "net worth",
+    "portfolio",
+    "what am i worth",
+    "what do i own",
+    "worth right now"
+   ]
+  },
+  {
+   "group": "objectives",
+   "modules": [
+    "objectives"
+   ],
+   "triggers": [
+    "across days",
+    "carry this",
+    "drive it to",
+    "drive this",
+    "get it launch",
+    "how's the",
+    "hows the",
+    "keep pushing on",
+    "launch ready",
+    "launch-ready",
+    "long-term goal",
+    "make it happen",
+    "multi-day",
+    "objective",
+    "objectives",
+    "over the next",
+    "own this",
+    "progress on",
+    "take on this",
+    "take this on",
+    "what are you driving",
+    "what are you working on",
+    "work on it over",
+    "your objectives"
+   ]
+  },
+  {
+   "group": "office",
+   "modules": [
+    "calendar",
+    "gmail",
+    "notion"
+   ],
+   "triggers": [
+    "agenda",
+    "appointment",
+    "calendar",
+    "dashboard",
+    "deadline",
+    "document",
+    "draft",
+    "due",
+    "e-mail",
+    "email",
+    "event",
+    "gmail",
+    "inbox",
+    "mail",
+    "meeting",
+    "my tasks",
+    "notion",
+    "on my plate",
+    "overdue",
+    "page",
+    "schedule",
+    "task",
+    "task list",
+    "tasks",
+    "to do",
+    "to-do",
+    "todo",
+    "what do i need to do",
+    "what needs",
+    "what's due",
+    "whats due"
+   ]
+  },
+  {
+   "group": "phone",
+   "modules": [
+    "phone"
+   ],
+   "triggers": [
+    "call ",
+    "call my",
+    "call the",
+    "dial",
+    "phone",
+    "ring "
+   ]
+  },
+  {
+   "group": "places",
+   "modules": [
+    "maps"
+   ],
+   "triggers": [
+    "a good restaurant",
+    "by car",
+    "close by",
+    "cycle to",
+    "directions",
+    "drive from",
+    "drive to",
+    "driving",
+    "eta",
+    "find a place",
+    "find a restaurant",
+    "get there",
+    "get to the",
+    "how far",
+    "how long does it take",
+    "how long to",
+    "how long will it take",
+    "how long would",
+    "nearest",
+    "on the way",
+    "places near",
+    "route to",
+    "traffic",
+    "travel time",
+    "walk to",
+    "when should i leave"
+   ]
+  },
+  {
+   "group": "privacy",
+   "modules": [
+    "privacy"
+   ],
+   "triggers": [
+    "delete everything",
+    "forget everything",
+    "how long are you keeping",
+    "how long do you keep",
+    "know about me",
+    "my data",
+    "privacy",
+    "retention",
+    "stored about me",
+    "storing about",
+    "what are you storing",
+    "what do you know",
+    "what you keep",
+    "where does my data"
+   ]
+  },
+  {
+   "group": "relationship",
+   "modules": [
+    "relationship"
+   ],
+   "triggers": [
+    "be gentle about",
+    "don't bring up",
+    "dont bring up",
+    "go easy on",
+    "handle gently",
+    "how am i doing",
+    "how are we doing",
+    "inside joke",
+    "our joke",
+    "read the room",
+    "running joke",
+    "sensitive subject",
+    "sore spot",
+    "sore subject",
+    "touchy subject"
+   ]
+  },
+  {
+   "group": "screen",
+   "modules": [
+    "multimodal"
+   ],
+   "triggers": [
+    "look at my",
+    "my screen",
+    "on my display",
+    "read the screen",
+    "screenshot",
+    "see my screen",
+    "the screen",
+    "what am i looking",
+    "what's on screen",
+    "whats on screen"
+   ]
+  },
+  {
+   "group": "stock",
+   "modules": [
+    "stock"
+   ],
+   "triggers": [
+    "bought more",
+    "came in",
+    "do i have any",
+    "do we have any",
+    "have left",
+    "how long will",
+    "how many",
+    "how much",
+    "in stock",
+    "inventory",
+    "keep track of",
+    "out of",
+    "reorder",
+    "restock",
+    "run out",
+    "running low",
+    "running out",
+    "sacks",
+    "supplies",
+    "used the",
+    "used up",
+    "we have left"
+   ]
+  },
+  {
+   "group": "undo",
+   "modules": [
+    "undo"
+   ],
+   "triggers": [
+    "last action",
+    "recent actions",
+    "revert that",
+    "roll back",
+    "rollback",
+    "take that back",
+    "undo",
+    "undo that",
+    "what did you just do"
+   ]
+  },
+  {
+   "group": "vitals",
+   "modules": [
+    "fitness"
+   ],
+   "triggers": [
+    "apple health",
+    "health data",
+    "health export",
+    "heart rate",
+    "how active",
+    "how am i doing physically",
+    "import my health",
+    "my weight",
+    "my workout data",
+    "recovery",
+    "resting heart",
+    "sleep",
+    "slept",
+    "steps",
+    "vitals"
+   ]
+  }
+ ],
+ "count": 25
+}

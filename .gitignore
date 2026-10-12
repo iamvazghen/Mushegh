@@ -60,12 +60,18 @@ Thumbs.db
 .speechbrain-ecapa/
 pretrained_models/
 _suite_out.txt
-# --- Runtime logs (edge/pc_agent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â churn + may contain host/IP) ---
+# --- Runtime logs (edge/pc_agent churn + may contain host/IP) ---
 logs/
 # Original logo/banner exports (clean copies tracked in assets/ + website/public/)
 /OpenMushegh*.png
-# Docs site ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deployed via Vercel CLI (vercel --cwd website --prod), kept out of the repo
-website/
+# Docs site: source is tracked so the deployed site is reproducible from master.
+# Only build output and the local Vercel link stay out of the repo.
+/website/node_modules/
+/website/.next/
+/website/out/
+/website/.vercel/
+/website/next-env.d.ts
+/website/*.tsbuildinfo
 next-steps/
 # Personal finish-line checklist (this instance, not the framework)
 MY-MUSHEGH-CHECKLIST.md

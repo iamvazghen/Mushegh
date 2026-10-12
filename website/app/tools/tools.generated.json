@@ -1,0 +1,1031 @@
+{
+ "count": 171,
+ "tools": [
+  {
+   "name": "add_task",
+   "description": "Add a task to the owner's to-do list, with an optional description, priority and deadline.",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "browse_web",
+   "description": "Open a real headless browser to navigate and extract from a page that needs interaction or JavaScript.",
+   "module": "web",
+   "group": "core"
+  },
+  {
+   "name": "browser",
+   "description": "Drive a real visible web browser on the owner's screen.",
+   "module": "browser",
+   "group": "core"
+  },
+  {
+   "name": "cancel_reminder",
+   "description": "Cancel ONE pending reminder by its id (a short prefix from list_reminders works).",
+   "module": "reminders",
+   "group": "core"
+  },
+  {
+   "name": "check_telegram",
+   "description": "Summarise the owner's UNREAD Telegram direct messages.",
+   "module": "telegram",
+   "group": "core"
+  },
+  {
+   "name": "complete_task",
+   "description": "Mark a to-do task as done (identify it by a word from its title or its id).",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "convert",
+   "description": "Convert a quantity between units of length, mass, volume or temperature.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "crypto_price",
+   "description": "Live cryptocurrency price by ticker (btc, eth, sol\u2026) with its 24-hour change.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "define_word",
+   "description": "Dictionary definition of a single ENGLISH word, with its part of speech.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "delete_task",
+   "description": "Delete a task from the to-do list (identify it by a word from its title or its id).",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "diagnose",
+   "description": "Report Mushegh's OWN recent failures \u2014 errors and warnings from every process (the laptop's voice edge and pc_agent, and this brain), with the subsystem that produced each.",
+   "module": "diagnose",
+   "group": "core"
+  },
+  {
+   "name": "file_op",
+   "description": "Create or delete files and folders on the owner's PC, or list a folder.",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "forget",
+   "description": "Delete a remembered subject from long-term memory \u2014 every matching fact, its embedding, its relations and the journal lines about it, then verified by asking again (37.F3).",
+   "module": "memory",
+   "group": "core"
+  },
+  {
+   "name": "fx_rate",
+   "description": "Convert money between two currencies at the latest ECB reference rate.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "invoke_skill",
+   "description": "RUN a built-in composable skill \u2014 its steps (tool calls / spoken lines) fire in order.",
+   "module": "skills",
+   "group": "core"
+  },
+  {
+   "name": "list_reminders",
+   "description": "List pending reminders with each one's next fire time and short id.",
+   "module": "reminders",
+   "group": "core"
+  },
+  {
+   "name": "list_skills",
+   "description": "List your available skill playbooks (coding, self-improvement, your own architecture, languages\u2026).",
+   "module": "skills",
+   "group": "core"
+  },
+  {
+   "name": "list_tasks",
+   "description": "List the owner's to-do tasks (most urgent first, with priority, deadline and progress) plus any background jobs Mushegh is currently running.",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "mark_telegram",
+   "description": "Change a chat's read state.",
+   "module": "telegram",
+   "group": "core"
+  },
+  {
+   "name": "media_pause",
+   "description": "Pause (or resume) whatever media is playing on the owner's PC \u2014 a browser video, Spotify, VLC, etc.",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "news_brief",
+   "description": "Top Hacker News headlines, or HN stories matching a topic.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "now_playing",
+   "description": "What track is currently playing OUT LOUD on the desktop, if any.",
+   "module": "localplay",
+   "group": "core"
+  },
+  {
+   "name": "open_app",
+   "description": "Launch an application on the owner's PC by name or path ('notepad', 'spotify', 'code', 'explorer').",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "open_url",
+   "description": "Open a URL in the owner's default browser on his PC (e.g.",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "plan_today",
+   "description": "The owner tells you WHEN a standing commitment happens TODAY \u2014 'I'll train at noon', 'training at 19:00', 'reading around 21:30'.",
+   "module": "routines",
+   "group": "core"
+  },
+  {
+   "name": "play_music",
+   "description": "Play a song or artist.",
+   "module": "music",
+   "group": "core"
+  },
+  {
+   "name": "process_op",
+   "description": "Manage processes on the owner's PC: list (optionally filtered by name), kill by name or pid, start a new process/app, or SUSPEND/RESUME an app to pause then continue it without losing its state (e.g.",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "read_chat",
+   "description": "Read aloud the last messages of a specific Telegram chat \u2014 whether or not they're unread \u2014 WITHOUT marking them seen (the sender still sees them as just delivered).",
+   "module": "telegram",
+   "group": "core"
+  },
+  {
+   "name": "read_journal",
+   "description": "Read the daily journal of past sessions.",
+   "module": "memory",
+   "group": "core"
+  },
+  {
+   "name": "read_skill",
+   "description": "Open one of your reference playbooks by name (e.g.",
+   "module": "skills",
+   "group": "core"
+  },
+  {
+   "name": "read_vault_note",
+   "description": "Read the full text of a specific vault note by its relative path (as returned by search_vault, e.g.",
+   "module": "vault",
+   "group": "core"
+  },
+  {
+   "name": "recall",
+   "description": "Search across ALL memory layers \u2014 L1 learned facts, L2 journal entries, L3 vault notes, L5 semantic \u2014 for what you know about a topic or person.",
+   "module": "memory",
+   "group": "core"
+  },
+  {
+   "name": "remember",
+   "description": "Save a durable fact to long-term memory so you recall it in future sessions.",
+   "module": "memory",
+   "group": "core"
+  },
+  {
+   "name": "resolve_contact",
+   "description": "Resolve a person's NAME to their email / Telegram / phone before sending or drafting to them.",
+   "module": "contacts",
+   "group": "core"
+  },
+  {
+   "name": "routine",
+   "description": "Run a named behavioural routine (not a password protocol).",
+   "module": "routines",
+   "group": "core"
+  },
+  {
+   "name": "run_powershell",
+   "description": "Run a PowerShell command on the owner's PC and get the output.",
+   "module": "system",
+   "group": "core"
+  },
+  {
+   "name": "run_protocol",
+   "description": "Run a named protocol \u2014 a privileged routine that requires the owner's password.",
+   "module": "protocols",
+   "group": "core"
+  },
+  {
+   "name": "save_contact",
+   "description": "Remember a person's email / Telegram / phone so they can be messaged by NAME in future sessions.",
+   "module": "contacts",
+   "group": "core"
+  },
+  {
+   "name": "scrape_url",
+   "description": "Fetch a single web page and return its main text as clean Markdown.",
+   "module": "web",
+   "group": "core"
+  },
+  {
+   "name": "search_vault",
+   "description": "Search the owner's Obsidian knowledge vault (his notes, project charters, agent docs, decisions) for a topic and get the top matching notes with snippets.",
+   "module": "vault",
+   "group": "core"
+  },
+  {
+   "name": "self_health",
+   "description": "Report on your own health \u2014 vault readability, cache backend, reminder host \u2014 and your current mode.",
+   "module": "routines",
+   "group": "core"
+  },
+  {
+   "name": "send_push",
+   "description": "Send a push notification to the owner's phone (ntfy).",
+   "module": "notify",
+   "group": "core"
+  },
+  {
+   "name": "send_telegram",
+   "description": "THE way to message a real person on the owner's behalf \u2014 sends AS the owner from his own Telegram account.",
+   "module": "telegram",
+   "group": "core"
+  },
+  {
+   "name": "set_home_location",
+   "description": "Set or report the owner's CURRENT home location (a changeable variable \u2014 e.g.",
+   "module": "routines",
+   "group": "core"
+  },
+  {
+   "name": "set_reminder",
+   "description": "Set a reminder that will be spoken (and pushed to his phone) when it fires.",
+   "module": "reminders",
+   "group": "core"
+  },
+  {
+   "name": "stock_price",
+   "description": "Latest stock/ETF quote by ticker, with its move on the day.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "stop_music",
+   "description": "Stop music that's playing OUT LOUD on the desktop (a local track, e.g.",
+   "module": "localplay",
+   "group": "core"
+  },
+  {
+   "name": "task_status",
+   "description": "Report the status/progress of one task by a word from its title (or its id) \u2014 a to-do item or a running background job.",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "telegram_music",
+   "description": "Play from the owner's personal Telegram music playlist.",
+   "module": "telegram",
+   "group": "core"
+  },
+  {
+   "name": "update_task",
+   "description": "Update a task on the to-do list \u2014 change its description, priority or deadline, or record progress (a percent and/or a short note).",
+   "module": "tasks",
+   "group": "core"
+  },
+  {
+   "name": "weather",
+   "description": "Weather for a place \u2014 current conditions, tomorrow, or the week ahead.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "web_search",
+   "description": "Search the web for current information (news, facts, how-tos, prices) and get a synthesized answer with sources.",
+   "module": "web",
+   "group": "core"
+  },
+  {
+   "name": "whats_waiting",
+   "description": "Everything waiting on the owner across every channel at once \u2014 unread email, unread Telegram chats, and actions awaiting his approval \u2014 deduplicated by thread.",
+   "module": "inbox",
+   "group": "core"
+  },
+  {
+   "name": "wiki_lookup",
+   "description": "A short Wikipedia summary of one topic, person or thing.",
+   "module": "utility",
+   "group": "core"
+  },
+  {
+   "name": "activity_tracking",
+   "description": "Turn the local activity/screen-time tracking on or off, or report its status.",
+   "module": "activity",
+   "group": "activity"
+  },
+  {
+   "name": "current_activity",
+   "description": "What the owner is doing on the computer right now (the foreground app + window, or how long he's been idle).",
+   "module": "activity",
+   "group": "activity"
+  },
+  {
+   "name": "screen_time",
+   "description": "Report how long the owner has spent on the computer today (or a past day), broken down by app and category.",
+   "module": "activity",
+   "group": "activity"
+  },
+  {
+   "name": "approve_action",
+   "description": "APPROVE a queued action and execute it now.",
+   "module": "approvals",
+   "group": "approvals"
+  },
+  {
+   "name": "list_approvals",
+   "description": "List the outward actions Mushegh deferred during autonomous work and queued for the owner's approval.",
+   "module": "approvals",
+   "group": "approvals"
+  },
+  {
+   "name": "reject_action",
+   "description": "Reject a queued action so it never runs.",
+   "module": "approvals",
+   "group": "approvals"
+  },
+  {
+   "name": "composio_find_tools",
+   "description": "Discover which Composio tool to call for a task.",
+   "module": "composio",
+   "group": "apps"
+  },
+  {
+   "name": "composio_run_tool",
+   "description": "Execute a specific Composio app tool by its exact slug (from composio_find_tools) with its arguments.",
+   "module": "composio",
+   "group": "apps"
+  },
+  {
+   "name": "list_audio_outputs",
+   "description": "List the audio output devices on the laptop and say which one is in use.",
+   "module": "audioout",
+   "group": "audioout"
+  },
+  {
+   "name": "set_volume",
+   "description": "Change how loud the laptop is, or mute it \u2014 for whatever is playing.",
+   "module": "audioout",
+   "group": "audioout"
+  },
+  {
+   "name": "switch_audio_output",
+   "description": "Switch which device Mushegh SPEAKS through on the laptop \u2014 headphones/AirPods or the built-in speakers.",
+   "module": "audioout",
+   "group": "audioout"
+  },
+  {
+   "name": "enroll_owner_face",
+   "description": "Learn the owner's face locally (stored on disk, never uploaded) so future 'visual_presence' checks can recognise them.",
+   "module": "camera",
+   "group": "camera"
+  },
+  {
+   "name": "look_around",
+   "description": "SEE through the laptop camera and describe/answer about what's physically in front of the owner.",
+   "module": "camera",
+   "group": "camera"
+  },
+  {
+   "name": "visual_presence",
+   "description": "Check whether the owner is physically at the desk using the camera (local face detection/recognition only \u2014 no image is sent anywhere).",
+   "module": "camera",
+   "group": "camera"
+  },
+  {
+   "name": "list_channel_videos",
+   "description": "List recent videos from a YouTube channel (e.g.",
+   "module": "channels",
+   "group": "channels"
+  },
+  {
+   "name": "play_latest_from_channel",
+   "description": "Open the most recent video from a YouTube channel in the owner's browser.",
+   "module": "channels",
+   "group": "channels"
+  },
+  {
+   "name": "play_random_from_channel",
+   "description": "Pick a random recent video from a YouTube channel and open it in the owner's default browser.",
+   "module": "channels",
+   "group": "channels"
+  },
+  {
+   "name": "list_coaching",
+   "description": "List the fields Mushegh is actively coaching, with each one's level and current streak.",
+   "module": "coaching",
+   "group": "coaching"
+  },
+  {
+   "name": "record_skill_review",
+   "description": "Record the result of a skill review: a 1-10 score and a short note on how it went.",
+   "module": "coaching",
+   "group": "coaching"
+  },
+  {
+   "name": "set_skill_level",
+   "description": "Set or correct the owner's level in a coaching field (e.g.",
+   "module": "coaching",
+   "group": "coaching"
+  },
+  {
+   "name": "skill_progress",
+   "description": "Report the owner's progress in a coaching field: level, recent average score, trend, streak.",
+   "module": "coaching",
+   "group": "coaching"
+  },
+  {
+   "name": "start_skill_check",
+   "description": "Begin a coaching review/quiz for one of the owner's focus fields (e.g.",
+   "module": "coaching",
+   "group": "coaching"
+  },
+  {
+   "name": "create_github_issue",
+   "description": "File a GitHub issue in ONE step \u2014 use directly when the owner says 'open an issue', 'file a bug', 'create a GitHub issue about X'.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_commit",
+   "description": "Commit your changes (reversible).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_diff",
+   "description": "Show the line-by-line diff of uncommitted changes, optionally for one path.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_log",
+   "description": "Show recent commits, one per line (default 10, max 50).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_new_branch",
+   "description": "Create a branch and switch to it, keeping master clean before a self-improvement change.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_push",
+   "description": "Push the current branch to GitHub's origin remote.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_revert",
+   "description": "Undo a commit by creating a NEW revert commit (history is preserved, nothing is lost).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "git_status",
+   "description": "Show the working-tree status of the owner's repo: current branch plus changed and untracked files.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "lint",
+   "description": "Run ruff over the code (default: src and bench) and report what it flags.",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "list_source",
+   "description": "List the files and folders in one directory of the owner's repo (repo-relative).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "read_source",
+   "description": "Read one of your own project source files (repo-relative path).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "run_tests",
+   "description": "Run the full Mushegh test suite (bench/run_all_tests.py).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "write_source",
+   "description": "Write/replace one of your own source files (repo-relative).",
+   "module": "coding",
+   "group": "coding"
+  },
+  {
+   "name": "compute",
+   "description": "EXACT math, unit conversion, dates, physics, finance formulas and curated facts via Wolfram Alpha \u2014 use instead of guessing any non-trivial number ('compound interest on 5k at 4% for 10 years', 'convert 180 lbs to kg', 'sunset time in Berlin today').",
+   "module": "wolfram",
+   "group": "compute"
+  },
+  {
+   "name": "adopt_routines",
+   "description": "Install the routines previously proposed, after the owner has agreed to them.",
+   "module": "day_shape",
+   "group": "dayshape"
+  },
+  {
+   "name": "day_clashes",
+   "description": "Check a day's calendar for double-bookings, journeys with no travel time, and long runs with no break.",
+   "module": "day_shape",
+   "group": "dayshape"
+  },
+  {
+   "name": "propose_routines",
+   "description": "Draft the owner's daily routines from the activity Mushegh has actually observed, and read them back with the evidence for each.",
+   "module": "day_shape",
+   "group": "dayshape"
+  },
+  {
+   "name": "recommend_next",
+   "description": "What the owner should work on next, chosen from his own open to-dos by a stated rule \u2014 overdue first, then due soonest, then work serving an objective he is driving, then priority.",
+   "module": "day_shape",
+   "group": "dayshape"
+  },
+  {
+   "name": "ask_document",
+   "description": "Ask a question about the currently-open document; returns the most relevant passages to answer from.",
+   "module": "documents",
+   "group": "docs"
+  },
+  {
+   "name": "close_document",
+   "description": "Close the currently open document and drop its temporary index.",
+   "module": "documents",
+   "group": "docs"
+  },
+  {
+   "name": "create_document",
+   "description": "Write a real document and put it where it belongs \u2014 the ONLY way to create one.",
+   "module": "documents",
+   "group": "docs"
+  },
+  {
+   "name": "find_document",
+   "description": "Find a document YOU wrote earlier \u2014 'the note you wrote yesterday about the farm', 'that decision record', 'what have you written lately'.",
+   "module": "documents",
+   "group": "docs"
+  },
+  {
+   "name": "read_document",
+   "description": "Open a LOCAL document (text, Markdown, code, CSV, JSON; PDF if a reader is installed) into a temporary index so you can answer questions grounded in it.",
+   "module": "documents",
+   "group": "docs"
+  },
+  {
+   "name": "ha_call",
+   "description": "Call a Home Assistant service to control a device: domain + service (+ optional entity).",
+   "module": "smarthome",
+   "group": "home"
+  },
+  {
+   "name": "ha_state",
+   "description": "Read the current state of a Home Assistant device by entity id ('is the front door locked?', 'is the living room light on?').",
+   "module": "smarthome",
+   "group": "home"
+  },
+  {
+   "name": "play_in_music_room",
+   "description": "Stream a song into the owner's 'Mushegh Music Room' Telegram voice chat so it plays live on his PHONE (he joins that voice chat to listen).",
+   "module": "voicechat",
+   "group": "home"
+  },
+  {
+   "name": "stop_music_room",
+   "description": "Stop playback and LEAVE the Telegram Music Room voice chat.",
+   "module": "voicechat",
+   "group": "home"
+  },
+  {
+   "name": "control_hud",
+   "description": "Control the owner's spatial HUD after a voice request.",
+   "module": "hudui",
+   "group": "hud"
+  },
+  {
+   "name": "define_macro",
+   "description": "Save (or update) a named macro \u2014 a reusable sequence of steps.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "delete_macro",
+   "description": "Permanently delete ONE saved macro by name so it can no longer be run.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "if_then",
+   "description": "Conditional flow: if `condition` is true, run `then_steps`, else run `else_steps`.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "list_automations",
+   "description": "List EVERYTHING Mushegh runs on his own \u2014 background loops, scheduled reminders and saved macros \u2014 with when each last ran, when it runs next, and how it went.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "list_macros",
+   "description": "List every saved macro with its step count and description.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "run_macro",
+   "description": "Execute a saved macro by name, running each step in order and returning a transcript.",
+   "module": "macros",
+   "group": "macros"
+  },
+  {
+   "name": "portfolio_snapshot",
+   "description": "What the owner holds, valued from his own plain-text ledger.",
+   "module": "portfolio",
+   "group": "money"
+  },
+  {
+   "name": "assign_objective",
+   "description": "Hand Mushegh a MULTI-DAY objective/goal to OWN and drive across days (not a one-off task).",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "complete_objective",
+   "description": "Mark a multi-day objective DONE so Mushegh stops driving it.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "drop_objective",
+   "description": "ABANDON a multi-day objective unfinished so Mushegh stops driving it.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "list_objectives",
+   "description": "List the multi-day objectives Mushegh is currently driving, with each one's latest progress.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "objective_review",
+   "description": "Review every objective at once: what is moving, what has stalled and why, and which of the owner's open tasks serve which objective.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "objective_status",
+   "description": "Report progress on ONE named multi-day objective, including anything waiting on the owner's approval.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "set_milestone",
+   "description": "Put a dated milestone on a multi-day objective, or mark one reached.",
+   "module": "objectives",
+   "group": "objectives"
+  },
+  {
+   "name": "create_event",
+   "description": "Create a Google Calendar event.",
+   "module": "calendar",
+   "group": "office"
+  },
+  {
+   "name": "draft_email",
+   "description": "Save a Gmail draft WITHOUT sending it, so the owner can review first.",
+   "module": "gmail",
+   "group": "office"
+  },
+  {
+   "name": "list_events",
+   "description": "List Google Calendar events.",
+   "module": "calendar",
+   "group": "office"
+  },
+  {
+   "name": "notion_append",
+   "description": "Append a paragraph of text to the end of an existing Notion page (a WRITE).",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_comment",
+   "description": "Post a comment on a Notion page (a WRITE, visible to anyone sharing it).",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_complete_task",
+   "description": "Mark task(s) as Done.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_create_task",
+   "description": "Create a new task in the owner's Notion tasks dashboard.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_delete_task",
+   "description": "Delete (archive) a task from the dashboard.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_read_page",
+   "description": "Read the text content of one Notion page by its id.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_search",
+   "description": "Search the owner's Notion (only pages shared with the integration) for a page or database.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_tasks",
+   "description": "Read the owner's Notion TASKS dashboard and report what needs doing: overdue, due today, upcoming this week (with deadlines), and recurring/standing tasks.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "notion_update_task",
+   "description": "Change a task's status, deadline, or priority.",
+   "module": "notion",
+   "group": "office"
+  },
+  {
+   "name": "read_email",
+   "description": "Read the owner's Gmail \u2014 unread by default, or a Gmail search query (e.g.",
+   "module": "gmail",
+   "group": "office"
+  },
+  {
+   "name": "send_email",
+   "description": "Send an email via Gmail.",
+   "module": "gmail",
+   "group": "office"
+  },
+  {
+   "name": "breach_check",
+   "description": "Check if an email has been exposed in known data breaches.",
+   "module": "osint_advanced",
+   "group": "osint"
+  },
+  {
+   "name": "business_lookup",
+   "description": "Get information about a business or company.",
+   "module": "osint_advanced",
+   "group": "osint"
+  },
+  {
+   "name": "convert_currency",
+   "description": "Convert an amount from one currency to another using live exchange rates.",
+   "module": "osint",
+   "group": "osint"
+  },
+  {
+   "name": "dns_lookup",
+   "description": "Look up DNS records (A, AAAA, MX, TXT, CNAME, NS) for a domain.",
+   "module": "osint_person",
+   "group": "osint"
+  },
+  {
+   "name": "email_verify",
+   "description": "Verify an email address format and check domain validity, MX records, and SMTP.",
+   "module": "osint_person",
+   "group": "osint"
+  },
+  {
+   "name": "github_profile",
+   "description": "Get detailed information about a GitHub user profile.",
+   "module": "osint_advanced",
+   "group": "osint"
+  },
+  {
+   "name": "hash_lookup",
+   "description": "Look up file hashes in threat intelligence databases.",
+   "module": "osint_advanced",
+   "group": "osint"
+  },
+  {
+   "name": "ip_geolocate",
+   "description": "Geolocate an IP address to find its country, city, ISP, and coordinates.",
+   "module": "osint",
+   "group": "osint"
+  },
+  {
+   "name": "phone_info",
+   "description": "Get information about a phone number (country, carrier, type).",
+   "module": "osint_person",
+   "group": "osint"
+  },
+  {
+   "name": "reverse_ip_lookup",
+   "description": "Find all domains hosted on the same IP address or server.",
+   "module": "osint_advanced",
+   "group": "osint"
+  },
+  {
+   "name": "search_arxiv",
+   "description": "Search for academic papers on arXiv.org.",
+   "module": "osint",
+   "group": "osint"
+  },
+  {
+   "name": "ssl_cert_info",
+   "description": "Get SSL certificate information for a domain from Certificate Transparency logs.",
+   "module": "osint",
+   "group": "osint"
+  },
+  {
+   "name": "username_search",
+   "description": "Check if a username is available across multiple platforms (GitHub, Twitter, Instagram, etc.).",
+   "module": "osint_person",
+   "group": "osint"
+  },
+  {
+   "name": "website_info",
+   "description": "Extract metadata and information from a website (headers, technologies, SSL, title).",
+   "module": "osint_person",
+   "group": "osint"
+  },
+  {
+   "name": "whois_lookup",
+   "description": "Look up domain registration information (WHOIS).",
+   "module": "osint",
+   "group": "osint"
+  },
+  {
+   "name": "place_call",
+   "description": "PLACE A REAL PHONE CALL to a number and speak a message on the owner's behalf \u2014 'call the restaurant and book a table', 'ring my brother and tell him X', relay a code.",
+   "module": "phone",
+   "group": "phone"
+  },
+  {
+   "name": "find_place",
+   "description": "Find real places \u2014 restaurants, shops, gyms, addresses \u2014 with ratings and opening info.",
+   "module": "maps",
+   "group": "places"
+  },
+  {
+   "name": "travel_time",
+   "description": "LIVE travel time with current traffic \u2014 'how long to the airport now', 'when should I leave for X'.",
+   "module": "maps",
+   "group": "places"
+  },
+  {
+   "name": "data_retention",
+   "description": "The full store-by-store table: what each holds and how long it is kept.",
+   "module": "privacy",
+   "group": "privacy"
+  },
+  {
+   "name": "what_you_know",
+   "description": "Report every store Mushegh keeps about the owner \u2014 how many, how large, which expire and which are kept indefinitely, and which never leave this laptop.",
+   "module": "privacy",
+   "group": "privacy"
+  },
+  {
+   "name": "book",
+   "description": "Read, price or summarise a BOOK (EPUB or PDF) with the owner's own Bookroom summarizer.",
+   "module": "bookroom",
+   "group": "reading"
+  },
+  {
+   "name": "note_running_joke",
+   "description": "Remember a running joke or shared reference so Mushegh can call back to it later.",
+   "module": "relationship",
+   "group": "relationship"
+  },
+  {
+   "name": "note_sensitivity",
+   "description": "Record a topic the owner wants handled gently / carefully from now on ('that's a sore subject', 'go easy on the money stuff').",
+   "module": "relationship",
+   "group": "relationship"
+  },
+  {
+   "name": "relationship_status",
+   "description": "Report how things stand relationally \u2014 the owner's recent mood, topics to handle gently, and running jokes ('how am I doing', 'read the room').",
+   "module": "relationship",
+   "group": "relationship"
+  },
+  {
+   "name": "describe_screen",
+   "description": "SEE and describe the laptop screen using vision (not just OCR).",
+   "module": "multimodal",
+   "group": "screen"
+  },
+  {
+   "name": "read_screen_text",
+   "description": "OCR the most recent laptop screenshot and return extracted text.",
+   "module": "multimodal",
+   "group": "screen"
+  },
+  {
+   "name": "screenshot_screen",
+   "description": "Take a screenshot of the laptop screen and save it to a PNG path.",
+   "module": "multimodal",
+   "group": "screen"
+  },
+  {
+   "name": "check_stock",
+   "description": "How much of something the owner has, and how long it will last at the rate it has been used.",
+   "module": "stock",
+   "group": "stock"
+  },
+  {
+   "name": "update_stock",
+   "description": "Record stock arriving or being used.",
+   "module": "stock",
+   "group": "stock"
+  },
+  {
+   "name": "transit_carriage",
+   "description": "Carriage formation for a named train and departure time \u2014 which coach is the bistro/cafe car, and where it stops.",
+   "module": "transit",
+   "group": "transit"
+  },
+  {
+   "name": "transit_delay_reason",
+   "description": "Why a train is delayed, from DB's internal station display \u2014 'Signalst\u00f6rung', 'Versp\u00e4tung eines vorausfahrenden Zuges' and so on.",
+   "module": "transit",
+   "group": "transit"
+  },
+  {
+   "name": "transit_departures",
+   "description": "Live departure board for ANY German station or Cologne KVB stop \u2014 real delays, cancellations and platform changes.",
+   "module": "transit",
+   "group": "transit"
+  },
+  {
+   "name": "transit_journey",
+   "description": "Route from A to B across the whole network \u2014 long-distance, regional and Cologne Stadtbahn \u2014 with departure time, arrival time, changes and fare.",
+   "module": "transit",
+   "group": "transit"
+  },
+  {
+   "name": "list_recent_actions",
+   "description": "Show the log of recent reversible actions \u2014 the last 8 things undo_last could roll back.",
+   "module": "undo",
+   "group": "undo"
+  },
+  {
+   "name": "undo_last",
+   "description": "Roll back the most recent reversible action (file create, reminder, calendar event, etc.).",
+   "module": "undo",
+   "group": "undo"
+  },
+  {
+   "name": "activity_summary",
+   "description": "The owner's steps and average heart rate TODAY from their wearable via Google Fit.",
+   "module": "fitness",
+   "group": "vitals"
+  },
+  {
+   "name": "import_health",
+   "description": "Read an Apple Health export (export.xml) the owner has saved.",
+   "module": "fitness",
+   "group": "vitals"
+  },
+  {
+   "name": "sleep_summary",
+   "description": "How the owner SLEPT last night (duration, wake time) from their wearable via Google Fit \u2014 'how did I sleep', wellbeing checks.",
+   "module": "fitness",
+   "group": "vitals"
+  },
+  {
+   "name": "vitals_trend",
+   "description": "One health measure over recent days, from imported data \u2014 steps, sleep, resting heart rate, weight.",
+   "module": "fitness",
+   "group": "vitals"
+  }
+ ]
+}

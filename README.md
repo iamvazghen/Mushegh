@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/openmushegh-logo.png" alt="Mushegh" width="140">
+<img src="assets/mushegh-logo.png" alt="Mushegh" width="140">
 
 # Mushegh
 
@@ -14,11 +14,11 @@ inference**, yours.
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![Platform](https://img.shields.io/badge/edge-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
-📖 **Documentation:** **[openmushegh.vercel.app](https://openmushegh.vercel.app)** — the full docs site
+📖 **Documentation:** **[mushegh.vercel.app](https://mushegh.vercel.app)** — the full docs site
 
 </div>
 
-<img src="assets/openmushegh-banner.png" alt="Mushegh — build your own voice-first AI companion" width="100%">
+<img src="assets/mushegh-banner.png" alt="Mushegh — build your own voice-first AI companion" width="100%">
 
 ---
 
@@ -166,7 +166,7 @@ Two cooperating processes over one streaming WebSocket protocol:
 Requires **Python 3.11+** and [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
-git clone https://github.com/iamvazghen/Mushegh Mushegh && cd Mushegh
+git clone https://github.com/iamvazghen/OpenWatari Mushegh && cd Mushegh
 
 # 1. Install the base + the stack you want (this also makes `mushegh-setup` available):
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra dev
@@ -294,9 +294,9 @@ Markdown layers are always the source of truth.
 
 ## The tool belt
 
-All tools live in `src/mushegh/brain/tools/` (46 modules, **152 tools**) and self-degrade when
+All tools live in `src/mushegh/brain/tools/` (51 modules, **171 tools**) and self-degrade when
 unconfigured. The whole registry is never advertised at once: **54 core tools** are on every turn and
-the remaining 25 groups arm only when what you said matches them, under an enforced per-turn token
+the remaining 28 groups arm only when what you said matches them, under an enforced per-turn token
 budget — a turn that would exceed it asks you one short question instead of guessing. Highlights:
 
 - **Knowledge** — `search_vault`, `read_vault_note`, **`write_vault`** (save a note on the
@@ -448,9 +448,10 @@ unmodified `pip` library is compatible with shipping your own MIT code, and you 
 100%-permissive stack. The full breakdown plus cloud-service Terms is in
 **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**.
 
-> The name **Mushegh / Mushegh** is the project's own. *Mushegh* is referenced only as the
-> blueprint/inspiration and is not used as this project's brand. Before a public release, run
-> `uvx pip-licenses --format=markdown` over your locked environment as a final check.
+> The name **OpenMushegh** is the project's own. *Mushegh* — the assistant persona — is
+> referenced only as the blueprint/inspiration and is **not** used as this project's brand.
+> Before a public release, run `uvx pip-licenses --format=markdown` over your locked environment
+> as a final check.
 
 **Project & governance files** (all in the repo root):
 
@@ -478,6 +479,6 @@ how to add a tool. By participating you agree to the **[Code of Conduct](CODE_OF
 ---
 
 <div align="center">
-<sub><b>Mushegh</b> — build your own Mushegh. A from-scratch, self-hosted companion framework;
-Mushegh was the inspiration, not the implementation.</sub>
+<sub><b>OpenMushegh</b> — build your own voice-first AI companion. A from-scratch, self-hosted
+companion framework; Mushegh was the inspiration, not the implementation.</sub>
 </div>
