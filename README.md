@@ -32,6 +32,10 @@ inference**, yours.
 > separate, planned migration: changing those names without migrating a live
 > `.env` would start the brain healthy with zero configuration, which is the one
 > failure this project's own preflight exists to catch.
+>
+> `NOTICE` and `LICENSE` still carry the older two-name split ("OpenMushegh" the
+> project, "Mushegh" the persona). That predates the rebrand and does not match the
+> marks shipped in `assets/`. Reconciling it is an owner decision, not an edit.
 
 ## What this is
 
@@ -479,6 +483,6 @@ how to add a tool. By participating you agree to the **[Code of Conduct](CODE_OF
 ---
 
 <div align="center">
-<sub><b>OpenMushegh</b> — build your own voice-first AI companion. A from-scratch, self-hosted
-companion framework; Mushegh was the inspiration, not the implementation.</sub>
+<sub><b>Mushegh</b> — build your own voice-first AI companion. A from-scratch,
+self-hosted companion framework.</sub>
 </div>
