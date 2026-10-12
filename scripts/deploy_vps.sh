@@ -139,6 +139,6 @@ if ! REMOTE="$REMOTE" DRIFT_OUT="$DRIFT" bash scripts/verify_vps_sync.sh; then
 fi
 
 echo "==> restarting the brain + health check"
-ssh "$VPS" "systemctl --user restart '$SERVICE' && sleep 5 && systemctl --user is-active '$SERVICE' && curl -s localhost:8766/healthz"
+ssh "$VPS" "systemctl --user restart '$SERVICE' && sleep 5 && systemctl --user is-active '$SERVICE' && curl -s ${MUSHEGH_VPS_HEALTH_HOST:-localhost}:8766/healthz"
 echo
 echo "==> deployed."
