@@ -71,12 +71,6 @@ async def undo_last(_args: dict) -> str:
             await cancel_reminder({"id": hint or what})
         except Exception as e:  # noqa: BLE001
             return tool_error("undo reminder", e)
-    elif kind == "calendar_event":
-        try:
-            from mushegh.brain.tools.calendar import delete_event
-            await delete_event({"id": hint or what})
-        except Exception as e:  # noqa: BLE001
-            return tool_error("undo calendar", e)
     elif kind == "file_create":
         try:
             from mushegh.brain.tools.system import file_op
@@ -86,7 +80,15 @@ async def undo_last(_args: dict) -> str:
     elif kind == "draft_email":
         # Drafts aren't sent — no rollback needed beyond dropping from local draft cache.
         pass
-    elif kind in ("send_email", "send_telegram", "kill_process", "delete_file"):
+    elif kind in ("send_email", "send_telegram", "kill_process", "delete_file", "calendar_event"):
+        # calendar_event was here until 2026-10-12, importing `delete_event` from
+        # calendar.py — a function that does not exist. calendar.py has api_get and
+        # api_post and no DELETE, so the branch raised ImportError on every undo of
+        # a calendar event and the blanket `except` turned that into a generic
+        # "couldn't complete the undo" -- which reads as the owner's request being
+        # malformed. It is not reversible with this build, so it now says so in the
+        # same words as every other irreversible kind, instead of implying a
+        # capability the client does not have.
         return f"That one isn't reversible, sir ({what}). I can't un-send it."
     else:
         return f"I don't know how to undo that kind ({kind}), sir. Try forgetting it instead."

@@ -180,6 +180,9 @@ TESTS = [
     ("OSINT group: all fifteen tools registered, handled, and REACHABLE by a phrase the "
      "owner could say — a registered tool nobody can summon is not a capability",
      "test_osint_tools.py", "offline", ["passed, 0 failed"]),
+    ("Cross-module calls: no tool calls a name that a refactor deleted, and every brain "
+     "module imports — an advertised tool that fails every call is worse than a missing one",
+     "test_cross_module_calls.py", "offline", ["passed, 0 failed"]),
     ("Proactive suppression counters: 'restrained' is distinguishable from 'never generated'",
      "test_proactive_suppression.py", "offline", ["passed, 0 failed"]),
     ("Screenshot transport: capture on laptop, read on brain (VPS-split fix)",

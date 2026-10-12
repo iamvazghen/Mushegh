@@ -29,9 +29,9 @@ engineering log and may not change execution state on its own.
 - States: 181 open, 32 in progress, 181 done,
   28 cancelled, 5 deferred. Cancelled and deferred
   tasks are listed below rather than deleted: the record is worth more than the count.
-- Runner: 267 entries, 267 distinct scripts,
-  264 of them `test_*.py`.
-- Tests on disk: 276, of which 12 are exempt from the
+- Runner: 268 entries, 268 distinct scripts,
+  265 of them `test_*.py`.
+- Tests on disk: 277, of which 12 are exempt from the
   hermetic suite (live, benchmark or self-referential).
 - Tools: 171 schemas, 173 handlers.
 - Gate readiness: 276 hermetic, 6 exempt,
