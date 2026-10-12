@@ -174,6 +174,12 @@ TESTS = [
      "test_proactive_learning.py", "offline", ["checks passed ==="]),
     ("Tool usage: per-tool call counts survive a restart (input to catalogue tiering)",
      "test_tool_usage.py", "offline", ["passed, 0 failed"]),
+    ("Tool schemas: every advertised tool is one the model can actually call — well-formed "
+     "function schema, described, no required property that does not exist",
+     "test_tool_schemas.py", "offline", ["passed, 0 failed"]),
+    ("OSINT group: all fifteen tools registered, handled, and REACHABLE by a phrase the "
+     "owner could say — a registered tool nobody can summon is not a capability",
+     "test_osint_tools.py", "offline", ["passed, 0 failed"]),
     ("Proactive suppression counters: 'restrained' is distinguishable from 'never generated'",
      "test_proactive_suppression.py", "offline", ["passed, 0 failed"]),
     ("Screenshot transport: capture on laptop, read on brain (VPS-split fix)",

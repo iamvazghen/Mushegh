@@ -153,6 +153,14 @@ CORPUS: list[tuple[str, str]] = [
     ("how far out is that warehouse?", "places"),
     ("put that back the way it was a second ago", "undo"),
     ("is there a message from Ilina waiting?", "office"),
+    # osint — added 2026-10-12: the gate failed on "every lazy group is exercised" because the
+    # whole group (three modules, 15 tools) shipped with ZERO corpus coverage. The invariant was
+    # right and the corpus was behind it, exactly as it was for `transit` above. One prompt per
+    # module so the group is covered at the level it is actually split at, and phrased the way
+    # people ask rather than the way a trigger list reads.
+    ("did any of my accounts end up in a data breach somewhere?", "osint"),
+    ("what carrier is this number actually on?", "osint"),
+    ("find me papers about sparse attention from this year", "osint"),
 ]
 
 
@@ -208,7 +216,7 @@ def main() -> int:
                if catalogue_tokens(core + group_tool_schemas(g)) > CATALOGUE_TOKEN_BUDGET]))
 
     print("\n[2] the corpus is hand-written and covers every group")
-    check("sixty-four prompts", len(CORPUS) == 64, str(len(CORPUS)))
+    check("sixty-seven prompts", len(CORPUS) == 67, str(len(CORPUS)))
     check("every prompt names a real group",
           all(g in T._LAZY_GROUPS for _, g in CORPUS),
           str(sorted({g for _, g in CORPUS if g not in T._LAZY_GROUPS})))

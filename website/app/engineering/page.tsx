@@ -1,4 +1,5 @@
 import Link from "next/link";
+import suite from "./../suite.generated.json";
 
 export const metadata = { title: "How it is built & verified — Mushegh" };
 
@@ -40,8 +41,9 @@ export default function Engineering() {
 
       <h2>One suite, and it runs before anything leaves the machine</h2>
       <p>
-        <code>uv run python bench/run_all_tests.py</code> runs <strong>265 checks</strong>, 263 of them
-        offline and hermetic — no network, no keys, no real accounts. The other two need a live
+        <code>uv run python bench/run_all_tests.py</code> runs <strong>{suite.checks} checks</strong>,{" "}
+        {suite.offline} of them
+        offline and hermetic — no network, no keys, no real accounts. The other {suite.network} need a live
         backend and report SKIP
         rather than FAIL, so a run on a plane still means something.
       </p>

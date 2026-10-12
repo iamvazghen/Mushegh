@@ -1,4 +1,5 @@
 import Link from "next/link";
+import suite from "./../suite.generated.json";
 
 export default function Features() {
   return (
@@ -136,7 +137,7 @@ export default function Features() {
       </p>
 
       <div className="callout good">
-        <span className="k">All of it is gated.</span> 263 offline checks, every task in the plan
+        <span className="k">All of it is gated.</span> {suite.offline} offline checks, every task in the plan
         carrying the named test that decides whether it is done, and the suite runs before any push.
         See <Link href="/engineering">How it is built &amp; verified</Link>.
       </div>
