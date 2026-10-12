@@ -85,6 +85,10 @@ STORES: tuple[Store, ...] = (
     # ---- specific classes ----------------------------------------------------------------------
     _s("mushegh_coaching.sqlite", (MEDICAL, ORDINARY), True,
        "wellbeing nudges and habit history, which is health data however gently phrased"),
+    _s("vitals.json", (MEDICAL,), False,
+       "heart rate, sleep, steps, weight read from an export the owner already has. MEDICAL because "
+       "it is the body, and never leaves this machine because nothing here sends it anywhere -- "
+       "34.F3 states observations only, no condition named and no treatment advised"),
     _s("mushegh_stock.sqlite", (FINANCIAL,), True, "holdings and prices"),
     _s("forecasts.jsonl", (FINANCIAL, ORDINARY), True, "predictions, including financial ones"),
 
