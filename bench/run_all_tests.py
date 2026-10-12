@@ -260,6 +260,9 @@ TESTS = [
      "test_website_claims.py", "offline", ["checks passed ==="]),
     ("Layering (J8.4): base layers import nothing upward, edge<->brain crossings are declared, no cycles",
      "test_layering.py", "offline", ["checks passed ==="]),
+    ("Source compiles: every file under src/ is valid UTF-8 and parses, so a broken module "
+     "cannot hide behind a gate that skips it",
+     "test_source_compiles.py", "offline", ["passed, 0 failed"]),
     ("Routing manifest (J8.2): the dispatch tables reach the graph, and a rebuild can't drop them",
      "test_routing_manifest.py", "offline", ["checks passed ==="]),
     ("Graph prune (J0.2): inferred edges are grounded, and none resolves to a file nobody imports",
