@@ -13,6 +13,7 @@ Deliberately counting the Jev calls too: they are direct HTTP requests and do NO
 from __future__ import annotations
 
 import asyncio
+import inspect
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -30,12 +31,26 @@ def timed(obj, name: str, label: str | None = None):
     label = label or name
     orig = getattr(obj, name)
 
-    async def wrapper(*a, **kw):  # noqa: ANN001, ANN202
-        t0 = time.perf_counter()
-        try:
-            return await orig(*a, **kw)
-        finally:
-            TIMES[label].append((time.perf_counter() - t0) * 1000)
+    if inspect.iscoroutinefunction(orig):
+        async def wrapper(*a, **kw):  # noqa: ANN001, ANN202
+            t0 = time.perf_counter()
+            try:
+                return await orig(*a, **kw)
+            finally:
+                TIMES[label].append((time.perf_counter() - t0) * 1000)
+    else:
+        # A SYNC target must not be wrapped in `async def`. Doing so turns a method that returns a
+        # string into one that returns a coroutine, and every caller then holds an un-awaited
+        # coroutine where it expected the value — which is how two of the three turns died with
+        # "coroutine was never awaited" and "Object of type coroutine is not JSON serializable",
+        # while the probe still printed a plausible-looking breakdown for the turn that survived.
+        # A wrong number that looks measured is worse than a crash.
+        def wrapper(*a, **kw):  # noqa: ANN001, ANN202
+            t0 = time.perf_counter()
+            try:
+                return orig(*a, **kw)
+            finally:
+                TIMES[label].append((time.perf_counter() - t0) * 1000)
 
     setattr(obj, name, wrapper)
     return orig

@@ -3198,3 +3198,278 @@ had scanned them correctly. The false alarm is why the real hole got looked at: 
 whether the *reason* I gave was true, the actual weakness surfaced. **A wrong claim that gets
 verified properly is worth more than a right claim that gets asserted**, which is the same lesson
 §01.J20 taught from the other direction.
+
+## 01.J24 — 2026-10-12: the latency measurement, taken on a genuinely quiet box. It is bad.
+
+Deferred since the start of the session because every candidate window closed. It finally ran:
+
+```
+logs/latency-laptop-20261012-1826.json
+cpu_percent_before : 0.0        cpu_percent_after : 0.0
+load_contaminated  : False      provisional       : False
+passes 1 · n 30 · errors 0 · device laptop · "brain segment only (lower bound)"
+```
+
+The runner samples CPU itself at both ends of the measurement and both read **0.0**, which is what
+makes this quotable. Every previous attempt would have been marked `PROVISIONAL`, and none of them
+happened to catch a clean box.
+
+| class | n | p50 |
+|---|---|---|
+| reflex | 5 | **313 ms** |
+| chat | 7 | **323 ms** |
+| long | 3 | 4,053 ms |
+| tool | 6 | 5,152 ms |
+| adversarial | 4 | 6,727 ms |
+| **compound** | 5 | **13,798 ms** |
+
+Overall **p50 4,142 ms · p95 16,912 ms · max 21,675 ms.**
+
+### What it says
+
+**Reflex and chat are good** — 313 ms and 323 ms against a 300 ms budget. The voice path the owner
+actually feels is where it should be, and §01.J4's first-token work is visible in it.
+
+> **Corrected in §01.J26b below.** That paragraph was wrong. The `reflex` median is 313 ms because
+> four of its five utterances short-circuit without reaching the model; the fifth — *"what time is
+> it"*, filed in that same class — costs 5.5 s. The median is blind to it.
+
+**Compound turns take 13.8 seconds at the median.** Five or more steps, each paying roughly what a
+`tool` turn costs, and it adds up linearly rather than hiding it. **A `tool` turn at 5.2 s is the unit
+of that.** §01.J3 measured the TLS handshake that §01.J2 removed from the belt, and §01.J19g removed
+the last hand-built clients — so **5.2 s is what remains**, which means this is no longer connection
+setup. It is generation. That is a different investigation from the one this session has been doing.
+
+### The limits, stated before anyone quotes the number
+
+- **One pass.** `passes: 1`. No spread across runs, so each figure is a sample, not a distribution;
+  p95 over n=30 is thin.
+- **Per-class n is 3–7.** The compound figure rests on five turns — large enough to be a real
+  signal, small enough to mean *where to look* rather than a settled verdict.
+- **"brain segment only (lower bound)."** Wake word, TTS and the edge round trip sit outside this.
+  The real end-to-end number is worse than the one above.
+- **A laptop.** Whatever acceleration it has, it has.
+
+So the measurement is valid, and what it measures is a voice path that is fast and an agentic path
+that is not. §01.J4 set a *first-token* budget and it holds; nothing in the plan ever set a budget
+for compound turns, which is why this number sat unmeasured until now.
+
+The next question is not "why is 13.8 s bad" — it plainly is. It is **which of the five steps**,
+and the runner already carries a per-step breakdown to answer that without building a new corpus.
+
+### 01.J25 — 2026-10-12: the probe built for this question was itself broken. Fixed, and it answers: it is generation.
+
+`tools/probe_turn_breakdown.py` exists precisely to name where a turn's seconds go. It did not run.
+Two of its three turns died:
+
+```
+'what time is it'      ERROR TypeError: Object of type coroutine is not JSON serializable
+'how was your day'     ERROR TypeError: Object of type coroutine is not JSON serializable
+RuntimeWarning: coroutine 'timed.<locals>.wrapper' was never awaited
+```
+
+`timed()` wrapped **every** target in `async def`. Five of its seven targets are async and that was
+correct. `_relational_note` and `_world_note` are **sync** — so the wrapper turned a method that
+returns a string into one that returns a coroutine, and the caller held an un-awaited coroutine where
+it expected the value.
+
+The turn that survived still printed a clean-looking breakdown — `prepare total 102 ms / everything
+else 1799 ms`. **A wrong number that looks measured is worse than a crash**, and this is the second
+time this week that has been the failure (§01.J17's `0 THEATRE`). Fixed by dispatching on
+`inspect.iscoroutinefunction`, so a sync target gets a sync wrapper.
+
+Re-run, all three turns complete:
+
+| turn | total | prepare | named steps | **everything else** |
+|---|---|---|---|---|
+| `check my telegram` | 2,242 ms | 150 ms | 126 ms | **2,092 ms** |
+| `what time is it` | 6,502 ms | 1,069 ms | 1,065 ms | **5,434 ms** |
+| `how was your day` | 6,646 ms | 355 ms | 55 ms | **6,290 ms** |
+
+Every named step is negligible. `jev:assess_turn` at 1,008 ms is the worst of them and it happens once;
+`recall_note`, `relational_note`, `world_note` and `jev:consider` are all under 120 ms and mostly
+zero. **Roughly 95% of every turn is outside `_prepare_turn` entirely.**
+
+And the log says what that is. `llm.py` was printing, for each of those same three turns:
+
+```
+MiniMax-M3.1-Flash-Preview   failed_over_count=0   latency_ms=5391
+MiniMax-M3.1-Flash-Preview   failed_over_count=0   latency_ms=1532
+MiniMax-M3.1-Flash-Preview   failed_over_count=0   latency_ms=4532
+```
+
+5,391 / 1,532 / 4,532 ms against `everything else` of 5,434 / 5,434 / 6,290 ms. **The remainder the
+probe could not name was the model call all along.** `failed_over_count=0` says it is not a failover
+problem — the primary answered, slowly.
+
+### What that closes, and what it does not
+
+It confirms the inference §01.J24 made from `tool: 5,152 ms` — the time left after §01.J2 removed
+the TLS handshake and §01.J19g removed the last hand-built clients is **generation itself**. A
+compound turn is roughly five of these, which is where 13.8 s comes from; it is not a leak in the
+belt, it is not a pool, and it is not Jev.
+
+It also retires a stale worry. §01.J6c recorded a `check my telegram` turn spending **32.5 s with zero
+model calls**, which looked like unattributed overhead. On this hardware that same class of turn is
+2.2 s, and what the probe could not name is accounted for by `latency_ms`. The 32.5 s figure was
+measured on the old `afon` stack, before §01.J2/J3.
+
+**It does not say the model is slow.** It says this is where the time goes, on this machine, with
+this provider, at `MiniMax-M3.1-Flash-Preview` with no fallback taken. Whether 1.5–5.4 s per
+generation is the floor for a quantised local model or a symptom of something fixable upstream is a
+separate question, and the honest next step is to characterise the spread across runs rather than to
+conclude from one pass.
+
+### 01.J26b — the corpus's `reflex: 313 ms` was hiding a 5.5-second turn. §01.J24's headline was wrong.
+
+§01.J26 listed an unverified item: whether `reflex` and `chat` reach the brain at all, which decides
+whether the 9,487 is worth attacking. Checked. **They do** — `measure()` calls `agent.respond()` for
+every class, so there is no separate fast path. Measured through that same entry point:
+
+```
+what time is it        5534 ms     tool get_time({}) -> 6:36 PM;  LLM latency_ms=1500
+stop                    354 ms
+lights out              246 ms
+how was your day       3161 ms     LLM latency_ms=1437, then 1266
+```
+
+Four of the five `reflex` utterances short-circuit under 400 ms. **`what time is it` — which the
+corpus files as `reflex` — costs 5.5 s**, because it resolves via `get_time` and then calls the
+model. Four fast and one slow, and:
+
+```
+p50 = 300 ms   <- exactly what the corpus reported
+p95 = 5534 ms  max = 5534 ms
+```
+
+**The median is blind to it.** §01.J24 said "reflex and chat are good, 313 ms and 323 ms against a
+300 ms budget — the voice path the owner actually feels is where it should be." That was wrong, and
+wrong in the direction that flatters: the classes looked healthy because the majority short-circuit,
+while the one member that actually reaches the model is as slow as everything else. The overall p95
+of 16,912 ms in the same file was already carrying the evidence; the per-class p50 is what I read.
+
+The lesson generalises past this corpus: **a per-class median reports the typical member, not the
+worst one, and a class whose point is to be fast is exactly where that matters least.** Any gate or
+budget keyed on a class median will pass a class containing a 5.5-second turn. That is the same
+shape as §01.J17's `0 THEATRE` — a number that looks like a verdict and is answering a different
+question.
+
+So: **every brain-reaching class in that corpus — `chat`, `long`, `tool`, `adversarial`,
+`compound` — costs 3–14 seconds, and `reflex` costs 313 ms only for the utterances that never
+reach the model.** There is no fast brain path in these measurements at all.
+
+### 01.J27 — 2026-10-12: the runner now reports the tail, and every class is over budget
+
+`measure()` computed **only a per-class p50**. It now reports p50, p95, min and max per class, and
+the printed table states the budget verdict against each class's **max**, because a median answers
+"what does a typical turn cost" and a latency budget asks about the worst one.
+
+Re-run on a quiet host — `cpu_percent_before: 0.0`, `cpu_percent_after: 0.0`, quotable — and the
+first line out is the one that used to read as healthy:
+
+```
+      class        n   p50     p95      max      max vs 300 ms
+      reflex       5    684    6794     6794      OVER
+      chat         7   5392   13368    13368      OVER
+      compound     5  14550   16122    16122      OVER
+      tool         6   4314   10498    10498      OVER
+      long         3   4483    7250     7250      OVER
+      adversarial  4   3897    6636     6636      OVER
+
+overall p50 4,653 ms · p95 15,923 ms · max 16,122 ms
+```
+
+**`reflex` is p50 684 ms and max 6,794 ms.** That single row is §01.J26b, proven by the instrument
+rather than argued: four of five short-circuit, one reaches the brain, and the median cannot tell
+you which happened.
+
+### The finding, stated plainly
+
+**Every class in the corpus is over the D-35 300 ms budget. Not most — all six.** The previous
+reporting made this look like "the fast classes are fine and the slow ones are slow". It is not. The
+classes differ by a factor of twenty and the *slowest member of every one of them* is between 6.6 s
+and 16.1 s.
+
+### And this is the second independent quotable run
+
+| | §01.J24 run (18:26) | §01.J27 run (18:41) |
+|---|---|---|
+| host CPU before / after | 0.0 / 0.0 | 0.0 / 0.0 |
+| overall p50 | 4,142 ms | 4,653 ms |
+| overall p95 | 16,912 ms | 15,923 ms |
+| tool p50 | 5,152 ms | 4,314 ms |
+| compound p50 | 13,798 ms | 14,550 ms |
+
+Two runs, both clean, agreeing within ~10% on every headline. §01.J24's caveat — *one pass is a
+sample, not a distribution* — is now partly discharged. The shape is real: **~4–5 s median,
+~16 s p95, and a 300 ms budget that nothing meets.**
+
+What still has no evidence either way is whether 1.5–5.4 s per generation is this machine's floor
+or something upstream. `--passes` exists; three passes on a quiet box would settle it, and that is a
+30-minute run whenever one is available.
+
+### 01.J26 — 2026-10-12: the cost is prefill, and it is 9,487 tokens on every model call
+
+§01.J25 named generation as where the time goes. That is measurable without a quiet box, and the
+answer is uncomfortable in a specific way:
+
+| per model call | tokens |
+|---|---|
+| system prompt | 1,998 |
+| **core tool catalogue — 54 tools** | **7,489** |
+| **static prefill** | **9,487** |
+| × ~5 calls in a compound turn | **~47,400** |
+
+**The catalogue is 3.7× the system prompt.** On every call, in every turn. That is what "generation"
+means in those `latency_ms` figures: prefill is compute-bound and it happens before a single token
+comes back, which is why it shows up as time-to-first-token rather than as generation rate.
+
+§01.J3 called the catalogue "the dominant per-turn cost". These are the numbers behind that, and
+they make it structural rather than incidental.
+
+### The budget gate measures it. It does not bound it.
+
+`test_catalogue_budget.py` passes, and says:
+
+```
+[PASS] the core surface costs 7489t over 54 tools
+[PASS] the budget leaves room for the core surface plus at least one group
+[PASS] ...and NOT for every group at once
+```
+
+The gate bounds **group expansion** — how many lazily-armed groups can join the core. `test_finetune.py`
+bounds the core at **57 tools**, which is a count, not a cost. So the number is printed by the gate,
+reported in its own output, and asserted nowhere. **Nothing in the tree fails if the core surface
+doubles.**
+
+### The cheap win does not exist, and that is worth knowing
+
+The obvious response is schema minification — §03.R5 was already titled that. Measured per tool:
+
+```
+top 5 tools   : 1,524 tok  (20% of the core)
+descriptions  : 3,474 tok  (46%)
+parameters    : 4,015 tok  (53%)
+largest tool  : diagnose, 383 tok
+```
+
+**There is no fat tool.** The top five are a fifth of the cost and the largest single tool is 383
+tokens on a 9,487-token prefill. Minifying descriptions would move the number by a few percent and
+cost the model the detail that makes tool choice accurate. **Anyone reaching for schema trimming
+here is buying a rounding error and paying in capability.**
+
+What remains is the structural lever — fewer tools in the core surface, or a smaller per-call
+catalogue — and that is a product decision about what the assistant is offered on every turn, not an
+optimisation. It belongs to the same category as `intervention_lead_minutes`: a judgement with real
+consequences either way, and not one to make unilaterally.
+
+### And one thing I did NOT verify
+
+`reflex` (313 ms) and `chat` (323 ms) are an order of magnitude faster than everything else, and it
+is tempting to say they skip the catalogue. **I did not check that**, and I am not asserting it. The
+fast path may be edge-local (`edge/reflexes.py`) and may never reach the brain at all, in which case
+the catalogue is irrelevant to it rather than smaller. That is a five-minute question and it is the
+right next one, because it decides whether the 9,487 is worth attacking at all.
+
+The honest summary of the latency thread: **it is not a leak, it is prefill, and the prefill is a
+design decision currently measured but not bounded.**

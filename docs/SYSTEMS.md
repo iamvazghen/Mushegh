@@ -33,7 +33,7 @@ engineering log and may not change execution state on its own.
   261 of them `test_*.py`.
 - Tests on disk: 273, of which 12 are exempt from the
   hermetic suite (live, benchmark or self-referential).
-- Tools: 161 schemas, 163 handlers.
+- Tools: 166 schemas, 168 handlers.
 - Gate readiness: 276 hermetic, 6 exempt,
   12 outside the suite, 81 planned,
   and 24 manual.

@@ -84,6 +84,26 @@ async def measure(utterances: list[dict], passes: int) -> dict:
             await asyncio.sleep(0.2)
 
     s = sorted(samples)
+
+    def stats(v: list[float]) -> dict[str, int | None]:
+        """p50 ALONE is how a class looks healthy while containing a slow turn.
+
+        The 2026-10-12 run reported `reflex p50=313ms` against a 300 ms budget and it read as
+        proof the voice path was fine. Four of that class's five utterances short-circuit without
+        reaching the model; the fifth — "what time is it", filed in the SAME class — cost 5,534 ms.
+        p50 is unmoved by one slow member. So every class reports its tail too, and the budget is
+        stated against the worst turn as well as the typical one. A median answers "what does a
+        typical turn cost", which is not the question a latency budget asks.
+        """
+        w = sorted(v)
+        return {
+            "n": len(w),
+            "p50": round(statistics.median(w)) if w else None,
+            "p95": round(w[min(len(w) - 1, int(len(w) * 0.95))]) if w else None,
+            "max": round(w[-1]) if w else None,
+            "min": round(w[0]) if w else None,
+        }
+
     return {
         "n": len(s),
         "errors": len(errors),
@@ -92,8 +112,7 @@ async def measure(utterances: list[dict], passes: int) -> dict:
         "mean": round(statistics.mean(s)) if s else None,
         "min": round(s[0]) if s else None,
         "max": round(s[-1]) if s else None,
-        "per_class": {k: {"n": len(v), "p50": round(statistics.median(v))}
-                      for k, v in sorted(per_class.items())},
+        "per_class": {k: stats(v) for k, v in sorted(per_class.items())},
         "error_detail": errors[:5],
     }
 
@@ -150,9 +169,11 @@ def main() -> int:
         print("  Do NOT quote this as a capability. Re-run on a quiet machine.")
     else:
         print("\n  measured on a quiet machine — this one is quotable.")
-    print("  per class:")
+    print("  per class (the MAX is the one that matters — a p50 cannot see a slow member):")
     for cls, row in result["per_class"].items():
-        print(f"    {cls:14} n={row['n']:>2} p50={row['p50']} ms")
+        print(f"    {cls:14} n={row['n']:>2}  p50={row['p50']:>6}  p95={row['p95']:>6}  "
+              f"max={row['max']:>6} ms   max vs {budget} ms budget: "
+              f"{'WITHIN' if (row['max'] or 0) <= budget else 'OVER'}")
 
     out = Path(args.out or f"logs/latency-{args.device}-{time.strftime('%Y%m%d-%H%M')}.json")
     out.write_text(json.dumps(result, indent=2), encoding="utf-8")
