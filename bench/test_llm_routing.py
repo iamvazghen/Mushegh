@@ -15,8 +15,8 @@ import asyncio
 import time
 from types import SimpleNamespace
 
-from afon.brain.llm import LLMClient
-from afon.config import settings
+from mushegh.brain.llm import LLMClient
+from mushegh.config import settings
 
 PASS = 0
 FAIL = 0

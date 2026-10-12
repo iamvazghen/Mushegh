@@ -3,7 +3,7 @@
 Charter: *plaintext passwords · raw biometric sensor feeds · banking credentials · unfiltered
 health-crisis journaling. These are not retention questions; they never enter a store.*
 
-Until now that sentence existed in `docs/DECISIONS.md` and nowhere in `src/afon/` — a grep for
+Until now that sentence existed in `docs/DECISIONS.md` and nowhere in `src/mushegh/` — a grep for
 `D-24`, `never_store` and `NEVER_STORE` across the package returned nothing. So the four categories
 were prose, and the one thing a prose rule cannot do is refuse anything.
 
@@ -53,12 +53,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Set BEFORE afon is imported: `settings` is a module-level singleton built at import time, so an
+# Set BEFORE mushegh is imported: `settings` is a module-level singleton built at import time, so an
 # env var set afterwards is ignored. Both roots point at the temp dir, so this gate cannot write to
-# `~/.afon` or to the owner's vault even if a line of it goes wrong.
-_TMP = tempfile.mkdtemp(prefix="afon-never-store-")
-os.environ["AFON_STATE_DIR"] = str(Path(_TMP) / "state")
-os.environ["AFON_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
+# `~/.mushegh` or to the owner's vault even if a line of it goes wrong.
+_TMP = tempfile.mkdtemp(prefix="mushegh-never-store-")
+os.environ["MUSHEGH_STATE_DIR"] = str(Path(_TMP) / "state")
+os.environ["MUSHEGH_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT / "src"))
@@ -108,11 +108,11 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain import audit, never_store
-    from afon.brain.memory import MemoryStore
-    from afon.brain.never_store import NeverStoreRefused, screen
-    from afon.brain.tools.base import ErrorKind, classify_error
-    from afon.shared.paths import audit_dir
+    from mushegh.brain import audit, never_store
+    from mushegh.brain.memory import MemoryStore
+    from mushegh.brain.never_store import NeverStoreRefused, screen
+    from mushegh.brain.tools.base import ErrorKind, classify_error
+    from mushegh.shared.paths import audit_dir
 
     print("\n--- the set itself ---")
     check("the four D-24 classes exist, in the charter's order",
@@ -133,7 +133,7 @@ def main() -> int:
           all(c in never_store.REASONS for c in never_store.NEVER_STORE))
 
     print("\n--- refused at the write boundary ---")
-    with tempfile.TemporaryDirectory(prefix="afon-ns-store-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-ns-store-") as td:
         store = MemoryStore(base_dir=td)
         for cls, payload in HOSTILE.items():
             try:
@@ -170,7 +170,7 @@ def main() -> int:
             check("a refused write raises rather than returning None", False, type(e).__name__)
 
     print("\n--- ordinary facts are unaffected (the precision half) ---")
-    with tempfile.TemporaryDirectory(prefix="afon-ns-benign-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-ns-benign-") as td:
         store = MemoryStore(base_dir=td)
         stored = 0
         for text in BENIGN:
@@ -259,7 +259,7 @@ def main() -> int:
 
     print("\n--- the exception carries no payload ---")
     raised = None
-    with tempfile.TemporaryDirectory(prefix="afon-ns-exc-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-ns-exc-") as td:
         st = MemoryStore(base_dir=td)
         try:
             st.remember(HOSTILE["plaintext_password"])
@@ -276,7 +276,7 @@ def main() -> int:
               classify_error(raised) is ErrorKind.REFUSED)
 
     print("\n--- no path persists one ---")
-    src = (ROOT / "src" / "afon" / "brain" / "memory.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "brain" / "memory.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     additive: set[str] = set()
     deleting: set[str] = set()
@@ -326,12 +326,12 @@ def main() -> int:
         check(f"{rewriter}() takes no free text, so it cannot introduce a payload",
               params == allowed, f"has {sorted(params)}")
 
-    ns_tree = ast.parse((ROOT / "src" / "afon" / "brain" / "never_store.py").read_text(encoding="utf-8"))
+    ns_tree = ast.parse((ROOT / "src" / "mushegh" / "brain" / "never_store.py").read_text(encoding="utf-8"))
     imports = {a.name for node in ast.walk(ns_tree) if isinstance(node, ast.Import)
                for a in node.names} | {node.module for node in ast.walk(ns_tree)
                                        if isinstance(node, ast.ImportFrom) and node.module}
-    check("the guard module imports nothing from afon (it is pure)",
-          not any(str(m).startswith("afon") for m in imports), f"imports {sorted(imports)}")
+    check("the guard module imports nothing from mushegh (it is pure)",
+          not any(str(m).startswith("mushegh") for m in imports), f"imports {sorted(imports)}")
 
     print("\n--- the detector is a floor, and this file does not claim otherwise ---")
     check("an unlabelled, unformatted secret is NOT caught (a real, stated limitation)",

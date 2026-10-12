@@ -28,8 +28,8 @@ The model may emit arbitrary text. Only a Pydantic-validated payload reaches the
 Consequences that are not negotiable:
 
 - A handler that takes a raw string where a schema belongs is a defect, not a shortcut.
-- Adding a handler is adding a place this can fail. Read `src/afon/brain/tools/base.py`
-  and `src/afon/brain/tools/__init__.py` before writing one.
+- Adding a handler is adding a place this can fail. Read `src/mushegh/brain/tools/base.py`
+  and `src/mushegh/brain/tools/__init__.py` before writing one.
 - A tool's schema is the contract. Changing it changes the public surface, which the
   self-edit rule forbids (D-08).
 
@@ -104,7 +104,7 @@ actually feel.
 
 ## 10. The standing line
 
-A bad Afon is noticed within a week: it speaks when uninvited, misreads intent, and
+A bad Mushegh is noticed within a week: it speaks when uninvited, misreads intent, and
 leaves half-baked state that has to be undone from a terminal.
 
 Everything in these docs exists to make that impossible, and to make sure that when

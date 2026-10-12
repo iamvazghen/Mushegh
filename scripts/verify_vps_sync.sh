@@ -9,19 +9,19 @@
 #   bash scripts/verify_vps_sync.sh
 # Exit 0 = identical. Exit 1 = drift (listed).
 #
-# REQUIRED: AFON_VPS (e.g. "openclaw@<host>"), from your shell or the gitignored
+# REQUIRED: MUSHEGH_VPS (e.g. "openclaw@<host>"), from your shell or the gitignored
 # `deploy_vps.env` next to this script — the same source deploy_vps.sh uses. The host is never
 # hardcoded here; that would leak the deployment topology into the repo.
 set -uo pipefail
 
-if [[ -z "${AFON_VPS:-}" && -f "$(dirname "$0")/deploy_vps.env" ]]; then
+if [[ -z "${MUSHEGH_VPS:-}" && -f "$(dirname "$0")/deploy_vps.env" ]]; then
   # shellcheck disable=SC1091
   source "$(dirname "$0")/deploy_vps.env"
 fi
-: "${AFON_VPS:?Set AFON_VPS (e.g. export AFON_VPS=openclaw@<your-host>) — see deploy_vps.env}"
-VPS="${VPS:-$AFON_VPS}"
-REMOTE="${REMOTE:-${AFON_VPS_DIR:-/home/openclaw/afon}}"
-TREES="src/afon skills clients personality"
+: "${MUSHEGH_VPS:?Set MUSHEGH_VPS (e.g. export MUSHEGH_VPS=openclaw@<your-host>) — see deploy_vps.env}"
+VPS="${VPS:-$MUSHEGH_VPS}"
+REMOTE="${REMOTE:-${MUSHEGH_VPS_DIR:-/home/openclaw/mushegh}}"
+TREES="src/mushegh skills clients personality"
 
 cd "$(dirname "$0")/.."
 

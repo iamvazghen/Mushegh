@@ -47,13 +47,13 @@ a different picture of the room from the other half, unreconstructable afterward
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/situation.py` | `Situation`, `assemble()`, `disclosure()`, `part_of_day()`, `_fuse_place()` |
-| `src/afon/brain/presence.py` | The **laptop activity poller**: foreground window, idle time, meeting detection. No room and no phone (D-69) — the two-room model arrives with the mmWave sensors |
-| `src/afon/brain/perception.py` | S26's stamped facts, one input to the fusion |
-| `src/afon/brain/modes.py` | `focus` / `guest` / `lockdown` / `commute` — behavioural modes, flipped on request |
-| `src/afon/brain/tools/activity.py`, `tools/maps.py` | Foreground app and place, the remaining two sources |
-| `src/afon/brain/proactive.py`, `proactive_signals.py` | The consumer that decides whether to speak |
-| `src/afon/brain/hud.py`, `src/afon/brain/turn_trace.py` | Where the assumed context is shown and recorded |
+| `src/mushegh/brain/situation.py` | `Situation`, `assemble()`, `disclosure()`, `part_of_day()`, `_fuse_place()` |
+| `src/mushegh/brain/presence.py` | The **laptop activity poller**: foreground window, idle time, meeting detection. No room and no phone (D-69) — the two-room model arrives with the mmWave sensors |
+| `src/mushegh/brain/perception.py` | S26's stamped facts, one input to the fusion |
+| `src/mushegh/brain/modes.py` | `focus` / `guest` / `lockdown` / `commute` — behavioural modes, flipped on request |
+| `src/mushegh/brain/tools/activity.py`, `tools/maps.py` | Foreground app and place, the remaining two sources |
+| `src/mushegh/brain/proactive.py`, `proactive_signals.py` | The consumer that decides whether to speak |
+| `src/mushegh/brain/hud.py`, `src/mushegh/brain/turn_trace.py` | Where the assumed context is shown and recorded |
 
 Process: brain, per turn, in the prompt assembly path, before the LLM call. Frozen
 deliberately — "a turn's context must not drift under it half-way through, or the
@@ -68,7 +68,7 @@ attributed; a gap longer than the poll interval means the poller was not running
 treated as unknown rather than as "away".
 
 **Planned, and absent.** Neither new input is integrated. A search for `airgradient`
-under `src/afon/` returns nothing, and no module here reads a local air-quality REST
+under `src/mushegh/` returns nothing, and no module here reads a local air-quality REST
 endpoint or an mmWave occupancy feed. The AirGradient is a planned read whose obvious
 first consumer is S28's purifier automation rather than `Situation`; whether CO₂ is
 context at all or purely a sensor is exactly the undecided question, and this document
@@ -133,10 +133,10 @@ gate covering the room-level half, **does not exist**.
 
 - **Two halves of a turn disagree.** The answer assumes the desk, proactivity assumes away.
   The honest test of the fix is a log review, and nothing asserts the age of a stale place.
-  Diagnose: `journalctl -u afon-brain | grep -i situation` and the trace row in
-  `src/afon/brain/turn_trace.py`.
+  Diagnose: `journalctl -u mushegh-brain | grep -i situation` and the trace row in
+  `src/mushegh/brain/turn_trace.py`.
 - **A sensor goes quiet and the system infers "away".** Everything then goes silent for a
-  laptop that is merely asleep. Diagnose: `sqlite3 afon_presence.sqlite` (the path
+  laptop that is merely asleep. Diagnose: `sqlite3 mushegh_presence.sqlite` (the path
   `store_path("presence")` resolves) for the last poll, and the poll-gap guard.
 - **A derived state leaks** into an audit row, a HUD frame, or a push. Under D-61 that is
   not a bug to fix but a feature to remove: the action is deleting the inference, not

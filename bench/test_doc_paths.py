@@ -10,8 +10,8 @@ So two checks, and the second is the one with teeth:
 
   * exactly one file claims to be canonical, and the other points at it by name;
   * every repo path a roadmap cites in backticks exists — resolved from the repo root OR under
-    src/afon/, because these documents cite modules both ways (`brain/tools/base.py` and
-    `src/afon/config.py` both appear).
+    src/mushegh/, because these documents cite modules both ways (`brain/tools/base.py` and
+    `src/mushegh/config.py` both appear).
 
 A doc must be able to say that something is ABSENT — half of TODO.md's value is recording what was
 found missing. So a citation is exempt when its own sentence says so ("there is no X", "X has never
@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ["TODO.md", "README.md", "SECURITY.md", *sorted(p.name for p in (ROOT / "docs").glob("*.md"))]
 
 #: Top-level directories whose backticked mentions are real path claims. A bare `config.py` is
-#: ambiguous prose; `src/afon/config.py` or `brain/tools/base.py` is a claim about the tree.
+#: ambiguous prose; `src/mushegh/config.py` or `brain/tools/base.py` is a claim about the tree.
 _ROOTS = ("bench", "src", "scripts", "clients", "personality", "docs", "vps", "termux",
           "brain", "edge", "shared", "skills", "website")
 _PATH_RE = re.compile(r"`([A-Za-z0-9_.\-/]+\.(?:py|sh|md|json|ts|onnx|npy|toml|yml|yaml))(?::\d+)?`")
@@ -55,10 +55,10 @@ _ABSENT_CUES = (
 )
 _WINDOW = 2   # lines either side: these entries wrap, and the negation usually leads the path
 
-#: State directories the RUNTIME creates under ~/.afon, named in docs (SECURITY.md's never-commit
+#: State directories the RUNTIME creates under ~/.mushegh, named in docs (SECURITY.md's never-commit
 #: list, the memory-hygiene job's output). They are correct citations of things that are correctly
 #: absent from the tree, so requiring them to exist would be requiring the repo to be dirty.
-#: Directories that live under the STATE root (`~/.afon`), not in the repo — so their absence from a
+#: Directories that live under the STATE root (`~/.mushegh`), not in the repo — so their absence from a
 #: checkout is correct, not a phantom path. `traces/` and `screenshots/` joined the list when 37.R4
 #: started naming stores by their state-relative names.
 _RUNTIME_DIRS = {"audit/", "backups/", "memory/learned/archive/", "memory/journal/archive/",
@@ -78,8 +78,8 @@ def check(ok: bool, name: str, detail: str = "") -> None:
 
 
 def _exists(cited: str) -> bool:
-    """True if the path resolves from the repo root or under src/afon/ (docs cite both ways)."""
-    return (ROOT / cited).exists() or (ROOT / "src" / "afon" / cited).exists()
+    """True if the path resolves from the repo root or under src/mushegh/ (docs cite both ways)."""
+    return (ROOT / cited).exists() or (ROOT / "src" / "mushegh" / cited).exists()
 
 
 def _exempt(lines: list[str], i: int) -> bool:
@@ -131,7 +131,7 @@ def main() -> None:
     # A *quoted* "local-first" is discussing the label; an unquoted one is claiming it. That
     # distinction is the whole rule, and it needs no exemption list to maintain.
     unquoted = re.compile(r'(?<![\'"`])local-first', re.I)
-    for name in ("README.md", "CONTRIBUTING.md", "SECURITY.md", "src/afon/__init__.py"):
+    for name in ("README.md", "CONTRIBUTING.md", "SECURITY.md", "src/mushegh/__init__.py"):
         hits = [
             f"{name}:{i + 1}"
             for i, ln in enumerate((ROOT / name).read_text(encoding="utf-8").splitlines())

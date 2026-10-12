@@ -1,7 +1,7 @@
 """37.F3 — "forget X" removes X from every store, and proves it by asking again.
 
 `forget` deleted the single best-matching learned note. Right for "forget that" about one thing said
-a moment ago; wrong for everything else. Told to forget a subject Afon knew four facts about, it
+a moment ago; wrong for everything else. Told to forget a subject Mushegh knew four facts about, it
 dropped ONE and said "Forgotten, sir". The embedding stayed in the vector store, and the journal still described the day in
 prose. Three stores, one deletion, and a confident report of success.
 
@@ -43,9 +43,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain import forget as F
-    from afon.brain.memory import MemoryStore
-    from afon.brain.semantic import VectorStore
+    from mushegh.brain import forget as F
+    from mushegh.brain.memory import MemoryStore
+    from mushegh.brain.semantic import VectorStore
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         store = MemoryStore(base_dir=d)
@@ -92,10 +92,10 @@ def main() -> None:
         check("...and points at the tool that can check them", "search me" in said or
               "search them" in said, said)
         src = (Path(__file__).resolve().parents[1]
-               / "src/afon/brain/forget.py").read_text(encoding="utf-8")
+               / "src/mushegh/brain/forget.py").read_text(encoding="utf-8")
         check("the audit log is deliberately not rewritten",
               "audit log" in src and "much worse thing" in src,
-              "a forget that edits the record of what Afon DID is a different thing entirely")
+              "a forget that edits the record of what Mushegh DID is a different thing entirely")
 
         print("\n[5] a store that will not give it up is REPORTED, never papered over")
         class _Stubborn:
@@ -157,9 +157,9 @@ def main() -> None:
 
         print("\n[9] the tool uses the sweep, not the single-note delete")
         tool_src = (Path(__file__).resolve().parents[1]
-                    / "src/afon/brain/tools/memory.py").read_text(encoding="utf-8")
+                    / "src/mushegh/brain/tools/memory.py").read_text(encoding="utf-8")
         check("the forget tool calls the everywhere sweep",
-              "from afon.brain.forget import everywhere" in tool_src)
+              "from mushegh.brain.forget import everywhere" in tool_src)
         check("...and no longer the one-note delete", "STORE.forget(query)" not in tool_src)
         check("the schema tells the model what it really does",
               "every matching" in tool_src and "verified by asking again" in tool_src)

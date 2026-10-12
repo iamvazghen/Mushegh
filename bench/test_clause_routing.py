@@ -19,7 +19,7 @@ import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.intent_router import clause_tools, forced_tools  # noqa: E402
+from mushegh.brain.intent_router import clause_tools, forced_tools  # noqa: E402
 
 failures: list[str] = []
 _total = 0
@@ -100,11 +100,11 @@ for chat in ("what's two plus two", "how are you today", "thanks, that's great")
 
 # ── B6.1 · the time clause of a COMPOUND request ──────────────────────────
 # `get_time` is intentionally not in _ROUTES (forcing it on a bare "what time is it" was declined
-# as scorer-gaming — Afon answers inline, faster). That left combo_time_memory at 51.5: the time
+# as scorer-gaming — Mushegh answers inline, faster). That left combo_time_memory at 51.5: the time
 # half routed to nothing, clause_tools hit its >= 2 guard and the compound fell back to prose.
 # _CLAUSE_ONLY_ROUTES makes the clause visible WITHOUT touching single-intent behaviour, and both
 # halves of that claim are asserted here — the second is the one that could regress silently.
-from afon.brain.intent_router import clause_tools  # noqa: E402
+from mushegh.brain.intent_router import clause_tools  # noqa: E402
 
 for text, want in {
     "what time is it and remember to call mum": ["get_time", "remember"],

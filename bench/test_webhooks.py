@@ -4,8 +4,8 @@ import hashlib
 import hmac
 import json
 
-from afon.brain import webhooks
-from afon.config import settings
+from mushegh.brain import webhooks
+from mushegh.config import settings
 
 _ok = 0
 _fail = 0

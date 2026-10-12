@@ -1,14 +1,14 @@
 ; ledger.beancount — the owner's holdings, in Beancount plain text (40.F1)
 ;
-; Copy this to `ledger.beancount` (gitignored) and edit it. Afon READS this file and never
+; Copy this to `ledger.beancount` (gitignored) and edit it. Mushegh READS this file and never
 ; writes it: there is no buy, no sell, no transfer, and no broker credential anywhere in the
 ; codebase. That is asserted by bench/test_portfolio.py, not merely true today.
 ;
 ; Why this format: it is plain text, so it diffs, it versions in git, and you can audit it
-; without Afon or any other program. Beancount is used as a FILE FORMAT here — nothing in the
+; without Mushegh or any other program. Beancount is used as a FILE FORMAT here — nothing in the
 ; package imports it — so you can also use the real `bean-query` CLI against it, or not.
 ;
-; Afon reads the indented posting lines: account, amount, commodity. Anything it cannot read is
+; Mushegh reads the indented posting lines: account, amount, commodity. Anything it cannot read is
 ; reported back to you rather than skipped, because a portfolio that silently drops the row it
 ; did not understand produces a number that looks complete.
 

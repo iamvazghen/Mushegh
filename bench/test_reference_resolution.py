@@ -27,7 +27,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.references import resolve  # noqa: E402
+from mushegh.brain.references import resolve  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,7 +44,7 @@ LIST3 = a("1. Paris\n2. Lyon\n3. Nice")
 
 #: (label, history, utterance, expected antecedent or None)
 CASES = [
-    # --- ordinals into a list Afon just produced -------------------------------------------
+    # --- ordinals into a list Mushegh just produced -------------------------------------------
     ("ordinal: second", [LIST3], "book the second one", "Lyon"),
     ("ordinal: first, no 'one'", [LIST3], "tell me about the first", "Paris"),
     ("ordinal: the last one", [LIST3], "the last one", "Nice"),
@@ -140,7 +140,7 @@ def main() -> None:
           "a referent beyond the lookback window is not reached for")
 
     print("\n[4] the agent actually consults it")
-    src = (ROOT / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     check("_resolve_reference(" in src, "the agent resolves a reference on the turn path")
     prep = src.split("_prep_started = time.monotonic()", 1)
     check(len(prep) == 2 and "_resolve_reference" in prep[1][:600],
@@ -148,14 +148,14 @@ def main() -> None:
     check(".note()" in src, "a resolved reference reaches the model as a note")
     # The owner's words must reach history verbatim. A resolver that edited the user message in
     # place would make a wrong binding unrecoverable from the transcript — you could no longer see
-    # what was actually said, only what Afon decided it meant.
+    # what was actually said, only what Mushegh decided it meant.
     check('self._history.append({"role": "user", "content": user_text})' in src,
           "the owner's message enters history verbatim, never rewritten")
     check('{"role": "system", "content": self._reference.note()}' in src,
           "the binding travels as a separate system note beside it")
 
     print("\n[07.R2] a reference may not reach across a change of subject")
-    from afon.brain.references import current_segment
+    from mushegh.brain.references import current_segment
 
     notes = [{"role": "user", "content": "read notes.md"},
              {"role": "assistant", "content": "Done."}]

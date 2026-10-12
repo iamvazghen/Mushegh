@@ -19,8 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import agent as agent_module  # noqa: E402
-from afon.brain.judgment import DecisionVerdict  # noqa: E402
+from mushegh.brain import agent as agent_module  # noqa: E402
+from mushegh.brain.judgment import DecisionVerdict  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []
@@ -75,7 +75,7 @@ class ExplodingLLM:
 
 
 def _agent_with(llm: Any) -> Any:
-    agent = object.__new__(agent_module.AfonAgent)
+    agent = object.__new__(agent_module.MusheghAgent)
     agent._llm = llm
     agent._history = []
     agent._persist_session = lambda: None
@@ -125,7 +125,7 @@ async def _checks() -> int:
     check("the disobedience cannot reverse the typed choice", "docs one" not in guarded)
 
     print("\n=== 3. tier ON: the dedicated models are passed through ===")
-    import afon.config as config_module
+    import mushegh.config as config_module
     original = config_module.settings.verbalizer_models
     try:
         config_module.settings.verbalizer_models = "ollama:qwen3:0.6b,groq:llama-3.1-8b-instant"

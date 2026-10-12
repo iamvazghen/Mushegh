@@ -48,10 +48,10 @@ Two further reasons, both now decisions:
 
 Recorded here so the effort is not lost, and so nobody re-derives it:
 
-- **Batch 1 — offline snapshot safety.** `src/afon/brain/store_migration.py` (removed
+- **Batch 1 — offline snapshot safety.** `src/mushegh/brain/store_migration.py` (removed
   2026-10-04, D-02/M02): read-only inventory plus guarded, verifiable SQLite snapshots.
   `dbconn.connect(..., read_only=True)` was the only runtime module extended. 29/29 offline
-  snapshot tests. **The snapshot capability itself was not lost** — `afon.protocols.backup`
+  snapshot tests. **The snapshot capability itself was not lost** — `mushegh.protocols.backup`
   provides `make_backup` / `verify_backup` / `restore_backup` / `run_restore_drill`, and
   `bench/test_s30_migration_removed.py` proves it with a real round trip.
 - **Batch 2 — client boundary.** An inert, role- and PID-gated PostgreSQL client with an
@@ -67,33 +67,33 @@ evidence was zero.** No production data was copied and no dual-write path ever e
 
 ## What was deleted (roadmap M02 — done 2026-10-04)
 
-- `src/afon/brain/postgres_client.py` — removed
-- `src/afon/brain/postgres_vectors.py` — removed
-- `src/afon/brain/store_migration.py` — removed, after checking as the bullet above asked: nothing
+- `src/mushegh/brain/postgres_client.py` — removed
+- `src/mushegh/brain/postgres_vectors.py` — removed
+- `src/mushegh/brain/store_migration.py` — removed, after checking as the bullet above asked: nothing
   outside the cancelled migration used its snapshot helper, and the capability itself is
-  better served by `afon.protocols.backup` than by keeping scaffolding with a backup
+  better served by `mushegh.protocols.backup` than by keeping scaffolding with a backup
   utility bolted on
-- `src/afon/brain/sql/postgres_vectors.sql`
+- `src/mushegh/brain/sql/postgres_vectors.sql`
 - The optional `psycopg` dependency: the `postgres` extra is out of `pyproject.toml` and
   `uv lock` no longer resolves either psycopg wheel
-- The `postgres_dsn` setting, and the `AFON_POSTGRES_DSN` block in `.env.example`
+- The `postgres_dsn` setting, and the `MUSHEGH_POSTGRES_DSN` block in `.env.example`
 - `bench/test_store_migration_snapshot.py` and `bench/test_postgres_vectors.py` — both
   removed, so neither path resolves any more
 - `30.F1`, `30.R5`, `30.R6`, `30.R7`, `30.R8`, `30.R9` in the registry
 
-**Kept, on purpose:** the `!postgres` entry in `data_classes.STORES` and `afon_graph.sqlite`
+**Kept, on purpose:** the `!postgres` entry in `data_classes.STORES` and `mushegh_graph.sqlite`
 in the migration list — a host that ran the adapters may still have that file on disk, and
 an unclassified store is exactly what that table exists to prevent.
 
 **Proof:** `bench/test_s30_migration_removed.py`, 25/25 — no module, no DSN, no psycopg, and
-a real backup → verify → restore → drill round trip through `afon.protocols.backup`.
+a real backup → verify → restore → drill round trip through `mushegh.protocols.backup`.
 
 **Keep** `30.R1` (ranked merge with dedup), `30.R2` (contradiction handling), `30.R3`
 (forgetting as policy) — those are memory behaviours, not migration steps.
 
 ## What stays true
 
-- SQLite in WAL mode, reached through one module, `src/afon/brain/dbconn.py`.
+- SQLite in WAL mode, reached through one module, `src/mushegh/brain/dbconn.py`.
 - The Obsidian vault is the human source of truth; **markdown wins every disagreement**
   with the database (D-22). This was true throughout the migration and is more important
   now that the migration is gone.

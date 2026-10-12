@@ -2,8 +2,8 @@
 
 Imported automatically by CPython at startup when this directory is on PYTHONPATH — which means
 it lands BEFORE any test does `from datetime import date`, so the name a test binds is already the
-patched one. Set AFON_FAKE_TODAY=YYYY-MM-DD to arm it; unset, this file does nothing at all. Add
-AFON_FAKE_CLOCK=HH:MM to move the TIME OF DAY as well, which is the axis that caught two fixtures
+patched one. Set MUSHEGH_FAKE_TODAY=YYYY-MM-DD to arm it; unset, this file does nothing at all. Add
+MUSHEGH_FAKE_CLOCK=HH:MM to move the TIME OF DAY as well, which is the axis that caught two fixtures
 building "today" from a relative offset — they walked backwards over midnight and failed for a few
 minutes every night.
 
@@ -14,7 +14,7 @@ Finding that class of bug by luck does not scale; running the suite on a chosen 
 """
 import os
 
-_fake = os.environ.get("AFON_FAKE_TODAY", "").strip()
+_fake = os.environ.get("MUSHEGH_FAKE_TODAY", "").strip()
 if _fake:
     import datetime as _dt
 
@@ -26,11 +26,11 @@ if _fake:
         def today(cls):
             return cls(_y, _m, _d)
 
-    # AFON_FAKE_CLOCK=HH:MM moves the time of day too. It is expressed as a fixed DELTA computed
+    # MUSHEGH_FAKE_CLOCK=HH:MM moves the time of day too. It is expressed as a fixed DELTA computed
     # once, not as a pinned hour: a pinned clock stops advancing inside the minute, and a test that
     # measures a duration would then measure zero. With a delta, "now" starts at the requested time
     # and then ticks normally, which is what a test replayed "just after midnight" actually needs.
-    _clock = os.environ.get("AFON_FAKE_CLOCK", "").strip()
+    _clock = os.environ.get("MUSHEGH_FAKE_CLOCK", "").strip()
     _delta = None
     if _clock:
         _hh, _mm = (int(x) for x in _clock.split(":")[:2])
@@ -41,7 +41,7 @@ if _fake:
     class _DateTime(_real_datetime):
         @classmethod
         def now(cls, tz=None):
-            # Keep the real wall-clock TIME (unless AFON_FAKE_CLOCK moved it); only move the
+            # Keep the real wall-clock TIME (unless MUSHEGH_FAKE_CLOCK moved it); only move the
             # calendar day. A test that measures a duration must still see time advance, so this
             # cannot be a frozen instant.
             real = _real_datetime.now(tz)

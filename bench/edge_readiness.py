@@ -45,7 +45,7 @@ def _synth_16k(text: str) -> bytes:
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
 
     results: list[tuple[str, bool, str]] = []
 
@@ -60,12 +60,12 @@ async def main() -> None:
     rec("edge listening", up, "listening pulse fired" if up else "no recent listening pulse")
     rec("brain link", linked, "connected" if linked else "not connected recently")
 
-    print("\n[2] wake word detects on a spoken 'hey afon'")
+    print("\n[2] wake word detects on a spoken 'hey mushegh'")
     import openwakeword
     from openwakeword.model import Model
 
     openwakeword.utils.download_models()
-    wav = np.frombuffer(_synth_16k("hey afon"), dtype=np.int16)
+    wav = np.frombuffer(_synth_16k("hey mushegh"), dtype=np.int16)
     m = Model(wakeword_models=["hey_jarvis"], inference_framework="onnx")
     best = max((m.predict(wav[i:i + 1280]).get("hey_jarvis", 0)
                 for i in range(0, max(1, len(wav) - 1280), 1280)), default=0)
@@ -73,7 +73,7 @@ async def main() -> None:
     rec("wake inference runs", True, f"best score={best:.2f} (synthetic voice; real mic verified live)")
 
     print("\n[3] STT transcribes injected audio")
-    from afon.edge.stt import build_stt
+    from mushegh.edge.stt import build_stt
 
     stt = build_stt()
     audio = _synth_16k("what is the weather in Berlin today")

@@ -30,10 +30,10 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import audit                      # noqa: E402
-from afon.brain import review                     # noqa: E402
-from afon.brain.audit import _owner_day           # noqa: E402
-from afon.shared import errors as _err            # noqa: E402
+from mushegh.brain import audit                      # noqa: E402
+from mushegh.brain import review                     # noqa: E402
+from mushegh.brain.audit import _owner_day           # noqa: E402
+from mushegh.shared import errors as _err            # noqa: E402
 
 passed = failed = 0
 
@@ -85,7 +85,7 @@ def main() -> int:
             {"ts": f"{today}T10:00:00", "turn_id": "own", "tool": "weather", "actor": "owner",
              "decision": "allow", "ok": True, "result": "18C"},
             {"ts": f"{today}T11:00:00", "turn_id": "bg1", "tool": "web_search",
-             "actor": "afon:backlog", "decision": "allow", "ok": True, "result": "found"},
+             "actor": "mushegh:backlog", "decision": "allow", "ok": True, "result": "found"},
         ]) + "\n", encoding="utf-8")
         runs = review.unattended_runs()
         ids = {r["turn_id"] for r in runs}
@@ -105,13 +105,13 @@ def main() -> int:
         print("\n[3] actions group into the run that produced them")
         (audit_dir / f"{today}.jsonl").write_text("\n".join(json.dumps(r) for r in [
             {"ts": f"{today}T11:00:00", "turn_id": "run1", "tool": "web_search",
-             "actor": "afon:objectives", "decision": "allow", "ok": True, "result": "a"},
+             "actor": "mushegh:objectives", "decision": "allow", "ok": True, "result": "a"},
             {"ts": f"{today}T11:00:02", "turn_id": "run1", "tool": "scrape_url",
-             "actor": "afon:objectives", "decision": "allow", "ok": False, "result": "timeout"},
+             "actor": "mushegh:objectives", "decision": "allow", "ok": False, "result": "timeout"},
             {"ts": f"{today}T11:00:04", "turn_id": "run1", "tool": "send_email",
-             "actor": "afon:objectives", "decision": "defer", "ok": False, "result": "DEFERRED"},
+             "actor": "mushegh:objectives", "decision": "defer", "ok": False, "result": "DEFERRED"},
             {"ts": f"{today}T12:00:00", "turn_id": "run2", "tool": "governor",
-             "actor": "afon:backlog", "decision": "deny", "ok": False,
+             "actor": "mushegh:backlog", "decision": "deny", "ok": False,
              "rule_applied": "governor:calls_ceiling", "result": "ceiling"},
             {"ts": f"{today}T13:00:00", "turn_id": "", "tool": "mystery",
              "actor": "unattributed", "decision": "allow", "ok": True, "result": "?"},
@@ -139,14 +139,14 @@ def main() -> int:
               len(snap["needs_attention"]) == 2,
               str([r["turn_id"] for r in snap["needs_attention"]]))
         check("actors are tallied so a new driver is visible",
-              snap["actors"] == {"afon:objectives": 3, "afon:backlog": 1, "unattributed": 1},
+              snap["actors"] == {"mushegh:objectives": 3, "mushegh:backlog": 1, "unattributed": 1},
               str(snap["actors"]))
 
         print("\n[4] THE GATE: a real unattended run appears with actor, id and outcome")
         for f in audit_dir.glob("*.jsonl"):
             f.unlink()
-        from afon.brain import worker as worker_mod
-        from afon.brain.governor import Governor
+        from mushegh.brain import worker as worker_mod
+        from mushegh.brain.governor import Governor
 
         async def fake_tool(args):
             return "a result"
@@ -158,7 +158,7 @@ def main() -> int:
         try:
             _err._turn.set("")
             w = worker_mod.TaskWorker(OneToolLLM(), {"web_search": fake_tool}, [],
-                                      max_steps=3, actor="afon:worker")
+                                      max_steps=3, actor="mushegh:worker")
             asyncio.run(w.run("research something"))
         finally:
             worker_mod.GOVERNOR = real
@@ -169,7 +169,7 @@ def main() -> int:
               f"looking for {w.turn_id}, got {[r['turn_id'] for r in snap['runs']]}")
         if found:
             run = found[0]
-            check("with its ACTOR", run["actors"] == ["afon:worker"], str(run["actors"]))
+            check("with its ACTOR", run["actors"] == ["mushegh:worker"], str(run["actors"]))
             check("with its CORRELATION ID", run["turn_id"] == w.turn_id and run["correlated"])
             check("with an OUTCOME per action",
                   all(a["outcome"] in ("done", "failed", "awaiting approval", "refused")
@@ -189,11 +189,11 @@ def main() -> int:
               str(sorted(snap.get("governor", {}))))
 
         print("\n[6] it is reachable, and fail-quiet")
-        srv = (ROOT / "src/afon/brain/server.py").read_text(encoding="utf-8")
+        srv = (ROOT / "src/mushegh/brain/server.py").read_text(encoding="utf-8")
         check("/review.json is served", '"/review.json"' in srv)
         check("behind the same auth as /hud.json",
               srv.split('"/review.json"')[1].split("return")[0].count("_post_authorized") == 1)
-        hud_src = (ROOT / "src/afon/brain/hud.py").read_text(encoding="utf-8")
+        hud_src = (ROOT / "src/mushegh/brain/hud.py").read_text(encoding="utf-8")
         check("and the HUD carries the headline", '"unattended": _safe(_unattended' in hud_src)
 
         review._audit_dir = lambda: tmpdir / "does-not-exist"
@@ -203,7 +203,7 @@ def main() -> int:
         bad.mkdir()
         (bad / f"{today}.jsonl").write_text("{not json\n" + json.dumps(
             {"ts": f"{today}T09:00:00", "turn_id": "ok1", "tool": "t",
-             "actor": "afon:worker", "decision": "allow", "ok": True}) + "\n", encoding="utf-8")
+             "actor": "mushegh:worker", "decision": "allow", "ok": True}) + "\n", encoding="utf-8")
         review._audit_dir = lambda: bad
         check("one unreadable line does not hide the rest of the day",
               review.review_snapshot()["action_count"] == 1,

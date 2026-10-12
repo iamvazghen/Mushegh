@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-from afon.config import settings
+from mushegh.config import settings
 
 BUDGET_S = 6.0  # first spoken sentence; typical ~1s, proxy-regression was 15.7s
 CONNECT_TIMEOUT_S = 8

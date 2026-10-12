@@ -19,7 +19,7 @@ a duplicate phrasing of something already known.
 
 Copy the other host's memory directory down first (it is not deployed, by design):
 
-    scp -r <brainhost>:~/.afon/memory /tmp/vps-memory
+    scp -r <brainhost>:~/.mushegh/memory /tmp/vps-memory
     uv run python scripts/merge_memory.py /tmp/vps-memory          # dry run — prints the plan
     uv run python scripts/merge_memory.py /tmp/vps-memory --apply
 """
@@ -35,8 +35,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.memory import MemoryStore, _norm, source_rank   # noqa: E402
-from afon.shared.paths import memory_dir                        # noqa: E402
+from mushegh.brain.memory import MemoryStore, _norm, source_rank   # noqa: E402
+from mushegh.shared.paths import memory_dir                        # noqa: E402
 
 
 def merge(other: Path, into: Path, *, apply: bool = False) -> tuple[list[str], list[str]]:

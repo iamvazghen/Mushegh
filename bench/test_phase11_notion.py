@@ -27,15 +27,15 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def degrades(out: str) -> bool:
-    from afon.brain.tools.base import is_not_configured
+    from mushegh.brain.tools.base import is_not_configured
     return isinstance(out, str) and is_not_configured(out)
 
 
 def main() -> None:
-    import afon.brain.tools.notion as notion
-    from afon.brain.proactive import confirm_required
-    from afon.brain.tools import tool_names
-    from afon.config import settings
+    import mushegh.brain.tools.notion as notion
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.brain.tools import tool_names
+    from mushegh.config import settings
 
     # Force the UNCONFIGURED state so this hermetic degradation test holds regardless of a real .env
     # (live Notion is checked by bench/test_live_integrations.py).
@@ -70,7 +70,7 @@ def main() -> None:
     check("every Notion tool is registered", expected <= names, str(sorted(expected - names)))
     # `notion_create_page` lost its schema at 06.F1: creation goes through `create_document`, which
     # reads the page back before reporting success. The handler stays, and so does its gate.
-    from afon.brain.tools import tool_handlers
+    from mushegh.brain.tools import tool_handlers
     check("creating a page is no longer a second, unverified path",
           "notion_create_page" not in names)
     check("...but its handler is still there for create_document to call",
@@ -144,7 +144,7 @@ def main() -> None:
     check("completed task excluded", "Old finished thing" not in out, out)
 
     print("\n[queue pointer] a stale tasks database is LOUD, not an empty task list  [16.F3]")
-    import afon.brain.health as _h
+    import mushegh.brain.health as _h
 
     _saved = (notion._get, settings.notion_token, settings.notion_tasks_db_id, _h.check)
     try:

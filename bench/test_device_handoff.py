@@ -65,11 +65,11 @@ class StubAgent:
 
 
 async def main() -> None:
-    from afon.brain.server import BrainServer
-    from afon.shared.protocol import Hello, Utterance
+    from mushegh.brain.server import BrainServer
+    from mushegh.shared.protocol import Hello, Utterance
 
     # A first-of-day digest addendum would add a stray chunk; this test is about routing, so pin it off.
-    from afon.brain import daily_digest
+    from mushegh.brain import daily_digest
     daily_digest.due = lambda channel, now=None: False
 
     server = BrainServer(agent=StubAgent())
@@ -153,7 +153,7 @@ async def main() -> None:
 
     # Outside the window it is a genuine repeat, not an echo of one sentence.
     srv3 = BrainServer(agent=StubAgent())
-    from afon.brain.server import DOUBLE_WAKE_S
+    from mushegh.brain.server import DOUBLE_WAKE_S
     check("an old claim does not silence a later ask",
           srv3._claim_wake("what time is it", "laptop", 0.0, now=3000.0) is None
           and srv3._claim_wake("what time is it", "phone", 0.0,

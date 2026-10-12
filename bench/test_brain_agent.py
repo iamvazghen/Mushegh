@@ -1,11 +1,11 @@
-"""End-to-end test of AfonAgent: warmup, direct Q, time tool, session memory, fleet gate."""
+"""End-to-end test of MusheghAgent: warmup, direct Q, time tool, session memory, fleet gate."""
 import asyncio
 import time
-from afon.brain.agent import AfonAgent
+from mushegh.brain.agent import MusheghAgent
 
 
 async def main():
-    a = AfonAgent()
+    a = MusheghAgent()
     t0 = time.perf_counter()
     await a.warmup()
     print(f"warmup: {(time.perf_counter()-t0)*1000:.0f}ms\n")
@@ -13,7 +13,7 @@ async def main():
     async def turn(text):
         t = time.perf_counter()
         r = await a.respond(text, on_progress=lambda n: print(f"   ~{n}"))
-        print(f"Vazghen: {text}\nAfon : {r}  [{(time.perf_counter()-t)*1000:.0f}ms]\n")
+        print(f"Vazghen: {text}\nMushegh : {r}  [{(time.perf_counter()-t)*1000:.0f}ms]\n")
         return r
 
     # 1) direct reasoning (no tool)

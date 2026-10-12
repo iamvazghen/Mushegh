@@ -29,7 +29,7 @@ blocks every commit and stops being run. A journey asserting behaviour that does
 would be the worst outcome available: the suite green by lying.
 
 The store snapshot covers **both** the temp state root and the repository root. Most stores
-follow `settings.state_dir`, but a blank path setting falls back to `~/.afon` or the repo,
+follow `settings.state_dir`, but a blank path setting falls back to `~/.mushegh` or the repo,
 so a journey that forgot one would write a real file into the repository and the "nothing
 unexpected was written" assertion would report clean.
 
@@ -51,14 +51,14 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-# Before any import, per the house pattern: a temp state root so nothing can reach ~/.afon,
+# Before any import, per the house pattern: a temp state root so nothing can reach ~/.mushegh,
 # and a scratch trace dir so no journey reads the owner's real turn history.
-_TMP = tempfile.TemporaryDirectory(prefix="afon-journeys-")
-_TMP_TRACE = tempfile.TemporaryDirectory(prefix="afon-journeys-trace-")
-os.environ["AFON_STATE_DIR"] = _TMP.name
-os.environ["AFON_TRACE_DIR"] = _TMP_TRACE.name
+_TMP = tempfile.TemporaryDirectory(prefix="mushegh-journeys-")
+_TMP_TRACE = tempfile.TemporaryDirectory(prefix="mushegh-journeys-trace-")
+os.environ["MUSHEGH_STATE_DIR"] = _TMP.name
+os.environ["MUSHEGH_TRACE_DIR"] = _TMP_TRACE.name
 
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 # Home Assistant has to look configured or `ha_call` returns early with a spoken "not
 # configured" — which would make every Home-Assistant assertion in J-05 and J-09 vacuous,
@@ -93,7 +93,7 @@ def snapshot() -> set[str]:
         if not path.is_file():
             continue
         if path.suffix in {".sqlite", ".db", ".json", ".jsonl", ".log"} or \
-                (path.suffix == ".md" and path.name.startswith("afon_")):
+                (path.suffix == ".md" and path.name.startswith("mushegh_")):
             seen.add(f"repo/{path.name}")
     return seen
 
@@ -132,14 +132,14 @@ def assert_correlation(jid: str) -> None:
     """The correlation contract, as the code states it.
 
     `turn_trace.turn()` adopts whatever id is already in flight on the task
-    (`src/afon/brain/turn_trace.py:318`). Outside a correlated entry point that id is blank,
+    (`src/mushegh/brain/turn_trace.py:318`). Outside a correlated entry point that id is blank,
     and **the code records it blank rather than inventing one** so an unjoinable turn is
     visible as one. So the contract is not "every row has an id" — it is "an id appears
     when one is in flight, and is never fabricated when one is not". An earlier version of
     this suite asserted the first and would have failed on correct behaviour.
     """
-    from afon.brain import turn_trace
-    from afon.shared.errors import new_turn
+    from mushegh.brain import turn_trace
+    from mushegh.shared.errors import new_turn
 
     # Read the id off the yielded trace, not off `last()`: `last()` reads the trace file, which
     # accumulates across journeys in one process, so it can hand back the previous journey's row.
@@ -155,7 +155,7 @@ def assert_correlation(jid: str) -> None:
         expect(jid, "a correlated turn adopts the id that was in flight",
                traced.turn_id == minted, True)
     finally:
-        from afon.shared import errors
+        from mushegh.shared import errors
         errors._turn.set(None)                                 # noqa: SLF001
 
 
@@ -168,9 +168,9 @@ def j01_morning() -> None:
     jid = "J-01"
     record(jid, "Morning", "S27 S17 S21 S16 S14 S13")
     before = snapshot()
-    from afon.brain import proactive
+    from mushegh.brain import proactive
 
-    from afon.brain.tasks import TaskQueue
+    from mushegh.brain.tasks import TaskQueue
 
     # Two fixes, and the second one matters more than the first.
     #
@@ -185,7 +185,7 @@ def j01_morning() -> None:
     #
     # It now also proves the queue is *readable*, not merely that it exists: a to-do is written
     # and comes back after a reload, which is the property the morning brief actually depends on.
-    with tempfile.TemporaryDirectory(prefix="afon-j01-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-j01-") as td:
         queue = TaskQueue(db_path=Path(td) / "tasks.sqlite")
         queue.add_todo(title="renew the workshop booking")
         queue._load()                                          # noqa: SLF001
@@ -212,7 +212,7 @@ def j02_interruption() -> None:
     jid = "J-02"
     record(jid, "Interruption", "S14 S27 S13 S38")
     before = snapshot()
-    from afon.brain import delivery, proactive
+    from mushegh.brain import delivery, proactive
 
     expect(jid, "quiet hours hold during the day",
            proactive.in_quiet_hours(NOW, "09:00-17:00"), True)
@@ -238,7 +238,7 @@ def j03_project() -> None:
     jid = "J-03"
     record(jid, "Project", "S33 S16 S39 S41 S06 S45")
     before = snapshot()
-    from afon.brain import proactive
+    from mushegh.brain import proactive
 
     for label, tool, args in (
         ("a vault delete", "file_op", {"action": "delete"}),
@@ -261,7 +261,7 @@ def j04_continuity() -> None:
     jid = "J-04"
     record(jid, "Continuity", "S07 S12 S43 S30")
     before = snapshot()
-    from afon.brain import turn_trace
+    from mushegh.brain import turn_trace
 
     # A goal is carried by being in the context, so continuity is observable as history. Two
     # traced turns, the second with nothing in it but the follow-up, and the goal still there.
@@ -285,8 +285,8 @@ def j05_identity() -> None:
     record(jid, "Identity", "S10 S11 S36 S45")
     before = snapshot()
     import asyncio
-    from afon.brain import proactive
-    from afon.brain.tools import smarthome
+    from mushegh.brain import proactive
+    from mushegh.brain.tools import smarthome
 
     posted: list[str] = []
 
@@ -323,12 +323,12 @@ def j06_degradation() -> None:
     record(jid, "Degradation", "S02 S32 S31")
     before = snapshot()
     import asyncio
-    from afon.brain import proactive
-    from afon.edge import offline_queue
+    from mushegh.brain import proactive
+    from mushegh.edge import offline_queue
 
     expect(jid, "the destructive step stays gated while the model is unreachable",
            proactive.confirm_required("file_op", {"action": "delete"}))
-    expect(jid, "and a read still works, so an outage does not make Afon mute",
+    expect(jid, "and a read still works, so an outage does not make Mushegh mute",
            proactive.confirm_required("get_time", {}), False)
 
     with tempfile.TemporaryDirectory() as td:
@@ -358,7 +358,7 @@ def j07_memory() -> None:
     jid = "J-07"
     record(jid, "Memory", "S30 S24 S45")
     before = snapshot()
-    from afon.brain import memory as mem
+    from mushegh.brain import memory as mem
 
     with tempfile.TemporaryDirectory() as td:
         store = mem.MemoryStore(base_dir=Path(td) / "memory")
@@ -403,9 +403,9 @@ def j07_memory() -> None:
         # or fails for reasons unrelated to the thing it names.
         import importlib
 
-        from afon.brain import tools as tool_reg
+        from mushegh.brain import tools as tool_reg
 
-        for gone in ("afon.brain.graph", "afon.brain.tools.graphmem"):
+        for gone in ("mushegh.brain.graph", "mushegh.brain.tools.graphmem"):
             try:
                 importlib.import_module(gone)
                 still_there = True
@@ -433,7 +433,7 @@ def j08_device() -> None:
     record(jid, "Device", "S04 S12 S05")
     before = snapshot()
     import asyncio
-    from afon.brain.pc_link import PC_LINK
+    from mushegh.brain.pc_link import PC_LINK
 
     # The seam is `forward(op, args)` — not `perform`/`send` as a first pass assumed. Nothing
     # is registered, so the laptop is unreachable, and the question is what the owner hears.
@@ -464,8 +464,8 @@ def j09_home() -> None:
     record(jid, "Home", "S28 S27 S29")
     before = snapshot()
     import asyncio
-    from afon.brain import proactive
-    from afon.brain.tools import smarthome
+    from mushegh.brain import proactive
+    from mushegh.brain.tools import smarthome
 
     asked: list[str] = []
 
@@ -497,7 +497,7 @@ def j10_crisis() -> None:
     jid = "J-10"
     record(jid, "Crisis", "S35 S13 S38 S36")
     before = snapshot()
-    from afon.brain import emergency, proactive
+    from mushegh.brain import emergency, proactive
 
     # By exclusion: nothing an ordinary interruption can do pierces the budget. If focus
     # suppression failed, the three-a-day limit would be a suggestion.
@@ -531,8 +531,8 @@ def j11_recovery() -> None:
     record(jid, "Recovery", "S22 S16 S31")
     before = snapshot()
     import asyncio
-    from afon.brain import proactive
-    from afon.edge import offline_queue
+    from mushegh.brain import proactive
+    from mushegh.edge import offline_queue
 
     expect(jid, "an ordinary write is not gated, so recovery work is never blocked on a confirm",
            proactive.confirm_required("file_op", {"action": "write"}), False)
@@ -563,7 +563,7 @@ def j12_silence() -> None:
     jid = "J-12"
     record(jid, "Silence", "S14 S13 S27")
     before = snapshot()
-    from afon.brain import proactive
+    from mushegh.brain import proactive
 
     ok(jid, f"the daily budget is {settings.proactive_daily_budget} and a signal must clear "
             f"relevance >= {settings.proactive_relevance_threshold} to be worth speaking")
@@ -585,7 +585,7 @@ def j12_silence() -> None:
 def main() -> int:
     print("The twelve coherence journeys - tier 3, 01.E3")
     print(f"state root : {settings.state_dir}")
-    print(f"trace root : {os.environ['AFON_TRACE_DIR']}")
+    print(f"trace root : {os.environ['MUSHEGH_TRACE_DIR']}")
     print("driving the cross-system POLICY seams; the generative turn loop is covered by "
           "test_pure_chat_tools, test_catalogue_budget and the three Jev gates.")
 

@@ -1,11 +1,11 @@
 """44.F4 — four answers to "may I", and a precedence that cannot be softened.
 
-Afon had two answers. A deterministic refusal lived in the agent for the handful of instructions
+Mushegh had two answers. A deterministic refusal lived in the agent for the handful of instructions
 that destroy a machine, and a confirm tier lived in the policy layer for everything outward or
 hard to undo. Everything else was silence — and the gap showed as exactly that.
 
 Guest mode is turned on because someone else is in the room. Lockdown is turned on because he wants
-quiet. Both changed what Afon did, and neither said so, because the only way to tell him something
+quiet. Both changed what Mushegh did, and neither said so, because the only way to tell him something
 was to refuse and the only way to proceed was to say nothing. Proceed-with-note is the missing
 middle: do it, and say the thing he would have wanted to know.
 
@@ -50,8 +50,8 @@ class _Modes:
 
 
 def main() -> None:
-    from afon.brain import proactive as P
-    from afon.brain.proactive import ALLOW, CONFIRM, NOTE, PRECEDENCE, REFUSE, grade
+    from mushegh.brain import proactive as P
+    from mushegh.brain.proactive import ALLOW, CONFIRM, NOTE, PRECEDENCE, REFUSE, grade
 
     quiet = _Modes()
 
@@ -105,7 +105,7 @@ def main() -> None:
     print("\n[6] a grader that cannot do its job escalates, it does not fall through")
     # The dangerous failure: an import error in the hard-refusal check silently downgrading a
     # system-wiping request to 'allow'. Unavailable means ASK, never means yes.
-    import afon.brain.agent as agent_mod
+    import mushegh.brain.agent as agent_mod
 
     real = agent_mod._catastrophic
     try:
@@ -125,7 +125,7 @@ def main() -> None:
 
     print("\n[7] the grades match what the rest of the system already does")
     # Two definitions of 'needs a yes' would drift, so the confirm grade IS the confirm tier.
-    from afon.brain.proactive import CONFIRM_TIER, confirm_required
+    from mushegh.brain.proactive import CONFIRM_TIER, confirm_required
 
     for tool in sorted(CONFIRM_TIER)[:8]:
         want = confirm_required(tool, {})
@@ -135,7 +135,7 @@ def main() -> None:
 
     print("\n[8] the note reaches the owner, not just the log")
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     check("the agent grades each permitted call", "grade as _grade" in src)
     check("...and speaks a NOTE before the tool runs",
           "Just so you know, sir" in src and "on_progress(said_note)" in src)

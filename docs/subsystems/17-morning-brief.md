@@ -29,17 +29,17 @@ module was written to stop.
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/daily_digest.py` | The digest itself: past-due tasks plus important unread mail, delivered on at most two channels per local day |
-| `src/afon/brain/schedule.py` | The day read as a whole — overlap, travel, no-break. Arithmetic on a sorted list, no model consulted |
-| ~~`src/afon/brain/mynews.py`~~ | **Was** "the news section". It is not one, and does not belong in this table — see below |
-| `src/afon/brain/tools/day_shape.py` | Drafting routines and checking whether the day holds together |
-| `src/afon/brain/presence.py` | The context the trigger reads |
-| `clients/hud-spatial/src/App.tsx`, `src/afon/brain/hud.py` | The silent on-screen surface |
-| `src/afon/edge/edge_lite.py`, `src/afon/brain/telegram_bridge.py` | The two channels, both of which can carry the brief when it is asked for |
+| `src/mushegh/brain/daily_digest.py` | The digest itself: past-due tasks plus important unread mail, delivered on at most two channels per local day |
+| `src/mushegh/brain/schedule.py` | The day read as a whole — overlap, travel, no-break. Arithmetic on a sorted list, no model consulted |
+| ~~`src/mushegh/brain/mynews.py`~~ | **Was** "the news section". It is not one, and does not belong in this table — see below |
+| `src/mushegh/brain/tools/day_shape.py` | Drafting routines and checking whether the day holds together |
+| `src/mushegh/brain/presence.py` | The context the trigger reads |
+| `clients/hud-spatial/src/App.tsx`, `src/mushegh/brain/hud.py` | The silent on-screen surface |
+| `src/mushegh/edge/edge_lite.py`, `src/mushegh/brain/telegram_bridge.py` | The two channels, both of which can carry the brief when it is asked for |
 
 **The news section is gone, and the row is kept struck through rather than deleted** so the
 correction is visible. This table claimed `mynews.py` supplied "the news section"; it does
-not. `src/afon/brain/daily_digest.py` contains no news, RSS or headline path at all —
+not. `src/mushegh/brain/daily_digest.py` contains no news, RSS or headline path at all —
 `scheduler.py` describes the digest as past-due tasks plus important unread email, which is
 everything it actually builds. The module was an *unprompted* proactive signal rather than a
 digest section at all, so it belonged to the D-34 breach, and 41.R4 closed that path. The
@@ -78,7 +78,7 @@ change (M24) is open work, not done work.
 | 4 | B1 | `uv run python bench/test_daily_digest.py` [source down] | 31/31 per the registry gate note, with the failed source named in the rendered brief | recorded in the registry as 31/31; run not reproduced here |
 | 5 | B1 | `uv run python bench/test_daily_digest.py` [empty section] | 0 empty sections rendered; the dropped sections are named in one line | not yet measured (17.R2 open) |
 | 6 | B1 | new `bench/test_digest_timing.py` (planned, 17.R3 — does not exist yet) | 18:00 produces a concise markdown log naming what happened, what slipped and what tomorrow needs | not yet measured |
-| 7 | B4 | read the rendered brief against `src/afon/brain/recommend.py`'s output shape | 0 proposals in the brief; every line traces to a task, an event or an unread message | holds today — the brief is built from three sources, none of which generate |
+| 7 | B4 | read the rendered brief against `src/mushegh/brain/recommend.py`'s output shape | 0 proposals in the brief; every line traces to a task, an event or an unread message | holds today — the brief is built from three sources, none of which generate |
 
 The charter has no fixed 06:00, and 17.F1's gate name still says `bench/test_daily_digest.py`
 for a 06:00 behaviour. That test is the thing standing between the charter and the code today.
@@ -89,7 +89,7 @@ for a 06:00 behaviour. That test is the thing standing between the charter and t
 "N past-due tasks", "M important emails" — pushed three or four times each, seven or eight
 duplicates a day, because the old nudges were repeat-suppressed for 120 minutes and reset on
 every brain restart. If it recurs, the state file is being reset or is unreadable. Diagnose:
-`cat ~/.afon/daily_digest_state.json`, then `journalctl -u openafon-brain -n 200 | grep -i
+`cat ~/.mushegh/daily_digest_state.json`, then `journalctl -u openmushegh-brain -n 200 | grep -i
 digest`.
 
 **The clock still fires it.** The trigger has not been moved to first-interaction (M24 is
@@ -103,7 +103,7 @@ Diagnose: the failed-source name in the rendered output, then the section's own 
 
 **It speaks unasked.** A regression against D-33. The budget in S14 is the backstop, and the
 budget counts audio interruptions, so an unasked brief is both a charter breach and a budget
-spend. Diagnose: `journalctl -u openafon-brain -n 200 | grep -i "via voice"`.
+spend. Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i "via voice"`.
 
 **Padding.** A section with nothing to say still renders, and the brief grows. Harmless once,
  corrosive by the fourth time — it is how a digest becomes an ambient feed (D-34).

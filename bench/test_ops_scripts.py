@@ -59,8 +59,8 @@ def main() -> None:
     check(bool(bash), "bash is available to syntax-check with", "cannot verify shell syntax")
     for p in sh:
         # Relative POSIX path from the repo root, NOT str(p). Git Bash on Windows receives
-        # "C:\Afon\scripts\deploy_vps.sh" and eats the backslashes as escapes — it reported
-        # "C:Afonscriptsdeploy_vps.sh: No such file or directory", which reads exactly like the
+        # "C:\Mushegh\scripts\deploy_vps.sh" and eats the backslashes as escapes — it reported
+        # "C:Musheghscriptsdeploy_vps.sh: No such file or directory", which reads exactly like the
         # deploy script having been deleted. Four red checks, none of them about the scripts.
         rel = p.relative_to(ROOT).as_posix()
         r = subprocess.run([bash, "-n", rel], cwd=str(ROOT), capture_output=True, text=True)

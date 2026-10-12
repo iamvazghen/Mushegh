@@ -41,7 +41,7 @@ PROBES = [
 
 
 def main() -> int:
-    from afon.brain.intent_router import forced_tools
+    from mushegh.brain.intent_router import forced_tools
 
     reached, unreached = [], []
     print("Do exempted tools still get reached when a request plainly implies them?\n")

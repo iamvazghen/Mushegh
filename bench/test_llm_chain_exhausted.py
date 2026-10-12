@@ -1,7 +1,7 @@
 """J7.2 — the most consequential state in the system was carried as English inside a RuntimeError.
 
 "Every model in the failover chain refused" is not a generic runtime error. It is the one condition
-where Afon has lost the ability to think at all, and three different consumers need to tell it apart
+where Mushegh has lost the ability to think at all, and three different consumers need to tell it apart
 from an ordinary call failure:
 
   * the brain, which must apologise rather than retry into the same wall;
@@ -38,8 +38,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-import afon.brain.llm as llm_mod  # noqa: E402
-from afon.config import settings  # noqa: E402
+import mushegh.brain.llm as llm_mod  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 passed = failed = 0
 
@@ -106,7 +106,7 @@ async def main() -> None:
         check(llm_mod.CHAIN_EXHAUSTED in harness,
               f"run_all_tests.py matches on '{llm_mod.CHAIN_EXHAUSTED}'",
               "the classifier greps a sentence this module no longer prints")
-        src = (ROOT / "src" / "afon" / "brain" / "llm.py").read_text(encoding="utf-8")
+        src = (ROOT / "src" / "mushegh" / "brain" / "llm.py").read_text(encoding="utf-8")
         check(src.count(f'"{llm_mod.CHAIN_EXHAUSTED}"') == 1,
               "…and llm.py spells it exactly once — at the constant, not at a raise site",
               f"{src.count(chr(34) + llm_mod.CHAIN_EXHAUSTED + chr(34))} literal spellings; "

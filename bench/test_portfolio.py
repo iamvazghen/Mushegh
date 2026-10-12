@@ -63,7 +63,7 @@ LEDGER = '''2026-01-01 open Assets:Broker:VWCE  VWCE
 
 
 def main() -> None:
-    from afon.brain import portfolio as P
+    from mushegh.brain import portfolio as P
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         led_path = Path(d) / "ledger.beancount"
@@ -163,7 +163,7 @@ def main() -> None:
               "may be incomplete" in asyncio.run(P.snapshot(messy, quote=fresh_quote)).spoken(now))
 
     print("\n[no mutating tool] 40.F2 — asserted, not merely absent")
-    from afon.brain.tools import tool_handlers, tool_schemas
+    from mushegh.brain.tools import tool_handlers, tool_schemas
 
     schemas = {s["function"]["name"]: s["function"] for s in tool_schemas()}
     FINANCE = {n for n in schemas
@@ -188,11 +188,11 @@ def main() -> None:
     check("the one tool that takes an amount only converts it",
           "amount" not in fx or not (set(fx) & set(DESTINATIONS)), sorted(fx))
     check("the portfolio tool is the only one in its module",
-          len(__import__("afon.brain.tools.portfolio", fromlist=["x"]).HANDLERS) == 1)
+          len(__import__("mushegh.brain.tools.portfolio", fromlist=["x"]).HANDLERS) == 1)
     check("it is registered", "portfolio_snapshot" in tool_handlers())
 
-    src = (ROOT / "src/afon/brain/portfolio.py").read_text(encoding="utf-8")
-    tool_src = (ROOT / "src/afon/brain/tools/portfolio.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/brain/portfolio.py").read_text(encoding="utf-8")
+    tool_src = (ROOT / "src/mushegh/brain/tools/portfolio.py").read_text(encoding="utf-8")
     # The self-check at the bottom writes a temporary ledger of its own, so scan the module proper.
     shipped = src.split("def _selfcheck", 1)[0]
     for word in ("write_text", "http_post", "requests.post", "urlopen"):

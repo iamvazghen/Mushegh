@@ -5,7 +5,7 @@ The diagnosis, measured 2026-10-08:
     cold connection (new AsyncClient) : 1174 ms, 1167 ms
     warm connection (reused client)   : 597 ms, 226 ms, 424 ms
 
-`src/afon/brain/tools/base.py` does `async with _client(url) as c` per request, so every
+`src/mushegh/brain/tools/base.py` does `async with _client(url) as c` per request, so every
 call pays a fresh TLS handshake - roughly a second of the budget before Jev is even asked
 a question. The 400 ms cap is not unreachable because Jev is slow; it is unreachable
 because the socket is.
@@ -35,10 +35,10 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.judgment import DecisionOption, DecisionRequest, JudgmentService  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain.judgment import DecisionOption, DecisionRequest, JudgmentService  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
-PROBE = ("what's on today", ("afon.brain.tools.calendar", "afon.brain.tasks"))
+PROBE = ("what's on today", ("mushegh.brain.tools.calendar", "mushegh.brain.tasks"))
 
 
 async def reusing_transport_factory(key: str, endpoint: str, timeout: float):

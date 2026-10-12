@@ -3,7 +3,7 @@ Hermetic — fakes for the runner/reporter/emit, no Notion, no LLM, no real sche
 
 import asyncio
 
-from afon.brain import scheduler
+from mushegh.brain import scheduler
 
 
 def _reset():

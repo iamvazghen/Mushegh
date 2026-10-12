@@ -1,7 +1,7 @@
-# iFixAi GOVERNANCE fixture for Afon — the control plane, as it actually is.
+# iFixAi GOVERNANCE fixture for Mushegh — the control plane, as it actually is.
 #
-# This is the second of two fixtures. The diagnostic one (ifixai_fixture_afon.yaml) says what
-# domain Afon works in; this one says what STRUCTURE governs him. Without it every structural
+# This is the second of two fixtures. The diagnostic one (ifixai_fixture_mushegh.yaml) says what
+# domain Mushegh works in; this one says what STRUCTURE governs him. Without it every structural
 # method on the provider returns None and inspections B01/B02/B03/B04 report
 # "insufficient evidence" — they refuse to fall back to asking the model about itself, which is
 # the right call and the reason those five came back inconclusive on the first run.
@@ -10,8 +10,8 @@
 # that declares NO architecture is excluded from the aggregate, while one that declares an
 # INSUFFICIENT architecture "flows through the failing-evidence branch so the provider is held
 # accountable". Overclaiming here scores worse than staying silent, and would in any case produce
-# a grade that measures this file instead of Afon. So: every component below was read out of the
-# code, and the things Afon does not have are listed as absent rather than quietly omitted.
+# a grade that measures this file instead of Mushegh. So: every component below was read out of the
+# code, and the things Mushegh does not have are listed as absent rather than quietly omitted.
 #
 #   tools/authorization -> brain/proactive.py:CONFIRM_TIER (32 tools) + confirm_required()
 #   deterministic layer -> confirm_required() is pure Python: set membership plus an args check
@@ -19,7 +19,7 @@
 #   audit_log           -> brain/audit.py:record(), one JSONL line per tool call
 #   session             -> single-principal; speaker verification + optional face second factor
 #
-# NOT CLAIMED, because Afon does not have them:
+# NOT CLAIMED, because Mushegh does not have them:
 #   * no per-tool rate limiter (the only budget is on PROACTIVE speech, 6/day — a different thing)
 #   * no break-glass override role: nobody can bypass the confirm gate, so authorized_roles is []
 #   * no multi-tenant isolation: there is exactly one principal by design
@@ -115,7 +115,7 @@ policies:
     - id: confirm_gate
       name: Per-action owner confirmation
       description: >
-        Every tool in the confirm tier is held before execution. Afon states the action and its
+        Every tool in the confirm tier is held before execution. Mushegh states the action and its
         target, and runs it only after the owner affirms THAT action. One yes authorises one
         action; any other utterance supersedes and drops the pending confirmation, so an
         affirmation cannot be harvested from unrelated speech.
@@ -141,7 +141,7 @@ policies:
       tools:
         - recall
         - web_search
-    # The owner is authorized for EVERY tool. Afon is single-principal, and the confirm tier is a
+    # The owner is authorized for EVERY tool. Mushegh is single-principal, and the confirm tier is a
     # separate control: it holds an action pending his word, it does not deny him the capability.
     - role: owner
       tools:
@@ -168,7 +168,7 @@ policies:
   override:
     deny_message: >
       That one needs your confirmation, sir — tell me to go ahead and I'll do it.
-    # Deliberately empty: there is NO break-glass role in Afon. Not even the owner can disable
+    # Deliberately empty: there is NO break-glass role in Mushegh. Not even the owner can disable
     # the confirm gate; he can only affirm one action at a time.
     authorized_roles: []
 
@@ -190,13 +190,13 @@ policies:
       - audit                        # per-call record with actor/decision/rule/reasoning
 
   training_policy:
-    # Afon does no model training. Memory is retained indefinitely BY DESIGN — it is a memory
+    # Mushegh does no model training. Memory is retained indefinitely BY DESIGN — it is a memory
     # system for one person — and the owner can delete any fact with the `forget` tool, which is
     # itself confirm-gated so it cannot be triggered casually.
     data_retention_days: 0           # 0 = retained until the owner deletes it
     pii_scrubbed: true               # audit values are scrubbed against the live secret set
     opt_out_available: true          # `forget`
-    signature: "afon-memory-policy-2026-08"
+    signature: "mushegh-memory-policy-2026-08"
 
   rate_limits:
     # Honest: there is no per-tool rate limiter. The only budget in the system caps UNPROMPTED

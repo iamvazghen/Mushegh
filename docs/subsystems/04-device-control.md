@@ -1,6 +1,6 @@
 # S04 — Device Control
 
-> **One line:** Afon acting on the machine the owner is sitting at — twelve typed operations, verified after the fact, and a kill switch that actually kills.
+> **One line:** Mushegh acting on the machine the owner is sitting at — twelve typed operations, verified after the fact, and a kill switch that actually kills.
 > **Status:** complete for now; no wall hardware installed · **Registry:** S04 · 4/4 floor, 2/4 raise, 0/1 elite
 > **Milestones:** M36 · **Decisions:** D-13, D-41, D-63, D-68
 
@@ -8,7 +8,7 @@
 
 Device control is the place where a wrong turn is visible in the physical world. The
 contract is deliberately narrow: twelve operations over the PC link, each with a typed
-result, each checked after it fires. Afon opens the app, and then confirms the app is
+result, each checked after it fires. Mushegh opens the app, and then confirms the app is
 open (04.R1). It sets the volume, and then confirms the volume. A write that returns
 without an exception has been *accepted*; whether it landed is a question only a
 verification answers — the same distinction S06 applies to documents.
@@ -19,7 +19,7 @@ without the owner physically present. A dead PC link is reported as unreachable 
 one turn and never as success (04.F4) — a device that did not answer is a fact, not a
 failure to hide.
 
-The kill switch is the other half of the purpose. D-41: `systemctl stop openafon-edge`
+The kill switch is the other half of the purpose. D-41: `systemctl stop openmushegh-edge`
 over SSH or the tailnet. In-flight tasks take SIGTERM, escalate to SIGKILL after 3 s,
 and uncommitted edits remain in a Git stash — never lost, and never committed by the
 kill path. A system that can act on a machine must be stoppable in one command, and
@@ -35,7 +35,7 @@ not cover, and none of them know the house has an automation. The remote kill (D
 the edge executor are the software half of the same promise: a stopped automation has to
 leave a working light switch rather than a dead wall.
 
-If this is absent, Afon can talk but not act, and the owner is back to typing.
+If this is absent, Mushegh can talk but not act, and the owner is back to typing.
 
 ## Structure
 
@@ -45,25 +45,25 @@ The brain owns the decision; the machine that owns the hardware runs the agent.
 utterance ──> brain/tools/  pc_agent handler set (twelve ops)
                   │  PC_LINK
                   v
-   laptop:  src/afon/edge/pc_agent.py      the executor, typed results
-            src/afon/edge/device_profile.py what this machine is
-            src/afon/edge/switch_audio.py   output device routing
-            src/afon/edge/remote_brain.py
+   laptop:  src/mushegh/edge/pc_agent.py      the executor, typed results
+            src/mushegh/edge/device_profile.py what this machine is
+            src/mushegh/edge/switch_audio.py   output device routing
+            src/mushegh/edge/remote_brain.py
                   │
                   v
-   brain:  src/afon/brain/pc_link.py       the link; link-down is a state
-            src/afon/brain/health.py        reachability
-   safety: src/afon/brain/approvals.py, argcheck.py, audit.py  (D-13, D-41)
+   brain:  src/mushegh/brain/pc_link.py       the link; link-down is a state
+            src/mushegh/brain/health.py        reachability
+   safety: src/mushegh/brain/approvals.py, argcheck.py, audit.py  (D-13, D-41)
 ```
 
 | Concern | Where |
 |---|---|
-| The twelve operations, routing | `src/afon/edge/pc_agent.py` + `test_pc_agent_routing.py` |
-| Verify-after-act (04.R1) | `src/afon/brain/pc_link.py`; `test_pc_verify.py` |
+| The twelve operations, routing | `src/mushegh/edge/pc_agent.py` + `test_pc_agent_routing.py` |
+| Verify-after-act (04.R1) | `src/mushegh/brain/pc_link.py`; `test_pc_verify.py` |
 | Destructive refusal (04.F2) | `argcheck.py`, `approvals.py`; `test_pc_agent_refuse.py` |
 | Sleep / suspend and post-resume (04.F3) | `test_pc_suspend.py` |
 | Link-down within one turn (04.F4) | `pc_link.py`; `test_pc_verify.py` extended |
-| Remote kill (D-41, M36) | `systemctl stop openafon-edge`; `scripts/restart_edge.ps1` to bring it back |
+| Remote kill (D-41, M36) | `systemctl stop openmushegh-edge`; `scripts/restart_edge.ps1` to bring it back |
 | Service registration on the laptop | `scripts/install_edge_service.ps1` |
 | Wall lighting behind existing switches | S28, not S04 — the module only has to keep the hand switch working |
 | Appliance circuits (Shelly Plug Gen3 ×4) | S28 (D-68) — appliance circuits only, never the core circuit |
@@ -113,7 +113,7 @@ never been exercised.
 ## Failure modes
 
 **A false success.** The worst failure here, and the reason verify-after-act exists.
-Afon says the app is open and nothing is on screen. The owner discovers it when the
+Mushegh says the app is open and nothing is on screen. The owner discovers it when the
 thing they asked for has not happened, minutes later, having trusted the answer. 04.F4
 is the same class from the other side: an unreachable machine reported as success.
 Reproduce with `bench/test_pc_verify.py`; in the field, check `journalctl` on the laptop
@@ -147,9 +147,9 @@ working is the half of this system no test can fake.
 
 ## Open questions
 
-1. D-41 names the kill as `systemctl stop openafon-edge`, but
+1. D-41 names the kill as `systemctl stop openmushegh-edge`, but
    `scripts/install_edge_service.ps1` registers a Windows Scheduled Task named
-   `AfonEdge`. Are these the same unit under two names, or does the kill path only
+   `MusheghEdge`. Are these the same unit under two names, or does the kill path only
    exist for the Linux side and need a Windows equivalent before M36 can pass?
 2. 04.R2 (named targets with more than one machine online) has no measurement and no
    device-handoff coverage beyond the existing extension point. Does the roster need a

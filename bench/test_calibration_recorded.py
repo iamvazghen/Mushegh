@@ -29,8 +29,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import turn_trace  # noqa: E402
-from afon.shared.uncertainty import calibration  # noqa: E402
+from mushegh.brain import turn_trace  # noqa: E402
+from mushegh.shared.uncertainty import calibration  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []

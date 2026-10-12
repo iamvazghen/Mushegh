@@ -5,11 +5,11 @@ to a logger, never to a crash report. Only event metadata (zone, label, count, t
 to the brain.*
 
 **Read this before reading the results.** There is no detector in this repository: a search for
-`frigate`, `reolink` or `coral` under `src/afon/` returns nothing, there is no RTSP client, and no
+`frigate`, `reolink` or `coral` under `src/mushegh/` returns nothing, there is no RTSP client, and no
 camera has ever been connected. So this gate cannot prove that a local accelerator produces correct
 events, and it does not pretend to. What it proves is the part that is code rather than hardware:
 
-  * **the detector's output channel cannot carry a frame.** `afon.brain.detector.accept()` is the
+  * **the detector's output channel cannot carry a frame.** `mushegh.brain.detector.accept()` is the
     only function that turns a detector result into something the brain holds, and it refuses any
     payload with a key outside `{zone, label, count, at, camera}` and any value that looks like
     frame bytes, a data URI, an image path or a bare base64 blob. The key allowlist alone is not
@@ -49,9 +49,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-_TMP = tempfile.mkdtemp(prefix="afon-frame-egress-")
-os.environ["AFON_STATE_DIR"] = str(Path(_TMP) / "state")
-os.environ["AFON_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
+_TMP = tempfile.mkdtemp(prefix="mushegh-frame-egress-")
+os.environ["MUSHEGH_STATE_DIR"] = str(Path(_TMP) / "state")
+os.environ["MUSHEGH_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT / "src"))
@@ -84,9 +84,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain import detector
-    from afon.brain.detector import DetectionEvent, FrameEgressRefused, accept, accept_all, publish
-    from afon.shared.redact import withhold_media
+    from mushegh.brain import detector
+    from mushegh.brain.detector import DetectionEvent, FrameEgressRefused, accept, accept_all, publish
+    from mushegh.shared.redact import withhold_media
 
     print("\n--- the channel carries metadata and declares nothing else ---")
     check("the allowed keys are exactly zone, label, count, at, camera",
@@ -146,7 +146,7 @@ def main() -> int:
     print("\n--- with egress blocked, the detector still produces events ---")
     egress_blocked, tripwires = _block_egress()
     check("the socket layer is genuinely blocked", egress_blocked)
-    from afon.brain import perception
+    from mushegh.brain import perception
 
     perception.reset_visual()
     try:
@@ -192,7 +192,7 @@ def main() -> int:
     check("the camera capture op was never called", not seen["capture"], "camera_capture was called")
     _restore_vision_tripwires()
 
-    src = (ROOT / "src" / "afon" / "brain" / "detector.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "brain" / "detector.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     imported: set[str] = set()
     for node in ast.walk(tree):
@@ -200,16 +200,16 @@ def main() -> int:
             imported.update(a.name for a in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module)
-    forbidden = {"afon.brain.llm", "afon.brain.tools.camera", "afon.brain.tools.multimodal",
-                 "afon.brain.tools", "afon.config", "httpx", "socket", "urllib", "requests"}
+    forbidden = {"mushegh.brain.llm", "mushegh.brain.tools.camera", "mushegh.brain.tools.multimodal",
+                 "mushegh.brain.tools", "mushegh.config", "httpx", "socket", "urllib", "requests"}
     check("the module imports nothing that can reach a model or a socket",
           not (imported & forbidden), f"imports {sorted(imported & forbidden)}")
     for attr in ("see(", "look_around", "_dispatch", "chat.completions", "httpx", "urlopen"):
         check(f"the module's source contains no {attr!r}", attr not in src)
 
     print("\n--- a frame cannot reach a log ---")
-    from afon.brain import audit
-    from afon.shared.paths import audit_dir
+    from mushegh.brain import audit
+    from mushegh.shared.paths import audit_dir
 
     audit.record("look_around", {"prompt": "describe the room"},
                  f"Through the camera, sir: {DATA_URI}", ok=True)
@@ -223,7 +223,7 @@ def main() -> int:
           "Through the camera, sir:" in raw)
 
     print("\n--- a frame cannot reach a crash report ---")
-    from afon.shared import errors
+    from mushegh.shared import errors
 
     check("_scrub withholds a data URI", B64 not in errors._scrub(f"failed: {DATA_URI}"))
     check("_scrub withholds a b64 field",
@@ -233,14 +233,14 @@ def main() -> int:
     check("withhold_media leaves ordinary text alone",
           withhold_media("the front door opened at 3am") == "the front door opened at 3am")
 
-    with tempfile.TemporaryDirectory(prefix="afon-frame-errs-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-frame-errs-") as td:
         journal = Path(td) / "errors.jsonl"
         original = errors.JOURNAL
         errors.JOURNAL = journal
         try:
             errors.record(level="error", subsystem="brain/llm", error_type="VisionError",
                           message=f"vision chain exhausted; last body {DATA_URI}",
-                          where="afon.brain.llm.see", context={"frame": B64}, ship=False)
+                          where="mushegh.brain.llm.see", context={"frame": B64}, ship=False)
         finally:
             errors.JOURNAL = original
         written = journal.read_text(encoding="utf-8") if journal.exists() else ""
@@ -265,7 +265,7 @@ def main() -> int:
     imported_anywhere: set[str] = set()
     video_capture_args: list[ast.AST] = []
     rtsp_literals: list[str] = []
-    for path in (ROOT / "src" / "afon").rglob("*.py"):
+    for path in (ROOT / "src" / "mushegh").rglob("*.py"):
         text = path.read_text(encoding="utf-8", errors="ignore")
         if "rtsp://" in text.lower():
             rtsp_literals.append(path.name)
@@ -305,7 +305,7 @@ def _messages(hostile) -> list[Exception]:
     out = []
     for _why, payload in hostile:
         try:
-            from afon.brain.detector import accept as _accept
+            from mushegh.brain.detector import accept as _accept
             _accept(payload)
         except Exception as e:  # noqa: BLE001
             out.append(e)
@@ -313,7 +313,7 @@ def _messages(hostile) -> list[Exception]:
 
 
 def _batch_refuses() -> bool:
-    from afon.brain.detector import FrameEgressRefused, accept_all
+    from mushegh.brain.detector import FrameEgressRefused, accept_all
     try:
         accept_all([{"zone": "garden", "label": "person"},
                     {"zone": "garden", "label": "person", "image": "x"}])
@@ -354,8 +354,8 @@ def _block_egress():
 
 
 def _install_vision_tripwires() -> dict:
-    from afon.brain import llm
-    from afon.brain.tools import camera
+    from mushegh.brain import llm
+    from mushegh.brain.tools import camera
 
     seen = {"see": False, "look_around": False, "capture": False}
 
@@ -378,8 +378,8 @@ def _install_vision_tripwires() -> dict:
 
 
 def _restore_vision_tripwires() -> None:
-    from afon.brain import llm
-    from afon.brain.tools import camera
+    from mushegh.brain import llm
+    from mushegh.brain.tools import camera
 
     for mod, name in ((llm.LLMClient, "see"), (camera, "look_around"),
                       (camera, "_camera_capture_local")):

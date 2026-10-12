@@ -1,7 +1,7 @@
 """M41 — the external-executor contract holds its four invariants (D-79, D-80, D-81, D-85).
 
-Afon delegates by domain: daily life and business to the OpenClaw fleet, coding to the corporate
-coding CLIs, money to Rubo, reading to the owner's own SDK. One contract carries all of them, and
+Mushegh delegates by domain: daily life and business to the OpenClaw fleet, coding to the corporate
+coding CLIs, money to Ruben, reading to the owner's own SDK. One contract carries all of them, and
 this is the gate on that contract. Four things it must never allow:
 
   1. **an undispatchable brief reaching a process** — no acceptance check, a coding brief with no
@@ -56,8 +56,8 @@ def _raises(fn, exc) -> bool:
 
 
 async def main() -> int:
-    import afon.brain.executors as X
-    from afon.brain.executors import Brief, BriefRefused, Domain, ExecutorSpec, Result, Tier
+    import mushegh.brain.executors as X
+    from mushegh.brain.executors import Brief, BriefRefused, Domain, ExecutorSpec, Result, Tier
 
     repo = str(Path(__file__).resolve().parents[1])
 
@@ -118,31 +118,37 @@ async def main() -> int:
           "extra='forbid' — derived, never passed")
 
     print("\n[4] invariant 3 — the child gets no credentials")
-    os.environ["AFON_FAKE_SECRET_FOR_TEST"] = "sk-must-not-leak"
+    os.environ["MUSHEGH_FAKE_SECRET_FOR_TEST"] = "sk-must-not-leak"
     os.environ["ANTHROPIC_API_KEY"] = "allowed-for-claude-only"
     spec_claude = next(s for s in X.SPECS if s.name == "claude-code")
-    spec_rubo = next(s for s in X.SPECS if s.name == "rubo")
-    env_claude, env_rubo = X._child_env(spec_claude), X._child_env(spec_rubo)
+    spec_ruben = next(s for s in X.SPECS if s.name == "ruben")
+    env_claude, env_ruben = X._child_env(spec_claude), X._child_env(spec_ruben)
     check("an unrelated secret is withheld from every executor",
-          "AFON_FAKE_SECRET_FOR_TEST" not in env_claude
-          and "AFON_FAKE_SECRET_FOR_TEST" not in env_rubo)
-    check("no AFON_* setting reaches a child at all",
-          not any(k.startswith("AFON_") for k in env_claude),
+          "MUSHEGH_FAKE_SECRET_FOR_TEST" not in env_claude
+          and "MUSHEGH_FAKE_SECRET_FOR_TEST" not in env_ruben)
+    check("no MUSHEGH_* setting reaches a child at all",
+          not any(k.startswith("MUSHEGH_") for k in env_claude),
           "the brief is the interface, not the environment")
     check("an executor's own declared key does reach it",
           env_claude.get("ANTHROPIC_API_KEY") == "allowed-for-claude-only")
     check("...and does not reach a different executor",
-          "ANTHROPIC_API_KEY" not in env_rubo,
+          "ANTHROPIC_API_KEY" not in env_ruben,
           "env_allow is per-executor, not global")
     check("the child can still start (PATH is present)", "PATH" in env_claude)
-    os.environ.pop("AFON_FAKE_SECRET_FOR_TEST", None)
+    os.environ.pop("MUSHEGH_FAKE_SECRET_FOR_TEST", None)
     os.environ.pop("ANTHROPIC_API_KEY", None)
 
-    print("\n[4b] M44 - three coding executors behind the one contract, and none of them special")
+    print("\n[4b] the owner's coding pipeline: Claude Code, then mcode, then Mistral Vibe")
     coding = [sp for sp in X.SPECS if Domain.CODING in sp.domains]
-    check("all three corporate coding CLIs are rows, not modules",
-          {sp.name for sp in coding} == {"claude-code", "codex", "mcode"},
+    # CORRECTED 2026-10-11: this read {"claude-code", "codex", "mcode"}. Codex was never failing
+    # - it simply is not in the owner's pipeline, and three CLIs that can all edit a repo is one
+    # more audit shape to diagnose at 2 AM than the brief needs (D-01). The table and the chain
+    # are now checked against each other rather than against a literal, so a reorder fails HERE.
+    check("the coding rows are exactly the owner's pipeline",
+          {sp.name for sp in coding} == set(X.CODING_CHAIN),
           str(sorted(sp.name for sp in coding)))
+    check("...Claude Code is the main tool, mcode the first fallback, vibe the second",
+          X.CODING_CHAIN == ("claude-code", "mcode", "vibe"), str(X.CODING_CHAIN))
     check("every one of them is corporate tier (the owner's split)",
           all(sp.tiers == (Tier.CORPORATE,) for sp in coding))
     check("every one of them is non-interactive (D-80)",
@@ -154,14 +160,24 @@ async def main() -> int:
     check("no coding executor is handed a credential belonging to another",
           len({k for sp in coding for k in sp.env_allow})
           == len([k for sp in coding for k in sp.env_allow]))
-    check("the two that can enforce a result shape declare it (D-80)",
-          {sp.name for sp in coding if sp.structured_output} == {"codex", "mcode"},
-          "claude -p has no --output-schema equivalent, so it is not claimed to")
-    check("a brief sees all three as candidates - no caller names one",
+    check("the one that can enforce a result shape declares it (D-80)",
+          {sp.name for sp in coding if sp.structured_output} == {"mcode"},
+          "neither `claude -p` nor `vibe -p` has an --output-schema equivalent, so neither "
+          "claims one")
+    check("a brief sees all three, IN THE OWNER'S ORDER - no caller names one",
           len(X.candidates(Brief(domain=Domain.CODING, task="fix the off-by-one in paging",
                                  acceptance="the paging test passes", tier=Tier.CORPORATE,
                                  repo=os.getcwd()),
                            require_available=False)) == 3)
+    check("...and that order is the chain's, not the table's",
+          [sp.name for sp in X.candidates(
+              Brief(domain=Domain.CODING, task="fix the off-by-one in paging",
+                    acceptance="the paging test passes", tier=Tier.CORPORATE, repo=os.getcwd()),
+              require_available=False)] == list(X.CODING_CHAIN))
+    check("frontend work is refused here and pointed at Open Design, not sent to a coding CLI",
+          _raises(lambda: X.resolve(Brief(domain=Domain.FRONTEND, task="rebuild the landing page",
+                                          acceptance="it matches the mock")), BriefRefused)
+          and "Open Design" in X.FRONTEND_ROUTE)
     check("a coding brief on the PERSONAL tier is refused, naming the fix",
           _raises(lambda: Brief(domain=Domain.CODING, task="fix the paging bug",
                                 acceptance="the paging test passes", tier=Tier.PERSONAL,
@@ -171,7 +187,7 @@ async def main() -> int:
 
     missing = ExecutorSpec(name="not-installed", domains=(Domain.CODING,),
                            tiers=(Tier.CORPORATE,),
-                           argv=("afon-no-such-binary-xyz", "exec", "{task}"))
+                           argv=("mushegh-no-such-binary-xyz", "exec", "{task}"))
     check("an executor whose binary is absent is not available",
           not X.available(missing), "measured with shutil.which, not asserted")
     check("...and is therefore never a candidate",
@@ -184,12 +200,13 @@ async def main() -> int:
     fake = ExecutorSpec(name="fake-daily", domains=(Domain.DAILY,), tiers=(Tier.PERSONAL,),
                         argv=(sys.executable, "-c", "print('ok')"))
     original = X.SPECS
+    original_chain = X.CODING_CHAIN
     X.SPECS = (fake,)
     try:
         b = Brief(domain=Domain.DAILY, task="book the dentist", acceptance="appointment exists")
         check("a configured executor is a candidate", [s.name for s in X.candidates(b)] == ["fake-daily"])
         check("Jev's verdict is checked against the candidates, not trusted",
-              _raises(lambda: X.resolve(b, chosen="rubo"), BriefRefused))
+              _raises(lambda: X.resolve(b, chosen="ruben"), BriefRefused))
         check("a verdict inside the candidate list resolves",
               X.resolve(b, chosen="fake-daily").name == "fake-daily")
         check("an unavailable executor is not a candidate",
@@ -220,7 +237,7 @@ async def main() -> int:
         check("...and an error line is set", bool(r.error))
 
         missing = ExecutorSpec(name="ghost", domains=(Domain.DAILY,), tiers=(Tier.PERSONAL,),
-                               argv=("afon-executable-that-does-not-exist",))
+                               argv=("mushegh-executable-that-does-not-exist",))
         X.SPECS = (missing,)
         check("an uninstalled executable is refused as a candidate, not crashed into",
               _raises(lambda: X.resolve(b), BriefRefused))
@@ -231,7 +248,11 @@ async def main() -> int:
             argv=(sys.executable, "-c",
                   r"print('working...'); print('diff --git a/x.py b/x.py'); print('+changed')"),
         )
-        X.SPECS = (diffy,)
+        # CODING_CHAIN is patched alongside SPECS: coding candidates are filtered to the
+        # owner's named pipeline, so a fake coding executor has to be named in it to be
+        # dispatchable at all. That filter IS the "all code work goes down this pipeline"
+        # rule, so the test opts into it rather than working around it.
+        X.SPECS, X.CODING_CHAIN = (diffy,), ("differ",)
         cb = Brief(domain=Domain.CODING, task="change one line", acceptance="suite green",
                    tier=Tier.CORPORATE, repo=repo)
         r = await X.dispatch(cb)
@@ -243,7 +264,7 @@ async def main() -> int:
         check("stdin is closed to every child", "DEVNULL" in src,
               "D-80 draws the line at interactive, so there is nothing to type into")
     finally:
-        X.SPECS = original
+        X.SPECS, X.CODING_CHAIN = original, original_chain
 
     print("\n[9] availability is measured, not asserted (D-46)")
     # The first version of this check claimed no executor was installed. `claude` is on this
@@ -252,10 +273,30 @@ async def main() -> int:
     # comes from the host rather than from a constant somebody will forget to update.
     import shutil as _sh
     for s in X.SPECS:
-        check(f"{s.name}: availability tracks the host ({'installed' if X.available(s) else 'absent'})",
-              X.available(s) == (_sh.which(s.argv[0]) is not None))
+        # `unavailable_because` outranks the binary being present, and that is the point of the
+        # field: "installed" and "has the interface this row claims" are different facts.
+        want = (_sh.which(s.argv[0]) is not None) and not s.unavailable_because
+        check(f"{s.name}: availability tracks the host ({'usable' if X.available(s) else 'not usable'})",
+              X.available(s) == want)
+    blocked = [s for s in X.SPECS if s.unavailable_because]
+    check("a row whose interface does not exist is NOT a candidate",
+          all(not X.available(s) for s in blocked))
+    check("...and every one of them says why, in a sentence that names the fix",
+          all(len(s.unavailable_because or "") > 40 for s in blocked),
+          str([(s.name, s.unavailable_because) for s in blocked])[:200])
+    for s in blocked:
+        b = Brief(domain=s.domains[0], task="something real enough to validate",
+                  acceptance="a checkable outcome",
+                  tier=Tier.CORPORATE if Domain.CODING in s.domains else Tier.PERSONAL)
+        try:
+            X.resolve(b)
+        except BriefRefused as e:
+            check(f"{s.name}: the refusal is the REASON, not 'no configured executor'",
+                  s.unavailable_because in str(e), str(e)[:120])
+        else:
+            check(f"{s.name}: the brief is refused", False, "it resolved")
     print("\n[10] a batch shim never re-parses a brief (Windows)")
-    # Found by running the real thing: `codex`, `openclaw` and `rubo` all resolve to `.CMD` shims
+    # Found by running the real thing: `codex`, `openclaw` and `ruben` all resolve to `.CMD` shims
     # on this machine, and a batch file's arguments are re-parsed by the command interpreter. An
     # `&` inside a task string is then a command separator rather than a character. This module is
     # the safe boundary, so it fails closed.
@@ -282,11 +323,11 @@ async def main() -> int:
         shim.unlink(missing_ok=True)
 
     print("\n[11] D-83 — a financial position never reaches a store or the audit trail")
-    from afon.brain import never_store as NS
+    from mushegh.brain import never_store as NS
     check("the finance executor declares a never-store class",
-          X.storage_class("rubo") == NS.FINANCIAL_POSITION)
+          X.storage_class("ruben") == NS.FINANCIAL_POSITION)
     check("...and no other executor declares one",
-          [s.name for s in X.SPECS if s.declares_never_store] == ["rubo"])
+          [s.name for s in X.SPECS if s.declares_never_store] == ["ruben"])
     check("the class is declaration-only — there is no detector for it",
           NS.FINANCIAL_POSITION not in NS.DETECTABLE,
           "'EUR 2,400' is a balance, a salary, or the price of a bicycle; prose cannot tell")
@@ -377,7 +418,7 @@ async def main() -> int:
               'print(\'{"type": "turn.failed", "message": "sandbox denied"}\')'),
     )
     original3 = X.SPECS
-    X.SPECS = (failing,)
+    X.SPECS, X.CODING_CHAIN = (failing,), (failing.name,)
     try:
         r = await X.dispatch(Brief(domain=Domain.CODING, task="change one line",
                                    acceptance="suite green", tier=Tier.CORPORATE, repo=repo))
@@ -387,7 +428,7 @@ async def main() -> int:
         check("...and the error says what the executor reported", "sandbox denied" in r.error,
               r.error)
     finally:
-        X.SPECS = original3
+        X.SPECS, X.CODING_CHAIN = original3, original_chain
 
     print("\n[13] D-01 — the 2 AM question is answerable from the running system")
     rows = X.status()
@@ -398,7 +439,7 @@ async def main() -> int:
           all(isinstance(r["installed"], bool) for r in rows)
           and all(r["path"] or not r["installed"] for r in rows))
     check("the row for a withholding executor says so",
-          next(r for r in rows if r["name"] == "rubo")["withholds"] == NS.FINANCIAL_POSITION)
+          next(r for r in rows if r["name"] == "ruben")["withholds"] == NS.FINANCIAL_POSITION)
     check("status() reaches no network and starts no process",
           "status" in src2 and "create_subprocess" in src2.split("def status")[0],
           "the only subprocess call is in dispatch(), above it")

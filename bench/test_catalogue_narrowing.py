@@ -134,6 +134,12 @@ CORPUS: list[tuple[str, str]] = [
     # stock
     ("how much salt have we got left?", "stock"),
     ("are we running out of coffee?", "stock"),
+    # transit — added 2026-10-10: the gate failed on "every lazy group is exercised" because
+    # `transit` shipped as a lazy group with 38 triggers and ZERO corpus coverage. The invariant was
+    # right and the corpus was behind it. Phrasing deliberately avoids the multi-word triggers
+    # ("how do i get", "the next one", …) so this also counts toward the avoid-the-trigger check.
+    ("which platform does my train leave from?", "transit"),
+    ("is the train from Neumarkt delayed?", "transit"),
     # undo — "undo" and "roll back" are the triggers
     ("take that back", "undo"),
     ("put it the way it was a moment ago", "undo"),
@@ -167,7 +173,7 @@ def _avoids_phrase_trigger() -> int:
     phrases are the ones a prompt author would naturally reach for and a naive test would lean on.
     Counting the prompts that need none of them is the honest measure of a hand-written corpus.
     """
-    from afon.brain import tools as T
+    from mushegh.brain import tools as T
 
     n = 0
     for text, g in CORPUS:
@@ -178,10 +184,10 @@ def _avoids_phrase_trigger() -> int:
 
 
 def main() -> int:
-    from afon.brain import tools as T
-    from afon.brain.agent import CATALOGUE_TOKEN_BUDGET
-    from afon.brain.tools import group_tool_schemas
-    from afon.brain.turn_trace import catalogue_tokens
+    from mushegh.brain import tools as T
+    from mushegh.brain.agent import CATALOGUE_TOKEN_BUDGET
+    from mushegh.brain.tools import group_tool_schemas
+    from mushegh.brain.turn_trace import catalogue_tokens
 
     full = T.tool_schemas()
     core = T.core_tool_schemas()
@@ -202,7 +208,7 @@ def main() -> int:
                if catalogue_tokens(core + group_tool_schemas(g)) > CATALOGUE_TOKEN_BUDGET]))
 
     print("\n[2] the corpus is hand-written and covers every group")
-    check("sixty-two prompts", len(CORPUS) == 62, str(len(CORPUS)))
+    check("sixty-four prompts", len(CORPUS) == 64, str(len(CORPUS)))
     check("every prompt names a real group",
           all(g in T._LAZY_GROUPS for _, g in CORPUS),
           str(sorted({g for _, g in CORPUS if g not in T._LAZY_GROUPS})))
@@ -218,7 +224,7 @@ def main() -> int:
           _avoids_phrase_trigger() >= 20, f"only {_avoids_phrase_trigger()} of {len(CORPUS)}")
 
     print("\n[3] the REAL router reaches the needed group — the half a budget test cannot see")
-    from afon.brain.tools import groups_for_text_ranked
+    from mushegh.brain.tools import groups_for_text_ranked
 
     silent, misrouted = [], []
     for text, want in CORPUS:
@@ -276,7 +282,7 @@ def main() -> int:
           worst < full_tok * 0.5, f"worst {worst} of {full_tok}")
 
     print("\n[5] the budget holds when many groups arm at once")
-    from afon.brain.tools import groups_for_text_ranked
+    from mushegh.brain.tools import groups_for_text_ranked
 
     greedy = ("What should I work on next, and also check my inbox, my calendar, the weather, "
               "my portfolio, the vitals, and read this file while you call the workshop and "
@@ -303,13 +309,13 @@ def main() -> int:
           bool(admitted) and admitted[0] == fresh[0], f"{admitted[:2]} vs {fresh[:2]}")
 
     print("\n[6] pure chatter still gets nothing — that is what makes the fast path fast")
-    from afon.brain.tools import groups_for_text_ranked as ranked
+    from mushegh.brain.tools import groups_for_text_ranked as ranked
 
     for chat in ("how are you?", "thank you", "that is funny", "good morning"):
         check(f"{chat!r} arms no group", not ranked(chat), str(ranked(chat)))
 
     print("\n[7] Jev's stage two only narrows (01.R6's boundary, re-checked here)")
-    arb_src = (ROOT / "src" / "afon" / "brain" / "agent.py").read_text(encoding="utf-8")
+    arb_src = (ROOT / "src" / "mushegh" / "brain" / "agent.py").read_text(encoding="utf-8")
     check("a preferred group is honoured ONLY if the deterministic match still offers it",
           "if preferred_group and preferred_group in fresh:" in arb_src)
     seg = arb_src[arb_src.index("if preferred_group and preferred_group in fresh:"):

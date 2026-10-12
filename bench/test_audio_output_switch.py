@@ -1,4 +1,4 @@
-"""H1.3 — "Afon, switch to my headphones" actually switches the output.
+"""H1.3 — "Mushegh, switch to my headphones" actually switches the output.
 
 `edge/switch_audio.py` claimed in its own docstring that "the brain registers it as a tool in
 Phase 2". It didn't: the module had ZERO references anywhere in the repo. The device machinery was
@@ -37,9 +37,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    import afon.brain.tools.audioout as ao
-    from afon.brain.pc_link import PC_LINK
-    from afon.brain.tools import core_tool_schemas, groups_for_text, tool_handlers, tool_names
+    import mushegh.brain.tools.audioout as ao
+    from mushegh.brain.pc_link import PC_LINK
+    from mushegh.brain.tools import core_tool_schemas, groups_for_text, tool_handlers, tool_names
 
     print("[1] the capability exists at all — it never did before")
     names = set(tool_names())
@@ -95,7 +95,7 @@ def main() -> None:
     check("no target asks which one", "Which output" in asyncio.run(ao.switch_audio_output({})))
 
     print("\n[3] the executor saves a REAL preference on the machine with the speakers")
-    from afon.edge.audio_devices import PREF_PATH, load_output_preference, save_output_preference
+    from mushegh.edge.audio_devices import PREF_PATH, load_output_preference, save_output_preference
     prev = load_output_preference()
     try:
         got = json.loads(asyncio.run(ao._pc_audio_output_set({"target": "speakers"})))
@@ -120,7 +120,7 @@ def main() -> None:
         # ponytail: the watchdog watches the preference VALUE, not the file mtime. Watching mtime
         # restarted the edge every time anything rewrote the file with identical content — 103
         # restarts in the log, ~5/hour, and every one of them cut the speaker off mid-sentence.
-        from afon.edge.audio_watchdog import _pref_value
+        from mushegh.edge.audio_watchdog import _pref_value
 
         save_output_preference("speakers")
         before = _pref_value()
@@ -134,7 +134,7 @@ def main() -> None:
 
         # ...and the loop must actually ACT on it. Watching the mtime is worthless if nothing
         # rebuilds the stream, which was exactly the state this task found the system in.
-        from afon.edge.audio_watchdog import AudioLivenessProbe, watch_audio_liveness
+        from mushegh.edge.audio_watchdog import AudioLivenessProbe, watch_audio_liveness
 
         async def drive(change: bool) -> bool:
             probe = AudioLivenessProbe()
@@ -176,14 +176,14 @@ def main() -> None:
     check("...but stop_music still is (no trigger needed to stop sound)", "stop_music" in core)
 
     print("\n[6] pc_agent wires the ops up")
-    import afon.edge.pc_agent as agent
+    import mushegh.edge.pc_agent as agent
     for op in ("audio_output_set", "audio_output_list"):
         check(f"pc_agent executes '{op}'", op in agent.LOCAL_HANDLERS)
 
     print("\n[7] 42.F3 — volume and mute are ONE concept, on whichever path is playing")
-    import afon.brain.tools.audioout as ao
-    import afon.brain.tools.localplay as lp
-    import afon.brain.tools.voicechat as vc
+    import mushegh.brain.tools.audioout as ao
+    import mushegh.brain.tools.localplay as lp
+    import mushegh.brain.tools.voicechat as vc
 
     level = {"now": 55}
     calls: list[dict] = []
@@ -255,11 +255,11 @@ def main() -> None:
 
     check("set_volume is registered", "set_volume" in ao.HANDLERS)
     check("the laptop op is wired up", "audio_volume" in ao.LOCAL_HANDLERS)
-    import afon.edge.pc_agent as agent2
+    import mushegh.edge.pc_agent as agent2
     check("pc_agent executes 'audio_volume'", "audio_volume" in agent2.LOCAL_HANDLERS)
     check("volume stays OUT of the per-turn surface — 'louder' is a distinctive enough word",
           "set_volume" not in {s["function"]["name"] for s in core_tool_schemas()})
-    from afon.brain.tools import groups_for_text
+    from mushegh.brain.tools import groups_for_text
     for phrase in ("turn it down", "louder", "mute that", "how loud is it"):
         check(f"'{phrase}' reaches the volume tool", "audioout" in groups_for_text(phrase))
 

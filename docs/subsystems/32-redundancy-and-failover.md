@@ -16,7 +16,7 @@ are deferred and still owed, and the elite task is a drill that has not been run
 Failover here means two different things and they are not equally real.
 
 **Real:** when a model provider rate-limits or drops, `llm.py` walks the configured
-chain to the next provider so a single hiccup cannot mute Afon (32.F1, done). When the
+chain to the next provider so a single hiccup cannot mute Mushegh (32.F1, done). When the
 brain is unreachable, the edge degrades into declared modes rather than failing
 silently (32.F3, done). When a second instance tries to start, one of them refuses
 (32.F2, done).
@@ -33,33 +33,33 @@ failover plan, and a plan invented here would be the exact failure D-46 describe
 building an artificial bridge so an undecided question looks like progress.
 
 If the real half is absent: a provider outage takes the voice loop down. That has
-happened, and the fallback is `src/afon/edge/degraded_answers.py` — time, reminders and
+happened, and the fallback is `src/mushegh/edge/degraded_answers.py` — time, reminders and
 status, answered locally, with no model.
 
 ## Structure
 
-- `src/afon/brain/llm.py` — 971 lines and the only module that knows which vendor is on
+- `src/mushegh/brain/llm.py` — 971 lines and the only module that knows which vendor is on
   the other end. `settings.llm_chain` is walked primary-first;
   `note_provider_failure` / `note_provider_success` / `provider_cooling` /
   `provider_health` track per-provider state, `_is_permanent_error` stops the walk on a
   failure that will not recover, and `ChainExhausted` is the honest terminal error
   (32.F1, `bench/test_brain_llm.py`, `bench/test_resilience.py`).
-- `src/afon/edge/remote_brain.py` — `RemoteBrain`, the "one brain, many places it is
-  reached from" path. When `AFON_BRAIN_MODE=remote` (or `auto` and the brain answers),
+- `src/mushegh/edge/remote_brain.py` — `RemoteBrain`, the "one brain, many places it is
+  reached from" path. When `MUSHEGH_BRAIN_MODE=remote` (or `auto` and the brain answers),
   the laptop edge stops running its own agent and becomes a thin client. This is the
   nearest thing to promotion that exists, and it is not promotion: it fails closed when
   the brain is down rather than taking over.
-- `src/afon/edge/brain_client.py` — the client side of the tailnet WebSocket, one bearer
+- `src/mushegh/edge/brain_client.py` — the client side of the tailnet WebSocket, one bearer
   token, no inbound ports (D-03).
-- `src/afon/edge/degraded_answers.py` — the brain-down path. `answer()` handles time,
+- `src/mushegh/edge/degraded_answers.py` — the brain-down path. `answer()` handles time,
   reminders and status from local state with no LLM. `23.R4` measured real offline
   capability at 0.70/4 before this existed; it is better now and still not a brain.
-- `src/afon/edge/offline_queue.py` — work queued while the brain was unreachable, drained
+- `src/mushegh/edge/offline_queue.py` — work queued while the brain was unreachable, drained
   on return. The only existing machinery that resembles reconciliation.
-- `src/afon/shared/degraded.py` — the declared modes: `FULL`, `BRAIN_DOWN`, `EDGE_DOWN`.
+- `src/mushegh/shared/degraded.py` — the declared modes: `FULL`, `BRAIN_DOWN`, `EDGE_DOWN`.
 - Single-instance enforcement (32.F2, `bench/test_singleton_and_macro_guard.py`) plus
-  the `run/` pid and lock stores in `src/afon/brain/inventory.py`, and
-  `src/afon/edge/_supervisor.py`, which keeps the edge alive and — importantly —
+  the `run/` pid and lock stores in `src/mushegh/brain/inventory.py`, and
+  `src/mushegh/edge/_supervisor.py`, which keeps the edge alive and — importantly —
   captures the output that `pythonw.exe` would otherwise discard.
 - `deploy/uptime_watch.py` — "the health of the *other* host is known to each host, not
   assumed" (32.F4, done, `bench/test_connectivity.py [32.F4]`). One host's health is
@@ -70,7 +70,7 @@ protocol, no leader election.
 
 ## Goals
 
-1. A provider outage does not mute Afon: the chain moves to the next configured
+1. A provider outage does not mute Mushegh: the chain moves to the next configured
    provider without losing the turn.
 2. A permanent provider failure stops the walk rather than retrying a doomed call.
 3. Exactly one brain and one edge run; the second to start refuses.
@@ -97,7 +97,7 @@ protocol, no leader election.
    running system, which is why this is B1 and not B2. Last measurement:
    `not yet measured`.
 5. **B2 live drill** — `32.E1`, and the one benchmark here worth keeping. Pull the VPS
-   for an hour with the edge running. Pass condition: Afon stays usable (time,
+   for an hour with the edge running. Pass condition: Mushegh stays usable (time,
    reminders and status answer; capture works), the offline queue drains on return, and
    nothing is duplicated or lost in the queue. Threshold: 0 lost actions, 0 duplicates,
    1 hour. Last measurement: `not yet measured` — the drill has not been run and is not
@@ -113,8 +113,8 @@ protocol, no leader election.
 rather than hanging. The edge answers time, reminders and status from
 `degraded_answers.py`. Three commands:
 
-    journalctl -u openafon-brain -n 200 | grep -iE "chain|provider|exhaust"
-    python -c "from afon.brain.llm import provider_health; print(provider_health())"
+    journalctl -u openmushegh-brain -n 200 | grep -iE "chain|provider|exhaust"
+    python -c "from mushegh.brain.llm import provider_health; print(provider_health())"
     curl -s -o /dev/null -w '%{http_code}\n' "http://<brain-host>:<port>/healthz"
 
 **The brain is unreachable and the edge has nothing cached.** The honest degradation is
@@ -125,8 +125,8 @@ exactly where that line sits.
 **Two brains.** Should be impossible (32.F2). If it happens, something bypassed the
 check — look at the `run/` pid and lock stores:
 
-    python -m afon.brain.inventory | grep -i run
-    journalctl -u openafon-brain --since "1h" | grep -iE "singleton|lock|already running"
+    python -m mushegh.brain.inventory | grep -i run
+    journalctl -u openmushegh-brain --since "1h" | grep -iE "singleton|lock|already running"
 
 **The offline queue does not drain.** `offline_queue.py` drains on reconnect; a queue
 that grows is an edge that reconnected without draining, and the symptom is a delayed

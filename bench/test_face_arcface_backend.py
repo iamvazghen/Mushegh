@@ -48,8 +48,8 @@ def check(ok: bool, name: str, detail: str = "") -> None:
 
 
 def main() -> None:
-    import afon.brain.tools.camera as cam
-    from afon.config import settings
+    import mushegh.brain.tools.camera as cam
+    from mushegh.config import settings
 
     have_arc = cam._arcface() is not None
     print(f"[0] backend: {'ArcFace + SCRFD' if have_arc else 'LBP fallback (uniface unavailable)'}")

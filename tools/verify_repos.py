@@ -34,7 +34,7 @@ from collections import defaultdict
 from pathlib import Path
 
 API = "https://api.github.com"
-UA = {"User-Agent": "afon-utility-research", "Accept": "application/vnd.github+json"}
+UA = {"User-Agent": "mushegh-utility-research", "Accept": "application/vnd.github+json"}
 
 
 def _get(url: str) -> tuple[int, object | None]:

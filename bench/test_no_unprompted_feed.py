@@ -1,6 +1,6 @@
 """41.R4 — no unprompted content feed, asserted rather than remembered.
 
-D-34: "Afon never brings the owner something unasked because it seemed interesting." The
+D-34: "Mushegh never brings the owner something unasked because it seemed interesting." The
 morning news feed broke exactly that rule — `news_signals` was collected on every tick
 between 08:00 and 10:00 and pushed whether or not the owner had asked for anything.
 
@@ -36,8 +36,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-_TMP = tempfile.TemporaryDirectory(prefix="afon-feed-")
-os.environ["AFON_STATE_DIR"] = _TMP.name
+_TMP = tempfile.TemporaryDirectory(prefix="mushegh-feed-")
+os.environ["MUSHEGH_STATE_DIR"] = _TMP.name
 
 passed = failed = 0
 
@@ -64,8 +64,8 @@ def _stub(label: str, called: list[str]):
 
 
 def main() -> int:
-    from afon.brain import proactive
-    from afon.brain.proactive import default_signal_sources
+    from mushegh.brain import proactive
+    from mushegh.brain.proactive import default_signal_sources
 
     print("[1] the news feed is not a signal source")
     sources = default_signal_sources()
@@ -83,7 +83,7 @@ def main() -> int:
     # an alias. A plain grep would flag the explanatory comment left behind on purpose.
     import ast
 
-    text = (ROOT / "src" / "afon" / "brain" / "proactive.py").read_text(encoding="utf-8")
+    text = (ROOT / "src" / "mushegh" / "brain" / "proactive.py").read_text(encoding="utf-8")
     tree = ast.parse(text)
     imported: list[str] = []
     for node in ast.walk(tree):
@@ -96,7 +96,7 @@ def main() -> int:
 
     # And the other brain modules, the same way: a grep for the token would also match prose.
     others: list[str] = []
-    for path in sorted((ROOT / "src" / "afon" / "brain").rglob("*.py")):
+    for path in sorted((ROOT / "src" / "mushegh" / "brain").rglob("*.py")):
         if path.name in {"mynews.py"} or "__pycache__" in path.parts:
             continue
         try:
@@ -120,7 +120,7 @@ def main() -> int:
     # 7,013 of the owner's real vault notes, made a network call to the VPS ticker and billed
     # a cloud LLM call — a "hermetic" gate that reached into his data and his wallet. The
     # engine is still exercised; the sources are not.
-    from afon.brain.proactive import ProactiveEngine
+    from mushegh.brain.proactive import ProactiveEngine
 
     called: list[str] = []
     stubs = []
@@ -140,7 +140,7 @@ def main() -> int:
         print(f"        {len(called)} source(s) ticked, all stubbed, zero network")
 
     print("\n[4] the module survives; only the path to it was closed")
-    module = ROOT / "src" / "afon" / "brain" / "mynews.py"
+    module = ROOT / "src" / "mushegh" / "brain" / "mynews.py"
     check("mynews.py is still on disk (deletion was not the decision)", module.exists())
     if module.exists():
         body = module.read_text(encoding="utf-8")

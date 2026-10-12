@@ -46,8 +46,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-_TMP = tempfile.mkdtemp(prefix="afon-accept-")
-os.environ["AFON_STATE_DIR"] = str(Path(_TMP) / "state")
+_TMP = tempfile.mkdtemp(prefix="mushegh-accept-")
+os.environ["MUSHEGH_STATE_DIR"] = str(Path(_TMP) / "state")
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT / "src"))
@@ -67,12 +67,12 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def engine():
-    from afon.brain.proactive import ProactiveEngine
+    from mushegh.brain.proactive import ProactiveEngine
     return ProactiveEngine(emit=lambda *a, **k: None, clock=lambda: NOON)
 
 
 def main() -> int:
-    from afon.brain.proactive import ProactiveEngine
+    from mushegh.brain.proactive import ProactiveEngine
 
     _FB_DELTA = ProactiveEngine._FB_DELTA   # a CLASS attribute, not a module global
 
@@ -155,7 +155,7 @@ def main() -> int:
           and e3.acceptance_rate("reminder")["total"] == 1, str(e3.acceptance_rate("reminder")))
 
     print("\n[6] the rate is a REPORT, not a decision")
-    src = (ROOT / "src" / "afon" / "brain" / "proactive.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "brain" / "proactive.py").read_text(encoding="utf-8")
     body = src[src.index("def acceptance_rate("):src.index("def pending_key(")]
     check("it sets no penalty and moves no threshold — quoting a rate must not change behaviour",
           "_penalty" not in body and "_register_outcome" not in body and "_save_state" not in body)

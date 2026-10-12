@@ -85,10 +85,10 @@ a silent omission. They are now tracked work:
 | Task | Rule | What the audit found |
 |---|---|---|
 | `28.R4` | D-13 | `lock` and `garage_door` are **confirm-gated** in `smarthome.py`, not refused. A typed confirm is not physical presence — a live blast-radius gap, and the most serious finding in the pass. Scoped to what D-13 actually names: alarm, cover, climate and water heater keep the confirm-gated middle tier, which the charter does not forbid |
-| `37.R5` | D-24 | The never-store set existed only as prose. A grep for `D-24` / `NEVER_STORE` across `src/afon/` returns nothing |
+| `37.R5` | D-24 | The never-store set existed only as prose. A grep for `D-24` / `NEVER_STORE` across `src/mushegh/` returns nothing |
 | `41.R4` | D-34 | `mynews.py` is a live unprompted 08:00–10:00 feed, wired at `proactive.py:927`. No task tracked it. **Since fixed:** the task was added, 41.R4 removed the registration, and `bench/test_no_unprompted_feed.py` is green 10/10 (2026-10-04). The row is kept as written because this file is the dated record of what the audit found |
-| `18.R4` | D-17 | `AFON_ELEVENLABS_API_KEY` is configured, so local TTS is not actually the default the decision requires |
-| `18.R5` | D-19 | `AFON_PORCUPINE_ACCESS_KEY` is configured, so the wake word is a cloud call, not on-device spotting |
+| `18.R4` | D-17 | `MUSHEGH_ELEVENLABS_API_KEY` is configured, so local TTS is not actually the default the decision requires |
+| `18.R5` | D-19 | `MUSHEGH_PORCUPINE_ACCESS_KEY` is configured, so the wake word is a cloud call, not on-device spotting |
 | `36.R4` | D-62 | The environment carries ~15 third-party credentials, not the four D-62 named. Every one needs a row mapping it to a decision |
 | `45.R10` | D-25, D-43 | Two documents called the audit trail "tamper-evident". `audit.py` is append-only JSONL with fail-quiet writes and no hash chain — either it gets an integrity check or the word is struck everywhere |
 
@@ -98,26 +98,26 @@ credential surface that exists rather than the one that was intended.
 **M04 and M02 are both done.** The registry records intent, and on 2026-10-04 both became
 deletion rather than intent:
 
-- **M04 (2026-10-04):** the graph relation layer — `src/afon/brain/graph.py` and
-  `src/afon/brain/tools/graphmem.py` are removed, along with the `graph` lazy tool group and
+- **M04 (2026-10-04):** the graph relation layer — `src/mushegh/brain/graph.py` and
+  `src/mushegh/brain/tools/graphmem.py` are removed, along with the `graph` lazy tool group and
   the L5b recall layer. Recall p95 on the per-turn path improved from 27.0/42.0/28.6 ms to
   11.3/15.6/15.5 ms, and the advertised tool count fell to 151.
 - **M02 (2026-10-04):** the staged migration — `postgres_client.py` and
   `postgres_vectors.py` are removed, along with the `postgres_dsn` setting, the `postgres`
-  extra, `psycopg` from the lockfile, and the `AFON_POSTGRES_DSN` block. No migration was
+  extra, `psycopg` from the lockfile, and the `MUSHEGH_POSTGRES_DSN` block. No migration was
   needed: the runtime never read the DSN. `store_migration.py` is removed too, after
   checking as this file asked — nothing outside the cancelled migration used its snapshot
-  helper, and `afon.protocols.backup` provides the capability properly.
+  helper, and `mushegh.protocols.backup` provides the capability properly.
   `bench/test_s30_migration_removed.py` proves it with a real backup → verify → restore →
   drill round trip, 25/25.
 
 **Kept on purpose in both cases:** the `!postgres` classification rule and
-`afon_graph.sqlite` in the migration list. A host that ran the old code may still have those
+`mushegh_graph.sqlite` in the migration list. A host that ran the old code may still have those
 files, and a store nobody classified is the failure that table exists to prevent.
 
 **Removed 2026-10-04 (M04), for the record:** the graph relation layer
-(`src/afon/brain/graph.py` and `src/afon/brain/tools/graphmem.py`, plus the `graph` lazy
-tool group and the L5b recall layer). **`src/afon/brain/world_model.py` was deliberately
+(`src/mushegh/brain/graph.py` and `src/mushegh/brain/tools/graphmem.py`, plus the `graph` lazy
+tool group and the L5b recall layer). **`src/mushegh/brain/world_model.py` was deliberately
 kept** — it is goals and events, not relations, and `note_event` is a TTL scratchpad that
 webhooks depends on. Only its one graph-aware method went.
 
@@ -136,8 +136,8 @@ downstream as a change made.**
 
 | Rule | What the docs said | What the code does |
 |---|---|---|
-| **D-26** (S24) | "the relation layer is deleted, not paused" | `src/afon/brain/graph.py` is live: `add` :99, `remove` :113, `neighbors` :134, `related` :150 all work, and five modules import it — `memory.py:415`, `forget.py:132` and `:176`, `background_review.py:25`, `world_model.py:278`, `tools/graphmem.py:11`. The `graph` group is still advertised to the model. Deleting it is roadmap **M04**, and it has not been started |
-| **D-25** (S30) | superseded memories are "tombstoned, never wiped" | `MemoryStore.remember()` at `memory.py:124` deduped on **identical normalised text only**. A *conflicting* correction was stored as a second fact and recall returned both. `grep -rn "tombstone" src/afon/` found only turn-cancellation code. **RESOLVED 2026-10-04 — see the update below** |
+| **D-26** (S24) | "the relation layer is deleted, not paused" | `src/mushegh/brain/graph.py` is live: `add` :99, `remove` :113, `neighbors` :134, `related` :150 all work, and five modules import it — `memory.py:415`, `forget.py:132` and `:176`, `background_review.py:25`, `world_model.py:278`, `tools/graphmem.py:11`. The `graph` group is still advertised to the model. Deleting it is roadmap **M04**, and it has not been started |
+| **D-25** (S30) | superseded memories are "tombstoned, never wiped" | `MemoryStore.remember()` at `memory.py:124` deduped on **identical normalised text only**. A *conflicting* correction was stored as a second fact and recall returned both. `grep -rn "tombstone" src/mushegh/` found only turn-cancellation code. **RESOLVED 2026-10-04 — see the update below** |
 
 Both were written by this session's own charter pass, which is what makes them worth
 writing down rather than quietly fixing. The S30 and S45 documents were already honest
@@ -195,7 +195,7 @@ written into the charter as **proposed** and need the owner's signature.
 
 And one that is not a decision but a consequence worth stating plainly: **the configured
 vision chain is cloud-only** (MiniMax, Gemini, Groq). D-66 forbids video frames from leaving
-the house, so the `see()` path in `src/afon/brain/tools/camera.py` must not become the
+the house, so the `see()` path in `src/mushegh/brain/tools/camera.py` must not become the
 detector's output channel. `26.R5` tracks it.
 
 ## 5. Follow-ups outside `docs/`

@@ -17,8 +17,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.tool_usage import USAGE  # noqa: E402
-from afon.brain.tools import core_tool_schemas, tool_names  # noqa: E402
+from mushegh.brain.tool_usage import USAGE  # noqa: E402
+from mushegh.brain.tools import core_tool_schemas, tool_names  # noqa: E402
 
 MIN_CALLS_FOR_EVIDENCE = 200
 

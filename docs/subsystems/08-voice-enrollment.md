@@ -18,7 +18,7 @@ enrolment recorded whatever the microphone produced, embedded it, and reported
 extractor fan ran, went into the profile exactly like a good one — and the cost surfaced
 weeks later as a threshold that could not be placed, rather than as a message during the
 five minutes the owner was sitting at the microphone. 08.F2 is the fix for that half and
-it is done: `src/afon/edge/enroll_quality.py` measures duration, level, SNR and variety
+it is done: `src/mushegh/edge/enroll_quality.py` measures duration, level, SNR and variety
 per clip *before* it joins the profile. The fourth is the one that catches the case the
 others miss — a pure tone can be long, loud and clean and contain no speech at all.
 
@@ -44,10 +44,10 @@ owner reads the script, in a quiet room
    ├──> bench/enroll_voice.py          the enrolment driver
    │      per clip, before it joins the profile: enroll_quality.py
    │      duration · level · SNR · variety → accept or reject with a reason (08.F2)
-   ├──> src/afon/edge/speaker_id.py    ECAPA-TDNN, 192-dim, lazy-imported
-   │      L2-normalised vector per clip → AFON_SPEAKER_PROFILE
+   ├──> src/mushegh/edge/speaker_id.py    ECAPA-TDNN, 192-dim, lazy-imported
+   │      L2-normalised vector per clip → MUSHEGH_SPEAKER_PROFILE
    │      owner vs impostor → the measured band
-   └──> src/afon/edge/speaker_gate.py  runtime gate
+   └──> src/mushegh/edge/speaker_gate.py  runtime gate
           accept_bar() is DERIVED from the measured band, not a constant (10.F3)
           borderline (within 0.05) also earns a face check
 ```
@@ -55,10 +55,10 @@ owner reads the script, in a quiet room
 | Concern | Where |
 |---|---|
 | Enrolment driver | `bench/enroll_voice.py`; parsing in `test_enroll_script_parse.py` |
-| Quality gate at capture time (08.F2) | `src/afon/edge/enroll_quality.py` |
-| Embeddings, profile store, accept band | `src/afon/edge/speaker_id.py` |
-| Runtime accept/reject (S10) | `src/afon/edge/speaker_gate.py` |
-| Recognition words in transcripts | `src/afon/edge/proper_nouns.py` |
+| Quality gate at capture time (08.F2) | `src/mushegh/edge/enroll_quality.py` |
+| Embeddings, profile store, accept band | `src/mushegh/edge/speaker_id.py` |
+| Runtime accept/reject (S10) | `src/mushegh/edge/speaker_gate.py` |
+| Recognition words in transcripts | `src/mushegh/edge/proper_nouns.py` |
 
 **Process ownership:** edge. The profile is a local artefact and does not migrate.
 **What it stores:** one L2-normalised vector per clip, and the measured impostor band.
@@ -92,7 +92,7 @@ ECAPA-TDNN plus CAM++/ERes2Net/ReDimNet checkpoints, a **PLDA backend**, and
 **EER/DCF scoring**.
 
 **Door: in-process, and only in `bench/enroll_voice.py` and the bench.** Never by
-`src/afon/edge/speaker_gate.py` on the hot path. That separation is the entire
+`src/mushegh/edge/speaker_gate.py` on the hot path. That separation is the entire
 safety margin: `speaker_gate.py` must stay exactly as inspectable at 2 AM as it
 is now, and swapping the embedder would invalidate the existing profile.
 
@@ -106,8 +106,8 @@ them a number to aim at.
 three commands, in order:
 
 ```
-journalctl -u openafon-edge -n 200 | grep -i "speaker profile"
-cat "$AFON_SPEAKER_PROFILE" | python -m json.tool | grep -A5 separation
+journalctl -u openmushegh-edge -n 200 | grep -i "speaker profile"
+cat "$MUSHEGH_SPEAKER_PROFILE" | python -m json.tool | grep -A5 separation
 uv run python bench/test_phase5_identity_bench.py
 ```
 
@@ -121,7 +121,7 @@ and replacing a completed feature to fix a missing test inverts the rule. See
 
 | # | Goal | Tier | Command / drill | Threshold | Last measurement |
 |---|---|---|---|---|---|
-| 1 | **Profile quality (M09)** | B5 | `bench/test_phase5_identity_bench.py`, 20 held-out utterances | owner median ≥0.60; enrolment passes the SNR floor | **0.47** against a 0.60 target, recorded in the docstring at `src/afon/edge/enroll_quality.py:3` and in the comment at `bench/enroll_voice.py:165`. 08.F1's gate is `test_phase5_identity_bench.py` — owner median ≥0.60 — and 08.F1 carries no evidence record, so the number is not in the registry. It carries **no date** in the source, so treat it as a code-recorded value, not a dated run. The M09 re-measurement is **not yet measured** |
+| 1 | **Profile quality (M09)** | B5 | `bench/test_phase5_identity_bench.py`, 20 held-out utterances | owner median ≥0.60; enrolment passes the SNR floor | **0.47** against a 0.60 target, recorded in the docstring at `src/mushegh/edge/enroll_quality.py:3` and in the comment at `bench/enroll_voice.py:165`. 08.F1's gate is `test_phase5_identity_bench.py` — owner median ≥0.60 — and 08.F1 carries no evidence record, so the number is not in the registry. It carries **no date** in the source, so treat it as a code-recorded value, not a dated run. The M09 re-measurement is **not yet measured** |
 | 2 | Quality at capture | B1 | `bench/test_enroll_script_parse.py` extended, twelve plants | 12/12 decided correctly, each with a reason | 42/42 per the registry gate text; evidence kind `unverified-import` — **not yet measured** as a dated run |
 | 3 | Derived threshold | B4 | Invariant: `accept_bar()` derives from the profile's own band; a hand-placed constant is a hard failure | 0 constant thresholds | not yet measured |
 | 4 | Multi-condition enrolment | B5 | `bench/test_phase5_identity_bench.py` [per-condition medians] | ≥0.60 median in each of 4 conditions, reported separately | not yet measured — 08.R1 open, and no enrolment corpus exists in the repo |

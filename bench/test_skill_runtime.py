@@ -6,9 +6,9 @@ skill fires its steps in sequence without touching real Notion/Gmail/Telegram.
 import asyncio
 import time
 
-import afon.brain.tools as tools_pkg
-from afon.brain.tools import skills
-from afon.brain.tools.macros import run_steps
+import mushegh.brain.tools as tools_pkg
+from mushegh.brain.tools import skills
+from mushegh.brain.tools.macros import run_steps
 
 _ok = 0
 _fail = 0
@@ -93,8 +93,8 @@ async def main():
     import pathlib
     import tempfile
 
-    from afon.brain import automations as au
-    from afon.brain.tools import macros as mac
+    from mushegh.brain import automations as au
+    from mushegh.brain.tools import macros as mac
 
     rows = au.automations()
     check(bool(rows), "something is listed — the registry is reachable outside a live brain")

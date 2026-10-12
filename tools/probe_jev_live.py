@@ -24,12 +24,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.judgment import (  # noqa: E402
+from mushegh.brain.judgment import (  # noqa: E402
     DecisionOption,
     DecisionRequest,
     JudgmentService,
 )
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 
 def tcp_probe(host: str, port: int = 443, timeout: float = 6.0) -> tuple[bool, str]:

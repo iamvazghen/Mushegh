@@ -1,0 +1,767 @@
+{
+ "_source": "vault 20-Agents/fleet18.json",
+ "_generated": "2026-10-11T18:55:44Z",
+ "_regenerate": "uv run python scripts/sync_fleet_roster.py",
+ "agents": {
+  "goharik": {
+   "agent_id": "A01",
+   "person": "Goharik",
+   "domain": "Inbox",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Thread context and reusable correspondence procedures.",
+   "utilities": [
+    {
+     "id": 1,
+     "title": "“Inbox Zero” Smart Triage & Priority Sorting",
+     "connections": "MAIL",
+     "skill": "utility_01: Sender rules then typed urgency classification; preserve VIP and unread state",
+     "workflow": "Email webhook; sender rules then typed urgency triage; reversible labels and VIP queue"
+    },
+    {
+     "id": 2,
+     "title": "Contextual Reply Drafting",
+     "connections": "MAIL,KB",
+     "skill": "utility_02: Fetch full permitted thread; grounded reply with approved facts and signature",
+     "workflow": "Fetch thread plus approved context; LLM draft through Gmail/Graph API"
+    },
+    {
+     "id": 3,
+     "title": "Ghosting & Follow-Up Tracker",
+     "connections": "MAIL,CRM",
+     "skill": "utility_03: Sent/reply correlation and bounded follow-up timers",
+     "workflow": "Sent-message ledger and daily deadline query; draft follow-ups"
+    },
+    {
+     "id": 4,
+     "title": "Cold Outreach & Spam Filter Gatekeeper",
+     "connections": "MAIL",
+     "skill": "utility_04: Known spam rules plus bounded semantic review; reversible quarantine",
+     "workflow": "Rules plus semantic relevance classifier; quarantine or decline draft"
+    },
+    {
+     "id": 5,
+     "title": "Meeting Request Extractor",
+     "connections": "MAIL,CAL",
+     "skill": "utility_05: Extract scheduling constraints and hand to shared deterministic slot solver",
+     "workflow": "Scheduling intent extraction; free/busy API; deterministic slot finder"
+    },
+    {
+     "id": 6,
+     "title": "Smart Newsletter & Unsubscribe Worker",
+     "connections": "MAIL,WEB",
+     "skill": "utility_06: Newsletter dedup/digest; verified List-Unsubscribe adapter",
+     "workflow": "RSS/email newsletter grouping; weekly synthesis; verified unsubscribe adapter"
+    },
+    {
+     "id": 7,
+     "title": "Email Signature & Template Consistency Enforcer",
+     "connections": "MAIL,DOC",
+     "skill": "utility_07: Versioned approved templates; deterministic signature and disclaimer validation",
+     "workflow": "Deterministic signature/template validator at draft/send boundary"
+    },
+    {
+     "id": 8,
+     "title": "Multi-Language Reply Drafting with Tone Matching",
+     "connections": "MAIL,KB",
+     "skill": "utility_08: Language-aware drafting with approved tone glossary",
+     "workflow": "Language detection; LLM draft with approved tone examples"
+    }
+   ]
+  },
+  "felo": {
+   "agent_id": "A02",
+   "person": "Felo",
+   "domain": "Editorial and performance",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Open-ended writing and evidence-based editorial iteration.",
+   "utilities": [
+    {
+     "id": 9,
+     "title": "Content Framework Architect",
+     "connections": "DOC,ANALYTICS,KB",
+     "skill": "utility_09: Reusable audience-specific writing frameworks from measured examples",
+     "workflow": "Authorized content metrics plus curated examples; reusable writing templates"
+    },
+    {
+     "id": 10,
+     "title": "Long-Form Video & Podcast Scriptwriter",
+     "connections": "DOC,WEB,KB",
+     "skill": "utility_10: Evidence-linked long-form script; scene and production notes",
+     "workflow": "Research bundle and source-linked script draft"
+    },
+    {
+     "id": 11,
+     "title": "Hook & Title Variant Generator",
+     "connections": "DOC,ANALYTICS",
+     "skill": "utility_11: Generate diverse hooks; stage measurable title experiments",
+     "workflow": "Generate variants; test against actual audience metrics"
+    },
+    {
+     "id": 12,
+     "title": "Multi-Format Content Repurposer",
+     "connections": "DOC,MEET,PUB",
+     "skill": "utility_12: Canonical transcript to platform-specific drafts in parallel",
+     "workflow": "One canonical transcript; template-based parallel draft outputs"
+    },
+    {
+     "id": 14,
+     "title": "Editorial Calendar & Pipeline Overseer",
+     "connections": "DOC,TASK,CAL",
+     "skill": "utility_14: Editorial states, dependency rules and deadline notifications",
+     "workflow": "Notion/Airtable webhook and deadline queries; reminders"
+    },
+    {
+     "id": 15,
+     "title": "Curated Industry Newsletter Assembler",
+     "connections": "WEB,DOC,PUB",
+     "skill": "utility_15: RSS/official-source ingestion, novelty filter and citation-linked newsletter",
+     "workflow": "RSS ingestion and dedup; source-linked newsletter draft"
+    },
+    {
+     "id": 16,
+     "title": "Public Roadmap / Changelog Publisher",
+     "connections": "GITHUB,DOC,PUB",
+     "skill": "utility_16: Released-change selection and source-linked public changelog",
+     "workflow": "Read release/issue records; assemble changelog draft"
+    },
+    {
+     "id": 77,
+     "title": "Content Performance Feedback Loop",
+     "connections": "ANALYTICS,DOC",
+     "skill": "utility_77: Measured experiment dashboard and content-framework feedback",
+     "workflow": "Platform analytics API; measured experiment feedback"
+    }
+   ]
+  },
+  "arsen": {
+   "agent_id": "A03",
+   "person": "Arsen",
+   "domain": "Media production",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Typed segment plans; deterministic media rendering.",
+   "utilities": [
+    {
+     "id": 13,
+     "title": "Vertical Video (Shorts/Reels) Clipping Pipeline",
+     "connections": "MEDIA,DOC,PUB",
+     "skill": "utility_13: ASR timestamps, typed clip boundaries, FFmpeg crop/captions and render QC",
+     "workflow": "Transcription and segment proposals; ffmpeg render in disposable media worker"
+    }
+   ]
+  },
+  "lika": {
+   "agent_id": "A04",
+   "person": "Lika",
+   "domain": "Projects and meeting execution",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Context across tasks, transcripts, and project procedures.",
+   "utilities": [
+    {
+     "id": 17,
+     "title": "Cross-Platform Task Synchronization",
+     "connections": "TASK",
+     "skill": "utility_17: Deterministic field map, source versions and synchronization outbox",
+     "workflow": "Webhook adapters; field mapping; versioned synchronization outbox"
+    },
+    {
+     "id": 18,
+     "title": "Blocker & Stalled Task Radar",
+     "connections": "TASK,CHAT",
+     "skill": "utility_18: Aging/dependency rules with contextual blocker digest",
+     "workflow": "Scheduled board query and aging thresholds; contextual escalation"
+    },
+    {
+     "id": 19,
+     "title": "Autonomous Async Daily Standup Collector",
+     "connections": "CHAT,TASK",
+     "skill": "utility_19: Opt-in standup window with timezone-aware reminders and summary",
+     "workflow": "Opt-in scheduled prompts; bounded collection window; summary"
+    },
+    {
+     "id": 20,
+     "title": "Milestone & Delivery Risk Estimator",
+     "connections": "TASK",
+     "skill": "utility_20: Historical throughput estimator with intervals; narrative risk interpretation",
+     "workflow": "Historical throughput and uncertainty calculation; narrative warning"
+    },
+    {
+     "id": 21,
+     "title": "Meeting-to-Task Pipeline",
+     "connections": "MEET,TASK,KB",
+     "skill": "utility_21: Extract action, owner, due date and transcript span; stage task batch",
+     "workflow": "Approved transcript; owner/deadline extraction; staged task batch"
+    },
+    {
+     "id": 22,
+     "title": "Backlog Hygiene & Stale Task Pruner",
+     "connections": "TASK",
+     "skill": "utility_22: Deterministic stale-candidate query and reversible archive proposal",
+     "workflow": "Age/status rules; archive recommendations"
+    },
+    {
+     "id": 23,
+     "title": "Meeting Transcription Quality Gate",
+     "connections": "MEET,MEDIA",
+     "skill": "utility_23: ASR alignment, speaker map and uncertain segment queue",
+     "workflow": "ASR timestamps/confidence; speaker mapping and uncertain-segment queue"
+    }
+   ]
+  },
+  "tatev": {
+   "agent_id": "A05",
+   "person": "Tatev",
+   "domain": "Personal operations",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Private personal context and adaptable routines.",
+   "utilities": [
+    {
+     "id": 24,
+     "title": "Brain-Dump to GTD Processing",
+     "connections": "TASK,KB,MEDIA",
+     "skill": "utility_24: Voice/text capture to typed GTD next actions and reference notes",
+     "workflow": "Jarvis voice/text capture; structured task extraction; chosen task API"
+    },
+    {
+     "id": 25,
+     "title": "Daily Plan & Energy-Based Task Scheduler",
+     "connections": "TASK,CAL",
+     "skill": "utility_25: Explicit energy preference and hard constraints; deterministic scheduling",
+     "workflow": "Calendar free/busy plus explicit energy preferences; constraint solver"
+    },
+    {
+     "id": 26,
+     "title": "Context-Switching Minimizer (Task Batching)",
+     "connections": "TASK,CAL",
+     "skill": "utility_26: Context labels and minimum-switch packing heuristic",
+     "workflow": "Task metadata grouping and deterministic calendar packing"
+    },
+    {
+     "id": 27,
+     "title": "End-of-Day Review & Rollover Engine",
+     "connections": "TASK,CAL,KB",
+     "skill": "utility_27: Daily ledger review and bounded rollover proposal",
+     "workflow": "Daily task ledger query; review draft and bounded rollover"
+    },
+    {
+     "id": 28,
+     "title": "Delegation Tracker",
+     "connections": "TASK,CRM,CHAT",
+     "skill": "utility_28: Delegation ledger with accountable owner, due date and nudge budget",
+     "workflow": "Delegation ledger and expected delivery dates; reminder drafts"
+    },
+    {
+     "id": 71,
+     "title": "Personal Admin Queue",
+     "connections": "MAIL,DOC,TASK",
+     "skill": "utility_71: Personal document/OCR intake, admin queue and renewal proposals",
+     "workflow": "OCR/document intake; subscriptions and renewal reminders; receipt staging"
+    },
+    {
+     "id": 72,
+     "title": "Health & Focus Boundary Enforcer",
+     "connections": "CAL,TASK",
+     "skill": "utility_72: User-set quiet hours/focus boundaries and break reminders",
+     "workflow": "User-defined quiet hours and focus blocks; calendar rules"
+    },
+    {
+     "id": 73,
+     "title": "Relationship Maintenance Radar",
+     "connections": "CRM,MAIL,CAL",
+     "skill": "utility_73: Consented personal contact ledger and authentic reconnect drafts",
+     "workflow": "Consented contact ledger; last meaningful contact; reconnect drafts"
+    },
+    {
+     "id": 74,
+     "title": "Physical Mail & Package Arrival Notifier",
+     "connections": "MAILBOX,MAIL,MEDIA",
+     "skill": "utility_74: Signed arrival webhook/notification intake with authorized OCR",
+     "workflow": "Virtual-mailbox or courier webhook; approved OCR intake"
+    }
+   ]
+  },
+  "tamara": {
+   "agent_id": "A06",
+   "person": "Tamara",
+   "domain": "Business and vendor operations",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Source-backed operational documents and vendor workflows.",
+   "utilities": [
+    {
+     "id": 29,
+     "title": "Standard Operating Procedure (SOP) Synthesizer",
+     "connections": "MEET,DOC,KB",
+     "skill": "utility_29: Observed walkthrough to reviewed SOP and versioned skill",
+     "workflow": "Approved walkthrough transcript; SOP draft with checkpoints"
+    },
+    {
+     "id": 30,
+     "title": "Pre-Call Executive Briefing Dossier",
+     "connections": "CAL,CRM,WEB,KB",
+     "skill": "utility_30: Entity-cached pre-call dossier with prior decisions and open actions",
+     "workflow": "Calendar trigger; permitted public search plus prior notes; briefing"
+    },
+    {
+     "id": 31,
+     "title": "Vendor Terms of Service (ToS) & Policy Diff Watcher",
+     "connections": "WEB,DOC",
+     "skill": "utility_31: Conditional fetch, normalized text diff and material-change triage",
+     "workflow": "Scheduled conditional HTTP fetch; versioned text diff; semantic significance check"
+    },
+    {
+     "id": 32,
+     "title": "Vendor SLA Downtime & Rebate Tracker",
+     "connections": "OPS,DOC,CRM",
+     "skill": "utility_32: Independent availability timeline plus verified SLA clause and claim draft",
+     "workflow": "Independent uptime monitor; outage ledger; SLA clause lookup and claim draft"
+    },
+    {
+     "id": 33,
+     "title": "Interview & Hiring Dossier Compiler",
+     "connections": "HR,DOC",
+     "skill": "utility_33: Consented resume/job rubric and source-backed interview packet",
+     "workflow": "Consented resume/job comparison and interview questions"
+    },
+    {
+     "id": 34,
+     "title": "Meeting Agenda Architect",
+     "connections": "CAL,TASK,DOC",
+     "skill": "utility_34: Outcome-first agenda with timed topics, owners and pre-read",
+     "workflow": "Meeting record and structured agenda intake; timed agenda draft"
+    },
+    {
+     "id": 78,
+     "title": "Vendor Performance & Relationship Log",
+     "connections": "CRM,DOC,OPS",
+     "skill": "utility_78: Observable vendor delivery/support scorecard and relationship notes",
+     "workflow": "Delivery/support records; vendor scorecard and review reminders"
+    },
+    {
+     "id": 79,
+     "title": "Inventory / Consumable Reorder Trigger",
+     "connections": "INVENTORY,TASK",
+     "skill": "utility_79: Deterministic stock/seat thresholds and reorder requisitions",
+     "workflow": "Inventory/license usage thresholds; reorder recommendation"
+    },
+    {
+     "id": 80,
+     "title": "RFP / Proposal Response Coordinator",
+     "connections": "DOC,KB,TASK",
+     "skill": "utility_80: RFP compliance checklist, contributor routing and evidence-linked response",
+     "workflow": "RFP checklist; owner assignments; source-backed proposal assembly"
+    }
+   ]
+  },
+  "hrach": {
+   "agent_id": "A07",
+   "person": "Hrach",
+   "domain": "Sales and partnerships",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Research, relationship context, and reviewed outreach drafts.",
+   "utilities": [
+    {
+     "id": 35,
+     "title": "High-Intent Social Buying Signal Radar",
+     "connections": "SOCIAL,WEB,CRM",
+     "skill": "utility_35: Public/licensed intent signals, evidence spans and staged leads",
+     "workflow": "Licensed/searchable public feeds; intent triage and lead staging"
+    },
+    {
+     "id": 36,
+     "title": "B2B Lead Enrichment & Contact Verification",
+     "connections": "ENRICH,CRM",
+     "skill": "utility_36: Entity match, licensed enrichment and verified-contact provenance",
+     "workflow": "Authorized enrichment service; DNS checks and verification API"
+    },
+    {
+     "id": 37,
+     "title": "Conference & Event Intelligence Scraper",
+     "connections": "WEB,CAL,CRM",
+     "skill": "utility_37: Official event page extraction and deduplicated event registry",
+     "workflow": "Public event APIs/pages; entity matching and relevance ranking"
+    },
+    {
+     "id": 81,
+     "title": "Partner / Affiliate Relationship Manager",
+     "connections": "CRM,DOC,MAIL",
+     "skill": "utility_81: Partner commitments and reviewed check-in/affiliate workflow",
+     "workflow": "Partner records and obligations; check-in drafts"
+    },
+    {
+     "id": 82,
+     "title": "Event & Webinar Follow-Up Engine",
+     "connections": "CRM,MEET,MAIL",
+     "skill": "utility_82: Consented attendance segmentation and stop-on-reply follow-up sequence",
+     "workflow": "Consented event attendance; segmentation; staged follow-up sequence"
+    }
+   ]
+  },
+  "sergey": {
+   "agent_id": "A08",
+   "person": "Sergey",
+   "domain": "Customer support and onboarding",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Bounded ticket actions and typed provisioning plans.",
+   "utilities": [
+    {
+     "id": 38,
+     "title": "24/7 Level-1 Support Concierge",
+     "connections": "HELP,KB",
+     "skill": "utility_38: Ticket classification, approved FAQ retrieval and bounded response policy",
+     "workflow": "Ticket webhook; approved knowledge retrieval; response/escalation"
+    },
+    {
+     "id": 39,
+     "title": "Client Onboarding Orchestrator",
+     "connections": "HELP,CRM,TASK,HR",
+     "skill": "utility_39: Versioned client checklist and typed approved provisioning plan",
+     "workflow": "CRM event; deterministic onboarding checklist; scoped provisioning adapters"
+    },
+    {
+     "id": 41,
+     "title": "Customer Churn Risk & Sentiment Monitor",
+     "connections": "HELP,CRM,ANALYTICS",
+     "skill": "utility_41: Observable severity/sentiment signals and account-health digest",
+     "workflow": "Ticket severity/sentiment triage plus account context"
+    },
+    {
+     "id": 42,
+     "title": "Internal FAQ Auto-Updater",
+     "connections": "HELP,KB,DOC",
+     "skill": "utility_42: Resolved-ticket clustering and source-backed FAQ patch proposal",
+     "workflow": "Resolved ticket evidence; FAQ patch proposal"
+    }
+   ]
+  },
+  "gagas": {
+   "agent_id": "A09",
+   "person": "Gagas",
+   "domain": "Community",
+   "declared_framework": "OpenClaw",
+   "host": "openclaw",
+   "reason": "Native community-channel runtime; isolated from private accounts.",
+   "utilities": [
+    {
+     "id": 40,
+     "title": "Community Anti-Spam & Anti-Raid Guard",
+     "connections": "COMM",
+     "skill": "utility_40: Immediate deterministic rate/raid limiter then semantic review and temporary quarantine",
+     "workflow": "Platform rate/raid rules and known-spam filters; semantic review"
+    },
+    {
+     "id": 83,
+     "title": "Open-Source / Community Contribution Tracker",
+     "connections": "GITHUB,COMM",
+     "skill": "utility_83: Selected-repo/community issue and contribution-opportunity digest",
+     "workflow": "GitHub/community feeds; relevant issue/opportunity digest"
+    }
+   ]
+  },
+  "zara": {
+   "agent_id": "A10",
+   "person": "Zara",
+   "domain": "Security analysis",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Typed findings from deterministic sensors; no arbitrary target selection.",
+   "utilities": [
+    {
+     "id": 43,
+     "title": "Honeypot & Attacker Profiler",
+     "connections": "SEC,OPS",
+     "skill": "utility_43: Cowrie isolated sensor and structured attacker-technique report",
+     "workflow": "Cowrie in separate disposable VM; telemetry forwarded to monitor"
+    },
+    {
+     "id": 44,
+     "title": "External Attack Surface Scanner",
+     "connections": "SEC,ASSET",
+     "skill": "utility_44: Owned-target inventory, bounded scanner jobs and deduplicated findings",
+     "workflow": "Scheduled scanners with explicit owned-target allowlist"
+    },
+    {
+     "id": 45,
+     "title": "Phishing & Suspicious Link Detonator",
+     "connections": "SEC,REPUTATION,MAIL",
+     "skill": "utility_45: Disposable detonation VM with no cookies and controlled egress",
+     "workflow": "Disposable browser/VM with controlled egress and no account cookies"
+    },
+    {
+     "id": 46,
+     "title": "Credential Breach Surveillance",
+     "connections": "BREACH,MAIL",
+     "skill": "utility_46: Authorized domain/email watch and incident checklist",
+     "workflow": "Authorized breach notification API and verified-domain watch"
+    }
+   ]
+  },
+  "ishkhan": {
+   "agent_id": "A11",
+   "person": "Ishkhan",
+   "domain": "External intelligence",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Evolving sources, comparative research, and provenance.",
+   "utilities": [
+    {
+     "id": 47,
+     "title": "Competitor Changelog & Strategy Radar",
+     "connections": "WEB,KB",
+     "skill": "utility_47: Competitor releases and page changes to provenance-backed signals",
+     "workflow": "RSS/API/conditional fetch; page diff; material-change dossier update"
+    },
+    {
+     "id": 48,
+     "title": "Government Procurement & Grant Scanner",
+     "connections": "PROC,WEB,TASK",
+     "skill": "utility_48: Jurisdiction/sector eligibility filters and opportunity/deadline briefs",
+     "workflow": "Official procurement/grant feeds; eligibility filters and opportunity brief"
+    },
+    {
+     "id": 49,
+     "title": "Brand Impersonation & IP Sentinel",
+     "connections": "SOCIAL,ASSET,WEB",
+     "skill": "utility_49: Similarity signals and evidence packet for impersonation/IP review",
+     "workflow": "Domain/brand monitoring feeds; similarity checks; evidence packets"
+    },
+    {
+     "id": 50,
+     "title": "Regulatory & Compliance Radar",
+     "connections": "WEB,DOC",
+     "skill": "utility_50: Official regulatory feeds and jurisdiction/applicability triage",
+     "workflow": "Official regulatory feeds; jurisdiction/applicability triage"
+    },
+    {
+     "id": 59,
+     "title": "Competitive Intelligence Dossier Maintainer",
+     "connections": "WEB,KB,SOCIAL",
+     "skill": "utility_59: Canonical competitor dossiers updated from shared ingestion",
+     "workflow": "Canonical competitor records updated from utilities 47 and 75"
+    }
+   ]
+  },
+  "margo": {
+   "agent_id": "A12",
+   "person": "Margo",
+   "domain": "Infrastructure operations",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Typed health summaries and allowlisted runbook requests.",
+   "utilities": [
+    {
+     "id": 51,
+     "title": "Daemon Watchdog & Self-Healing Service",
+     "connections": "OPS",
+     "skill": "utility_51: systemd/container supervision with bounded deterministic restart runbooks",
+     "workflow": "systemd/container restart policy and bounded retention jobs"
+    },
+    {
+     "id": 52,
+     "title": "Log Anomaly Stream Triage",
+     "connections": "OPS",
+     "skill": "utility_52: Structured-log redaction, anomaly thresholds and grouped diagnosis",
+     "workflow": "Structured logs; rate/error thresholds; bounded anomaly summary"
+    },
+    {
+     "id": 53,
+     "title": "Autonomous Backup Verification Runner",
+     "connections": "BACKUP,OPS",
+     "skill": "utility_53: Scheduled isolated restores plus integrity and application-level checks",
+     "workflow": "Backup service plus restore into disposable environment; integrity checks"
+    },
+    {
+     "id": 54,
+     "title": "SSL/TLS & Domain Expiry Guardian",
+     "connections": "ASSET,OPS",
+     "skill": "utility_54: ACME automation plus independent expiry checks and DNS validation",
+     "workflow": "ACME client and domain inventory; deterministic expiry alerts"
+    },
+    {
+     "id": 55,
+     "title": "24/7 Conversational VPS Command Center",
+     "connections": "OPS,CONTROL",
+     "skill": "utility_55: Authenticated Jarvis facade for fixed status/runbook methods",
+     "workflow": "Jarvis authenticated command facade; allowlisted runbooks and status"
+    },
+    {
+     "id": 56,
+     "title": "Domain & Brand Asset Expiry Watcher",
+     "connections": "ASSET,CAL",
+     "skill": "utility_56: Verified asset inventory with ownership and renewal reminders",
+     "workflow": "Asset inventory and official expiry/status records; calendar reminders"
+    }
+   ]
+  },
+  "kamo": {
+   "agent_id": "A13",
+   "person": "Kamo",
+   "domain": "Knowledge and research",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Long-form synthesis, citations, and curated reusable knowledge.",
+   "utilities": [
+    {
+     "id": 57,
+     "title": "Living Knowledge Base Curator",
+     "connections": "KB,DOC",
+     "skill": "utility_57: Change-driven ingestion, duplicate resolution and single-writer proposals",
+     "workflow": "Change-driven ingestion; dedup; source-backed Markdown proposals; one writer"
+    },
+    {
+     "id": 58,
+     "title": "Deep Research & Synthesis Agent",
+     "connections": "WEB,KB,DOC",
+     "skill": "utility_58: Research plan, primary-source evidence table and contradiction review",
+     "workflow": "Research brief; parallel source retrieval; evidence table and contradiction review"
+    },
+    {
+     "id": 60,
+     "title": "Decision Log & Rationale Archivist",
+     "connections": "KB,CONTROL",
+     "skill": "utility_60: Explicit approved decisions with owner, date, options and rationale",
+     "workflow": "Decision records with rationale, owner, date and evidence references"
+    }
+   ]
+  },
+  "tigran": {
+   "agent_id": "A14",
+   "person": "Tigran",
+   "domain": "Calendar and travel",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Constraint-driven plans; verified dates and calendar operations.",
+   "utilities": [
+    {
+     "id": 61,
+     "title": "Intelligent Meeting Prep & Debrief Loop",
+     "connections": "CAL,MEET,KB,TASK",
+     "skill": "utility_61: One meeting-ID lifecycle linking prep, transcript, decisions and actions",
+     "workflow": "Meeting triggers; authorized prior notes and action ledger; debrief draft"
+    },
+    {
+     "id": 62,
+     "title": "Travel & Logistics Coordinator",
+     "connections": "TRAVEL,MAIL,CAL",
+     "skill": "utility_62: Itinerary extraction and constraint-checked travel alternatives",
+     "workflow": "Authorized booking/status APIs and calendar timezone conversion"
+    },
+    {
+     "id": 63,
+     "title": "Recurring Cadence Optimizer",
+     "connections": "CAL,MEET",
+     "skill": "utility_63: Attendance/outcome evidence to recurring-cadence proposal",
+     "workflow": "Attendance and meeting outcomes; recurring-cadence proposals"
+    },
+    {
+     "id": 64,
+     "title": "Time-Zone-Aware Global Team Coordination",
+     "connections": "CAL,HR",
+     "skill": "utility_64: IANA-timezone slot solver with regional holidays and working hours",
+     "workflow": "IANA timezones, working-hour rules and deterministic slot solver"
+    }
+   ]
+  },
+  "yana": {
+   "agent_id": "A15",
+   "person": "Yana",
+   "domain": "People operations",
+   "declared_framework": "Hermes",
+   "host": "hermes",
+   "reason": "Sensitive policy and onboarding context; human personnel decisions.",
+   "utilities": [
+    {
+     "id": 65,
+     "title": "Pulse & Sentiment Aggregator",
+     "connections": "HR,CHAT",
+     "skill": "utility_65: Opt-in survey intake and minimum-cohort aggregation",
+     "workflow": "Opt-in pulse surveys and minimum-size aggregation"
+    },
+    {
+     "id": 66,
+     "title": "Onboarding & Offboarding Checklist Runner",
+     "connections": "HR,TASK,CHAT",
+     "skill": "utility_66: Role-specific onboarding/offboarding checklist and approved SCIM broker",
+     "workflow": "HR event; role-specific checklist and provisioning workflow"
+    },
+    {
+     "id": 67,
+     "title": "Policy & Handbook Diff Notifier",
+     "connections": "HR,DOC,CHAT",
+     "skill": "utility_67: Official handbook revision diff and approved audience notice",
+     "workflow": "Policy version events/diffs; audience mapping and summary draft"
+    }
+   ]
+  },
+  "mane": {
+   "agent_id": "A16",
+   "person": "Mane",
+   "domain": "Legal obligations",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Typed clauses, verified dates, and signature workflows.",
+   "utilities": [
+    {
+     "id": 68,
+     "title": "Contract Milestone & Obligation Tracker",
+     "connections": "DOC,CAL,SIGN",
+     "skill": "utility_68: Clause extraction to verified obligation/notice/renewal ledger",
+     "workflow": "Document extraction; verified renewal/notice dates; obligation ledger"
+    },
+    {
+     "id": 69,
+     "title": "NDA & Document Signature Workflow",
+     "connections": "SIGN,DOC",
+     "skill": "utility_69: Approved NDA template and envelope lifecycle reconciliation",
+     "workflow": "E-signature provider envelope API and completion webhook"
+    },
+    {
+     "id": 70,
+     "title": "Regulatory Deadline & Filing Calendar",
+     "connections": "WEB,DOC,CAL",
+     "skill": "utility_70: Verified non-tax filing calendar with source/version/jurisdiction",
+     "workflow": "Verified non-tax compliance calendar with authoritative references"
+    }
+   ]
+  },
+  "davit": {
+   "agent_id": "A17",
+   "person": "Davit",
+   "domain": "Reputation monitoring",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Deduplicated events, measurable spikes, and bounded escalation.",
+   "utilities": [
+    {
+     "id": 75,
+     "title": "Mention & Sentiment Stream",
+     "connections": "SOCIAL,WEB",
+     "skill": "utility_75: Licensed mentions, entity disambiguation, language/sentiment triage",
+     "workflow": "Licensed mention feeds; dedup; volume rules and sentiment triage"
+    },
+    {
+     "id": 76,
+     "title": "Crisis Early-Warning Listener",
+     "connections": "SOCIAL,OPS,CHAT",
+     "skill": "utility_76: Numeric baseline/spike detection and approved escalation playbook",
+     "workflow": "Baseline/spike detection; predefined escalation playbook"
+    }
+   ]
+  },
+  "arin": {
+   "agent_id": "A18",
+   "person": "Arin",
+   "domain": "Independent quality reviewer",
+   "declared_framework": "PydanticAI",
+   "host": "openclaw",
+   "reason": "Read-only rubric and provenance checks; cannot approve its own work or execute writes.",
+   "utilities": []
+  }
+ }
+}

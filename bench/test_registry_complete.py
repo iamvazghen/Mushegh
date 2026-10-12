@@ -40,11 +40,17 @@ EXEMPT = {
     # Added 2026-10-08. Both drive real turns through the model to answer a question about
     # runtime behaviour, so they cost tokens and take minutes; running them on every commit
     # is how a gate gets ignored. The hermetic halves are registered above.
-    "test_clause_attribution.py": "live — drives real compound prompts through AfonAgent.respond to attribute each clause",
+    "test_clause_attribution.py": "live — drives real compound prompts through MusheghAgent.respond to attribute each clause",
     "test_trace_completeness_live.py": "live — real turns, real model, real filesystem; asserts a trace row per turn",
     # This file: it validates the registry, so registering it in the registry it validates
     # would be circular. It is run by the deploy preflight instead.
     "test_registry_complete.py": "self-referential — guards the registry itself",
+    # Added 2026-10-10, for the afon -> mushegh state migration. It asserts THIS
+    # machine's ~/.mushegh actually holds the migrated databases and facts. A fresh
+    # clone has no state directory at all until setup has run, so putting it in the
+    # hermetic gate would make every new contributor's first run red for a reason
+    # that has nothing to do with their code. Run it by hand after a migration.
+    "test_migrated_state.py": "host-state — asserts this machine's ~/.mushegh migration; a fresh clone has no state yet",
 }
 
 results: list[tuple[bool, str, str]] = []
@@ -118,7 +124,7 @@ def main() -> int:
     # because nothing called it (03.R4).
     import inspect as _inspect
 
-    from afon.brain.tools import tool_handlers as _handlers_for_async
+    from mushegh.brain.tools import tool_handlers as _handlers_for_async
 
     _sync = sorted(n for n, fn in _handlers_for_async().items()
                    if not _inspect.iscoroutinefunction(fn))
@@ -129,13 +135,13 @@ def main() -> int:
     # "What can you do / what can't you do" was answered from `personality/operating-rules.md`,
     # which names sixteen tools by hand. Every one is a promise that rots the moment a tool is
     # renamed or removed, and the failure is not cosmetic: a self-model assembled from prose lets
-    # Afon claim a capability he does not have, and the owner finds out by asking for it.
+    # Mushegh claim a capability he does not have, and the owner finds out by asking for it.
     import sys as _sys
 
     _sys.path.insert(0, str(BENCH.parent / "src"))
-    from afon.brain import selfmodel as _SM
-    from afon.brain.context import build_system_prompt as _prompt
-    from afon.brain.tools import tool_handlers as _handlers
+    from mushegh.brain import selfmodel as _SM
+    from mushegh.brain.context import build_system_prompt as _prompt
+    from mushegh.brain.tools import tool_handlers as _handlers
 
     _known = set(_handlers())
 

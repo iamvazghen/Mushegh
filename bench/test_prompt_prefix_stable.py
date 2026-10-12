@@ -45,7 +45,7 @@ def common_prefix(a: str, b: str) -> int:
 
 
 def main() -> None:
-    from afon.brain import context as C
+    from mushegh.brain import context as C
 
     print("[1] the prompt is deterministic when nothing has changed")
     a, b = C.build_system_prompt(), C.build_system_prompt()
@@ -80,7 +80,7 @@ def main() -> None:
     # they are the bulk of the prompt.
     rules = (BENCH / "personality/operating-rules.md").read_text(encoding="utf-8")
     first_rule = next(ln for ln in rules.splitlines() if ln.startswith("## "))
-    for label, needle in [("the persona", "Afon"),
+    for label, needle in [("the persona", "Mushegh"),
                           ("the operating rules", first_rule),
                           ("the 'check before refusing' rule", "Check before refusing")]:
         check(f"{label} is in the cacheable prefix", needle in prefix,
@@ -101,7 +101,7 @@ def main() -> None:
     check("...and the prefix is unchanged by it", with_digest.startswith(prefix))
 
     print("\n[6] the turn path actually sends the prefix first")
-    src = (BENCH / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+    src = (BENCH / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     check("the system prompt is message[0] on every turn",
           "messages = [self._system, *self._history]" in src,
           "a per-turn note ahead of it would defeat the whole ordering")

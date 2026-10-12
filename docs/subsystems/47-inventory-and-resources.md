@@ -17,7 +17,7 @@ the charter, so the citation resolves to nothing and is left uncopied here.)
 
 S47 was going to know what the house runs out of, predict when, and remind the owner to buy
 it. A stock table with add, consume and query was built first, seeded with the one category
-Afon can fill in without asking anybody — the owner's own disk and backups — and everything
+Mushegh can fill in without asking anybody — the owner's own disk and backups — and everything
 above that table was cancelled.
 
 **Cancelling cost little because nothing above the table was ever used.** Unlike S46, where a
@@ -37,10 +37,10 @@ readings are taken whether or not anyone looks at them. The *seeding* is live; t
 
 | Path | What it is | Disposition |
 |---|---|---|
-| `src/afon/brain/stock.py` | 47.F1–F3: one `items` table in the state store, seeded by `seed_self()` from disk and archive sizes the owner can read today. Two refusals are the interesting half: it never invents stock, and it refuses a depletion estimate it cannot support (a rate needs two consumption events far enough apart) | delete under M06, or keep as a bare table. `src/afon/brain/maintenance.py` calls `seed_self()` from `run_maintenance()`, so the deletion has a caller to reconcile |
-| `src/afon/brain/tools/stock.py` | two handlers, `check_stock` and one for recording a change. Deliberately **not** confirm-gated, for the same reason task capture is not — an inventory only works if recording costs less than remembering | delete with the module, or keep ungated |
+| `src/mushegh/brain/stock.py` | 47.F1–F3: one `items` table in the state store, seeded by `seed_self()` from disk and archive sizes the owner can read today. Two refusals are the interesting half: it never invents stock, and it refuses a depletion estimate it cannot support (a rate needs two consumption events far enough apart) | delete under M06, or keep as a bare table. `src/mushegh/brain/maintenance.py` calls `seed_self()` from `run_maintenance()`, so the deletion has a caller to reconcile |
+| `src/mushegh/brain/tools/stock.py` | two handlers, `check_stock` and one for recording a change. Deliberately **not** confirm-gated, for the same reason task capture is not — an inventory only works if recording costs less than remembering | delete with the module, or keep ungated |
 | `bench/test_inventory.py` | the gate for 47.F1–F3; exists and passes | delete with the module. A passing test for a removed system is the exact trap S15 and S46 both describe |
-| `src/afon/brain/inventory.py` | **Not this system.** S37's generated declaration of every store under the state root, with retention and who may read it | keep, and do not confuse the two — the names collide and the deletion pass will hit the wrong file |
+| `src/mushegh/brain/inventory.py` | **Not this system.** S37's generated declaration of every store under the state root, with retention and who may read it | keep, and do not confuse the two — the names collide and the deletion pass will hit the wrong file |
 
 ## Goals — anti-goals
 
@@ -60,8 +60,8 @@ These are deletion gates. Each one **fails** if the system reappears or lingers.
 | Anti-goal | Tier | Command or drill | Threshold | Last measurement |
 |---|---|---|---|---|
 | 1 | B1 | `python scripts/systems_plan.py check` | 4 tasks read `cancelled`, 0 read `open`, and every cancellation carries an `owner-decision` record | last run 2026-10-03 as part of the reconciliation; re-run by M06, not by this document |
-| 2 | B4 | `ls src/afon/brain/stock.py src/afon/brain/tools/stock.py` | both absent | **fails today** — both are present. This is the work M06 names |
-| 3 | B1 | `grep -rn "stock" src/afon/brain/tools/__init__.py` | 0 registered handlers | not yet measured for M06; the handlers are registered today |
+| 2 | B4 | `ls src/mushegh/brain/stock.py src/mushegh/brain/tools/stock.py` | both absent | **fails today** — both are present. This is the work M06 names |
+| 3 | B1 | `grep -rn "stock" src/mushegh/brain/tools/__init__.py` | 0 registered handlers | not yet measured for M06; the handlers are registered today |
 | 4 | B3 | the honest evidence of non-use: the replenishment half of the system — 90 days with 0 reorder reminders raised, 0 categories added beyond the seeded one, 0 location queries answered | 0, 0, 0 — a capability nobody used | **not yet measured** as a count; the decision rests on the owner's account that the pipeline was built and never used, and no production figure is quoted in this repository |
 
 ## Failure modes
@@ -69,16 +69,16 @@ These are deletion gates. Each one **fails** if the system reappears or lingers.
 **Rebuilt as "a small useful thing".** The likely path is a voice request to remind the owner
 about a consumable, which sounds like two lines of glue on a table that already exists:
 
-    ls -la src/afon/brain/stock.py src/afon/brain/tools/stock.py
-    grep -rn "stock" src/afon/brain/tools/__init__.py
+    ls -la src/mushegh/brain/stock.py src/mushegh/brain/tools/stock.py
+    grep -rn "stock" src/mushegh/brain/tools/__init__.py
     python -c "import json;d=json.load(open('docs/systems-plan.json',encoding='utf-8'));print([t['state'] for s in d['systems'] if s['id']=='S47' for t in s['tasks']])"
 
-**The wrong file gets deleted.** `src/afon/brain/inventory.py` is S37's store declaration and
+**The wrong file gets deleted.** `src/mushegh/brain/inventory.py` is S37's store declaration and
 lives a keystroke away from this system's name. Deleting it takes the retention table, the
 sweep and the undeclared-store gate with it:
 
-    python -c "from afon.brain.inventory import undeclared; print(undeclared())"
-    ls src/afon/brain/inventory.py src/afon/brain/stock.py
+    python -c "from mushegh.brain.inventory import undeclared; print(undeclared())"
+    ls src/mushegh/brain/inventory.py src/mushegh/brain/stock.py
 
 **A green test implies a live capability.** `47.F1`–`47.F3` are recorded `done` and
 `bench/test_inventory.py` passes, so the dashboard shows three green rows and no removal.
@@ -87,7 +87,7 @@ the daily job still takes a reading nobody asked for:
 
     uv run python bench/test_inventory.py
     python -c "import json;d=json.load(open('docs/systems-plan.json',encoding='utf-8'));print([s['status'] for s in d['systems'] if s['id']=='S47'])"
-    journalctl -u openafon-brain --since "7d" | grep -i hygiene
+    journalctl -u openmushegh-brain --since "7d" | grep -i hygiene
 
 **It creeps in through a neighbouring domain.** Adding a household-goods category because
 the owner mentioned it once is `47.R3`, cancelled — and a category nobody uses is the shape
@@ -100,7 +100,7 @@ justified by the next request.
    M06 names S47 but not which half goes. The ungated `check_stock` handler is the only part
    with a user-visible shape, and `run_maintenance()`'s daily `seed_self()` call is the part
    still running.
-2. If the table is kept, does it need a retention declaration in `src/afon/brain/inventory.py`
+2. If the table is kept, does it need a retention declaration in `src/mushegh/brain/inventory.py`
    to stay out of the undeclared-store gate?
 3. Does cancelling `47.R1`'s "reorder reminder into S16" close that door on S16 too, or must a
    genuinely needed reorder be re-argued from scratch later?

@@ -39,9 +39,9 @@ And then the constraint that decides this system:
 > timestamp) may cross to the brain. (D-66)
 
 This is load-bearing rather than decorative, because the vision chain configured in
-`src/afon/config.py` is **cloud-only**: `vision_models` is MiniMax first and Gemini
+`src/mushegh/config.py` is **cloud-only**: `vision_models` is MiniMax first and Gemini
 second, both remote. A frame that reaches that chain has left the house, which makes the
-concrete rule this: **`see()` in `src/afon/brain/tools/camera.py` must not become the
+concrete rule this: **`see()` in `src/mushegh/brain/tools/camera.py` must not become the
 detector's output channel by accident.** That is the path that exists today for "what am
 I looking at", it is the one path a well-meaning Frigate integration would naturally be
 wired into, and it is the single most likely way this hardware plan leaks a frame. The
@@ -78,16 +78,16 @@ The eye is at the desk, not in the brain; the brain assembles what arrives.
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/detector.py` | 26.R5 — the detector's output channel. `accept()` is the only door a detection comes through, and it admits zone, label, count, timestamp and nothing else (D-66) |
-| `src/afon/shared/redact.py` | The frame-side redaction rule, shared by the error journal, the audit trail and the detector ingress. A frame is not a secret, so no credential scrubber can see one |
-| `src/afon/brain/perception.py` | `Fact`, `Perception`, `record_voice()`, `record_visual()`, `reset_visual()`, `perceive()` |
-| `src/afon/brain/tools/camera.py` | `look_around` — grab a frame, hand it to a vision model, answer a question about it (26.F1) |
-| `src/afon/brain/tools/multimodal.py` | Laptop screenshot plus OCR, for "what is on my screen" |
-| `src/afon/edge/pc_agent.py` | The laptop-side executor that actually reaches the camera and the display |
-| `src/afon/edge/stt.py`, `wake_word.py`, `vad_bargein.py` | The audio side the scene classifier would consume |
-| `src/afon/edge/audio_devices.py`, `audio_watchdog.py`, `device_profile.py` | Which device, is it healthy, may barge-in fire here |
-| `src/afon/edge/speaker_gate.py`, `speaker_id.py` | The gate that 26.R1 exists to feed |
-| `src/afon/config.py` | The vision chain — `vision_models` is MiniMax then Gemini, both cloud, so any frame that reaches it has left the house (D-66) |
+| `src/mushegh/brain/detector.py` | 26.R5 — the detector's output channel. `accept()` is the only door a detection comes through, and it admits zone, label, count, timestamp and nothing else (D-66) |
+| `src/mushegh/shared/redact.py` | The frame-side redaction rule, shared by the error journal, the audit trail and the detector ingress. A frame is not a secret, so no credential scrubber can see one |
+| `src/mushegh/brain/perception.py` | `Fact`, `Perception`, `record_voice()`, `record_visual()`, `reset_visual()`, `perceive()` |
+| `src/mushegh/brain/tools/camera.py` | `look_around` — grab a frame, hand it to a vision model, answer a question about it (26.F1) |
+| `src/mushegh/brain/tools/multimodal.py` | Laptop screenshot plus OCR, for "what is on my screen" |
+| `src/mushegh/edge/pc_agent.py` | The laptop-side executor that actually reaches the camera and the display |
+| `src/mushegh/edge/stt.py`, `wake_word.py`, `vad_bargein.py` | The audio side the scene classifier would consume |
+| `src/mushegh/edge/audio_devices.py`, `audio_watchdog.py`, `device_profile.py` | Which device, is it healthy, may barge-in fire here |
+| `src/mushegh/edge/speaker_gate.py`, `speaker_id.py` | The gate that 26.R1 exists to feed |
+| `src/mushegh/config.py` | The vision chain — `vision_models` is MiniMax then Gemini, both cloud, so any frame that reaches it has left the house (D-66) |
 
 Flow: an on-demand turn asks a question; the pc_agent op grabs a frame or a screenshot; the
 fact is recorded with a timestamp; `perceive()` returns it beside the presence and activity
@@ -98,7 +98,7 @@ decision, and no code path that would want one. There is one subject: the owner.
 **The seam is now real; the hardware is not.** `26.R5` built the boundary that a detector's output
 must pass and gated it (`bench/test_no_frame_egress.py`, 53/53 on 2026-10-04). What that means is
 narrow and worth stating precisely, because the difference is the whole point of the rule:
-`src/afon/brain/detector.py` is the **only** function in the repository that turns a detector result
+`src/mushegh/brain/detector.py` is the **only** function in the repository that turns a detector result
 into something the brain holds, and it refuses any payload with a key outside
 `{zone, label, count, at, camera}` and any value that looks like frame bytes, a data URI, an image
 path or a bare base64 blob. Values are checked as well as keys, because `{"label": "data:image/jpeg;
@@ -110,7 +110,7 @@ Two findings from writing that gate are worth more than the feature:
   `LLMClient.see` puts the JPEG into a data URI, an SDK error quotes the request it failed on, and
   the error journal's 600-character message clip wrote the first 600 characters of that image to
   `errors.jsonl` beside the stack trace. The credential scrubber could never have caught it —
-  base64 is not a credential and `b64` is not a password. `src/afon/shared/redact.py` is that rule,
+  base64 is not a credential and `b64` is not a password. `src/mushegh/shared/redact.py` is that rule,
   shared by the error journal, the audit trail and the detector ingress, and it says `<withheld>`
   rather than `<redacted>`: one means a secret leaked, the other means the value was never ours to
   write.
@@ -120,7 +120,7 @@ Two findings from writing that gate are worth more than the feature:
   defeated by a lazy import inside a branch this particular test did not take.
 
 What is still **not** claimed: there is no detector. A search for `frigate`, `reolink` or `coral`
-under `src/afon/` returns nothing, there is no RTSP client, no accelerator and no camera, and the
+under `src/mushegh/` returns nothing, there is no RTSP client, no accelerator and no camera, and the
 gate asserts all of that in its own final section so it cannot be forgotten. "The detector still
 works" remains an untested claim about hardware nobody has connected, and the H6 plan in
 [../HARDWARE.md](../HARDWARE.md) §7 is still a plan.
@@ -145,7 +145,7 @@ works" remains an untested claim about hardware nobody has connected, and the H6
    timestamp — reaches the brain. Threshold: **0** frames to a remote model, a log or a
    crash report; with egress blocked the detector still produces events (D-66, `26.R5`).
 9. `see()` is not reachable from the detector's output channel. Threshold: **0** paths from
-   a Frigate event to `src/afon/brain/tools/camera.py` (D-66, `26.R5`).
+   a Frigate event to `src/mushegh/brain/tools/camera.py` (D-66, `26.R5`).
 10. Cameras cover the entry, the garden and the outbuilding; a room a guest would occupy is
     covered by presence, not video. Threshold: **0** cameras pointed at such a room (D-51).
 
@@ -190,10 +190,10 @@ works" remains an untested claim about hardware nobody has connected, and the H6
 - **Green tests, dead camera** are the standing failure, and the reason the owner doubts this
   system: `bench/test_perception_snapshot.py` passes against a fake transport while the
   pc_agent op fails on the real machine. Diagnose: run the op by hand —
-  `journalctl -u afon-brain | grep -i "vision\|screenshot\|perceive"`, then the pc_agent
+  `journalctl -u mushegh-brain | grep -i "vision\|screenshot\|perceive"`, then the pc_agent
   log, and confirm a frame actually arrives.
 - **A stale fact quoted as current.** "You're at your desk" from a check twenty minutes ago.
-  Diagnose: the stamp in the trace — `src/afon/brain/turn_trace.py` records what a turn
+  Diagnose: the stamp in the trace — `src/mushegh/brain/turn_trace.py` records what a turn
   assumed.
 - **A television speaks and the gate believes it.** Reading the live gate log, 186 of 742
   real gate decisions (25%) were accepted, and the accepted transcripts include a film
@@ -205,7 +205,7 @@ works" remains an untested claim about hardware nobody has connected, and the H6
   rolling window, which made the score measure the window's noise floor; the fix was to
   delimit the utterance with the VAD frames the pipeline already emits. That 25% is not
   re-measured anywhere, and 26.R1 is the fix that does not exist yet. Diagnose:
-  `journalctl -u afon-brain | grep -i "speaker\|scene"`.
+  `journalctl -u mushegh-brain | grep -i "speaker\|scene"`.
 - **A sensor is placed in an air-gapped room.** No software check can catch this, which is
   why it is a placement-layer decision (D-38) and why goal 4 has no test. Diagnose: the
   physical device list, which does not exist.

@@ -24,7 +24,7 @@
 
 ## The finding, in one paragraph
 
-The architecture and the technology choices are right and should largely be left alone: mean stack score **3.16 of 4**, with *keep as is* returned for **37 of 50** systems, exactly one replacement recommended in fifty, and the plan itself scored **3.87 of 4 at confidence 0.89** — called exceptional for its confidence map, its expiring declines and its machine-checked honesty gate. Three processes was confirmed optimal at **p = 0.99, confidence 0.98**, the single most confident answer in a thousand. And then every dimension that depends on evidence collapses: runtime connectedness averages **0.96 of 4**; asked plainly whether Afon is connected, **0.28 of 4 — *a collection of parts*** at confidence 0.77, with P(coupled only by import or hermetic test) = **0.90**; **all fifty** systems scored below 0.50 on whether their gates would catch real failure, and **all fifty** below 0.50 on whether their floors are usable. The named biggest process risk is **verification theatre** (p = 0.78). Asked how much being parked has distorted the plan: **3.77 of 4 at confidence 0.81** — *severely; the plan is an artefact of reasoning about a system nobody has used.*
+The architecture and the technology choices are right and should largely be left alone: mean stack score **3.16 of 4**, with *keep as is* returned for **37 of 50** systems, exactly one replacement recommended in fifty, and the plan itself scored **3.87 of 4 at confidence 0.89** — called exceptional for its confidence map, its expiring declines and its machine-checked honesty gate. Three processes was confirmed optimal at **p = 0.99, confidence 0.98**, the single most confident answer in a thousand. And then every dimension that depends on evidence collapses: runtime connectedness averages **0.96 of 4**; asked plainly whether Mushegh is connected, **0.28 of 4 — *a collection of parts*** at confidence 0.77, with P(coupled only by import or hermetic test) = **0.90**; **all fifty** systems scored below 0.50 on whether their gates would catch real failure, and **all fifty** below 0.50 on whether their floors are usable. The named biggest process risk is **verification theatre** (p = 0.78). Asked how much being parked has distorted the plan: **3.77 of 4 at confidence 0.81** — *severely; the plan is an artefact of reasoning about a system nobody has used.*
 
 ## Method, and why there were four rounds
 
@@ -105,16 +105,16 @@ The directives below are the resolved answers, each with the probability it carr
 - **Read-only or interactive** — p = 0.93, conf 0.85, round 2
   - A control room. Seeing a wrong belief and being unable to correct it is worse than not seeing it, and correction is how the assistant gets better.
 - **What the first page shows** — p = 0.46, conf 0.27, round 3
-  - The live turn trace: what Afon heard, what it decided, which tools fired, what it answered.
+  - The live turn trace: what Mushegh heard, what it decided, which tools fired, what it answered.
 - **The failure the owner most needs to see on a screen** — p = 0.75, conf 0.50, round 3
-  - What Afon BELIEVES - the memory and world model. A stale or wrong belief produces confident wrong answers indefinitely, and 23 of 50 systems name silent wrongness as their dominant risk.
+  - What Mushegh BELIEVES - the memory and world model. A stale or wrong belief produces confident wrong answers indefinitely, and 23 of 50 systems name silent wrongness as their dominant risk.
 - **Before or after the first real week** — p = 0.88, conf 0.75, round 3
   - After. Build it against real traces rather than imagined ones - specifying a surface for behaviour nobody has seen is the same mistake as the rest of the plan.
 - **Is a HUD the real gap?** — 1.08/4, conf 0.60, round 1
   - No - useful eventually, but far behind at least ten other gaps.
 - **Persistent HUD widgets** — 0.96/4, conf 0.68, round 1
   - No - the cost outweighs the benefit at this scale.
-- **A PIN lock of Afon's own** — 1.09/4, conf 0.66, round 1
+- **A PIN lock of Mushegh's own** — 1.09/4, conf 0.66, round 1
   - No - the cost outweighs the benefit at this scale.
 - **Ambient mode** — 1.31/4, conf 0.53, round 1
   - No - the cost outweighs the benefit at this scale.
@@ -126,10 +126,10 @@ The directives below are the resolved answers, each with the probability it carr
   - Yes - a voice-only assistant cannot answer questions whose answer is a table, a diagram or a page, and this closes that.
 - **Rearranging the layout by voice** — P = 0.28, round 2
   - No - this is interface theatre: tool surface and maintenance spent on something a mouse does better.
-- **What lock Afon actually needs** — p = 0.76, conf 0.68, round 2
+- **What lock Mushegh actually needs** — p = 0.76, conf 0.68, round 2
   - No interface lock, but sensitive actions must re-authenticate - which is the confirm tier's job and already exists.
 - **Does an installer matter most for the open framework?** — P = 0.25, round 1
-  - No - Afon's value is the 24/7 self-hosted brain, which is inherently a setup exercise; packaging the laptop half does not change that.
+  - No - Mushegh's value is the 24/7 self-hosted brain, which is inherently a setup exercise; packaging the laptop half does not change that.
 
 ### The voice path
 
@@ -138,7 +138,7 @@ The directives below are the resolved answers, each with the probability it carr
 - **Speech recognition** — p = 0.65, conf 0.29, round 3
   - Cloud Deepgram primary, local as fallback. Recognition accuracy is the foundation and CPU-local accuracy on accented multilingual speech is not good enough to be the default.
 - **Speech synthesis** — P = 0.67, round 2
-  - Local-primary - synthesis latency is felt directly as the pause before Afon speaks, and local removes it entirely.
+  - Local-primary - synthesis latency is felt directly as the pause before Mushegh speaks, and local removes it entirely.
 - **The local-first label** — p = 0.77, conf 0.66, round 3
   - Change the description. Say self-hosted state with cloud inference, which is what it is; the current label overpromises and will be noticed.
 - **Barge-in for the first week** — p = 0.87, conf 0.74, round 3
@@ -205,7 +205,7 @@ The directives below are the resolved answers, each with the probability it carr
 ### The taxonomy
 
 - **The capability with the strongest case for its own number** — p = 0.65, conf 0.57, round 3
-  - Continuous behavioural evaluation - measuring what Afon actually does over time in real use.
+  - Continuous behavioural evaluation - measuring what Mushegh actually does over time in real use.
 - **How many of the six should become systems** — p = 0.45, conf 0.33, round 3
   - None. Every one of them is a raise inside an existing system, and numbering them adds bookkeeping rather than capability.
 - **Does numbering matter, or only building?** — p = 0.64, conf 0.29, round 3
@@ -250,7 +250,7 @@ The directives below are the resolved answers, each with the probability it carr
 
 ### Connectedness
 
-- **Is Afon connected as one organism?** — 0.28/4, conf 0.77, round 1
+- **Is Mushegh connected as one organism?** — 0.28/4, conf 0.77, round 1
   - A collection of parts: most capabilities do not actually reach each other.
 - **Is the coupling only by import and hermetic test?** — P = 0.90, round 1
   - Yes - import-level and test-only coupling is being counted as connection in a material number of cases.

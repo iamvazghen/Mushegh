@@ -43,7 +43,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def main() -> None:
     import time
 
-    from afon.brain import coordination as C
+    from mushegh.brain import coordination as C
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         db = Path(d) / "work.sqlite"
@@ -197,11 +197,11 @@ def main() -> None:
 
     print("\n[layering] the record opens its database the one permitted way")
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/coordination.py").read_text(encoding="utf-8")
-    check("it goes through dbconn.connect", "from afon.brain.dbconn import connect" in src)
+           / "src/mushegh/brain/coordination.py").read_text(encoding="utf-8")
+    check("it goes through dbconn.connect", "from mushegh.brain.dbconn import connect" in src)
     check("...and not sqlite3.connect directly", "sqlite3.connect" not in src)
     check("the store is declared in the data inventory",
-          __import__("afon.brain.inventory", fromlist=["x"]).by_name("afon_work.sqlite") is not None)
+          __import__("mushegh.brain.inventory", fromlist=["x"]).by_name("mushegh_work.sqlite") is not None)
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

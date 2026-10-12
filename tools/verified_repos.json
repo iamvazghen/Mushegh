@@ -1106,7 +1106,7 @@
         "python",
         "raspberry-pi"
       ],
-      "reason": "Afon IoT backend",
+      "reason": "Mushegh IoT backend",
       "verified": true
     },
     "jgraph/drawio-desktop": {

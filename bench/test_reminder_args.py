@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.tools.reminders import _normalize_reminder_args, _rel_to_minutes, set_reminder  # noqa: E402
+from mushegh.brain.tools.reminders import _normalize_reminder_args, _rel_to_minutes, set_reminder  # noqa: E402
 
 _ok = _fail = 0
 

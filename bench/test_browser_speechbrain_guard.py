@@ -56,7 +56,7 @@ class HostileLazyModule(types.ModuleType):
 
 
 def main() -> None:
-    from afon.brain.tools.browser import _neutralize_speechbrain_lazy_modules as neutralize
+    from mushegh.brain.tools.browser import _neutralize_speechbrain_lazy_modules as neutralize
 
     fake_name = PREFIX + ".__test_probe"
 

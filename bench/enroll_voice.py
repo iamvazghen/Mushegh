@@ -1,8 +1,8 @@
 """Enroll Vazghen's voice for speaker biometrics (Phase 5).
 
 Records a few short clips from the mic, averages their ECAPA embeddings into one voiceprint, and
-saves it to AFON_SPEAKER_PROFILE (default <repo>/voiceprint.json). After this, set
-AFON_SPEAKER_ID_ENABLED=true and Afon will obey only your voice.
+saves it to MUSHEGH_SPEAKER_PROFILE (default <repo>/voiceprint.json). After this, set
+MUSHEGH_SPEAKER_ID_ENABLED=true and Mushegh will obey only your voice.
 
 Needs the 'identity' extra:  uv sync --extra identity
 Run:  uv run python bench/enroll_voice.py
@@ -18,15 +18,15 @@ from pathlib import Path
 
 import numpy as np
 
-from afon.config import settings
-from afon.edge.enroll_quality import score_pcm
-from afon.edge.speaker_id import SpeakerVerifier
+from mushegh.config import settings
+from mushegh.edge.enroll_quality import score_pcm
+from mushegh.edge.speaker_id import SpeakerVerifier
 
 SR = 16000
 CLIP_S = 4
 N_CLIPS = 3
 PROMPTS = [
-    "Say: 'Hey Afon, this is Vazghen.'",
+    "Say: 'Hey Mushegh, this is Vazghen.'",
     "Say any sentence in your normal voice.",
     "Say one more sentence, a little longer.",
 ]
@@ -74,12 +74,12 @@ def separation_verdict(owner: float, impostor: float, threshold: float) -> str:
                 "television as though you had said it. Re-enrol on the mic you actually use, in the "
                 "room you actually use.")
     if owner < threshold:
-        return (f"✗ the threshold is above YOU ({owner:.2f} < {threshold:.2f}) — Afon would ignore "
-                f"you. There IS a {gap:.2f} gap, so lower AFON_SPEAKER_THRESHOLD to about {mid:.2f} "
+        return (f"✗ the threshold is above YOU ({owner:.2f} < {threshold:.2f}) — Mushegh would ignore "
+                f"you. There IS a {gap:.2f} gap, so lower MUSHEGH_SPEAKER_THRESHOLD to about {mid:.2f} "
                 "rather than re-enrolling.")
     if impostor >= threshold:
         return (f"✗ the threshold is below the IMPOSTOR ({impostor:.2f} >= {threshold:.2f}) — it "
-                f"would be let through. There IS a {gap:.2f} gap, so RAISE AFON_SPEAKER_THRESHOLD to "
+                f"would be let through. There IS a {gap:.2f} gap, so RAISE MUSHEGH_SPEAKER_THRESHOLD to "
                 f"about {mid:.2f}; the profile is fine.")
     room = "well placed" if abs(threshold - mid) <= gap / 3 else f"better placed near {mid:.2f}"
     return f"✓ separated by {gap:.2f}, and the {threshold:.2f} threshold is {room}."
@@ -212,15 +212,15 @@ def main() -> None:
     print(f"\nVoiceprint {mode} {path} ({len(embeddings)} vector(s) from this session).")
 
     # Verification pass: prove the profile matches the LIVE mic before calling it done. Without
-    # this, a bad enrollment is only discovered when Afon goes deaf to the owner.
-    print("\n--- verification: say naturally, e.g. 'Hey Afon, how are you today?'")
+    # this, a bad enrollment is only discovered when Mushegh goes deaf to the owner.
+    print("\n--- verification: say naturally, e.g. 'Hey Mushegh, how are you today?'")
     for c in (3, 2, 1):
         print(f"  recording in {c}…", end="\r", flush=True)
         time.sleep(1)
     print("  ● recording 6s — speak now")
     pcm = _record(6)
     fresh = SpeakerVerifier()          # reload from disk — verifies what was actually saved
-    from afon.config import settings as _s
+    from mushegh.config import settings as _s
     _s.speaker_id_enabled = True       # force a real score even if the .env flag is off
     accept, score = fresh.verify(pcm, SR)
     print(f"  live score: {score:.2f} (threshold {_s.speaker_threshold})")
@@ -251,7 +251,7 @@ def main() -> None:
     print("  " + separation_verdict(score, imp, _s.speaker_threshold))
 
     # 10.F3 — record the band, don't just narrate it. Everything above this line used to end in advice
-    # to go and edit AFON_SPEAKER_THRESHOLD by hand, which is how the gate ended up running on a
+    # to go and edit MUSHEGH_SPEAKER_THRESHOLD by hand, which is how the gate ended up running on a
     # number measured once, three weeks earlier, against a profile that had since been replaced.
     #
     # The two numbers are deliberately asymmetric, and this is the whole reason the derived bar is
@@ -259,7 +259,7 @@ def main() -> None:
     # OVER the impostor's best one, so it is derived from the owner's WORST window and the impostor's
     # BEST. Taking the 6-second score for both would use the owner at his best and the television at
     # its average, and place the bar too high in exactly the way TODO I1 warns about.
-    from afon.edge.speaker_id import FLOOR_WINDOW_S, derive_threshold
+    from mushegh.edge.speaker_id import FLOOR_WINDOW_S, derive_threshold
     own_w, imp_w = fresh.window_scores(pcm, SR), fresh.window_scores(other, SR)
     owner_floor = min(own_w) if own_w else score
     impostor_ceiling = max(imp_w) if imp_w else imp

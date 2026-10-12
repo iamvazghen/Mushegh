@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.intent_router import _is_multi_intent, clause_tools, forced_tools  # noqa: E402
+from mushegh.brain.intent_router import _is_multi_intent, clause_tools, forced_tools  # noqa: E402
 
 COMBO = "check my email and remember to call mum"
 
@@ -37,7 +37,7 @@ def main() -> int:
     print("  _is_multi_intent  :", _is_multi_intent(COMBO))
 
     # Now the part that matters: what does the first model call actually SEE?
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
     seen_order: list[list[str]] = []
 
@@ -59,7 +59,7 @@ def main() -> int:
 
     import asyncio
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._llm = _Probe()
     agent._self_improve = False
     try:

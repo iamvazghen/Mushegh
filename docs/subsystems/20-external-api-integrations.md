@@ -8,7 +8,7 @@
 
 This is the one place an outbound call to somebody else's service happens, and the one place
 the policy for such a call is written down. The policy layer is real: every integration's
-timeout and retry class is declared in a single table in `src/afon/brain/tools/base.py`,
+timeout and retry class is declared in a single table in `src/mushegh/brain/tools/base.py`,
 and every integration without credentials returns the typed not-configured sentinel
 rather than a sentence describing an outage.
 
@@ -34,18 +34,18 @@ boundary, so under D-42 this belongs to the S03 belt and the S36 credential stor
 
 | Path | Integration | Credential |
 |---|---|---|
-| `src/afon/brain/tools/base.py` | The policy: `not_configured()`, the error taxonomy, the timeout and retry table, `is_not_configured()` | none |
-| `src/afon/brain/google.py` | One OAuth app for Gmail and Calendar; `access_token()`, `api_get()`, `api_post()` | `AFON_GOOGLE_*`, one refresh token |
-| `src/afon/brain/tools/gmail.py`, `tools/calendar.py` | Mail and calendar handlers on that one token | shared |
-| `src/afon/brain/tools/maps.py` | `travel_time`, `find_place` — read-only | Google Maps key |
-| `src/afon/brain/tools/web.py` | `web_search` (Tavily), `scrape_url`, `browser` | Tavily key |
-| `src/afon/brain/tools/wolfram.py` | `compute` — exact numbers, never guessed | Wolfram app id |
-| `src/afon/brain/tools/notion.py` | Read, write, comment on shared pages | Notion internal integration token |
-| `src/afon/brain/tools/stock.py`, `src/afon/brain/stock.py` | Consumables and quotes | provider key |
-| `src/afon/brain/mynews.py` | RSS headline signals. Off unless configured, **and no longer collected** — 41.R4 closed the unprompted path under D-34; the module stays for a focused, asked-for session | `AFON_MYNEWS_URL` |
-| `src/afon/brain/webhooks.py` | The reverse direction: HMAC-SHA256 verified inbound POSTs | shared secret |
-| `src/afon/brain/telegram_bridge.py` | Bot API long-poll, so a message works with the laptop off | bot token |
-| `src/afon/brain/cache.py` | In-process TTL cache for slow-moving reads; the Redis tier was dropped 2026-09-20 | none |
+| `src/mushegh/brain/tools/base.py` | The policy: `not_configured()`, the error taxonomy, the timeout and retry table, `is_not_configured()` | none |
+| `src/mushegh/brain/google.py` | One OAuth app for Gmail and Calendar; `access_token()`, `api_get()`, `api_post()` | `MUSHEGH_GOOGLE_*`, one refresh token |
+| `src/mushegh/brain/tools/gmail.py`, `tools/calendar.py` | Mail and calendar handlers on that one token | shared |
+| `src/mushegh/brain/tools/maps.py` | `travel_time`, `find_place` — read-only | Google Maps key |
+| `src/mushegh/brain/tools/web.py` | `web_search` (Tavily), `scrape_url`, `browser` | Tavily key |
+| `src/mushegh/brain/tools/wolfram.py` | `compute` — exact numbers, never guessed | Wolfram app id |
+| `src/mushegh/brain/tools/notion.py` | Read, write, comment on shared pages | Notion internal integration token |
+| `src/mushegh/brain/tools/stock.py`, `src/mushegh/brain/stock.py` | Consumables and quotes | provider key |
+| `src/mushegh/brain/mynews.py` | RSS headline signals. Off unless configured, **and no longer collected** — 41.R4 closed the unprompted path under D-34; the module stays for a focused, asked-for session | `MUSHEGH_MYNEWS_URL` |
+| `src/mushegh/brain/webhooks.py` | The reverse direction: HMAC-SHA256 verified inbound POSTs | shared secret |
+| `src/mushegh/brain/telegram_bridge.py` | Bot API long-poll, so a message works with the laptop off | bot token |
+| `src/mushegh/brain/cache.py` | In-process TTL cache for slow-moving reads; the Redis tier was dropped 2026-09-20 | none |
 
 Outbound flow: handler → declared timeout and retry class from `tools/base.py` → HTTP →
 result classified into `not_configured` / `auth` / `network` / `rate_limit` /
@@ -83,7 +83,7 @@ questions admit the store has no name. The re-review named one.
 **[getsops/sops](https://github.com/getsops/sops) (MPL-2.0) with
 [FiloSottile/age](https://github.com/FiloSottile/age) (BSD-3)**, as a
 **subprocess adapter**: `sops -e` / `sops -d` driven by
-`src/afon/setup_wizard.py` and `bench/check_config.py`. No daemon, so it
+`src/mushegh/setup_wizard.py` and `bench/check_config.py`. No daemon, so it
 structurally cannot become the second failure domain that open question 1 is
 testing for.
 
@@ -102,7 +102,7 @@ PRINCIPLES §1 three commands, in order:
 
 ```
 sops filestatus .env
-journalctl -u openafon-brain -n 200 --no-pager | grep -i "not configured"
+journalctl -u openmushegh-brain -n 200 --no-pager | grep -i "not configured"
 grep -c "_KEY\|_TOKEN" .env
 ```
 
@@ -137,7 +137,7 @@ is not what belongs beside a write-boundary screen. See
 ## Failure modes
 
 - **A key is missing.** The turn ends in the not-configured note. Correct, and the owner
-  sees a decline. Diagnose: `journalctl -u afon-brain -n 200 --no-pager | grep -i "not
+  sees a decline. Diagnose: `journalctl -u mushegh-brain -n 200 --no-pager | grep -i "not
   configured"`, then check the key is present in `.env` without printing it.
 - **A service is down or slow.** Retries fire as declared, then the turn reports the
   failure. The owner hears about an outage that a single dropped packet caused — the exact

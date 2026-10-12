@@ -20,7 +20,7 @@ import numpy as np
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.tools import camera  # noqa: E402
+from mushegh.brain.tools import camera  # noqa: E402
 
 passed = failed = 0
 
@@ -135,7 +135,7 @@ async def main() -> None:
 # second face makes that person a permanent owner match. A burst where every frame held two faces was
 # reported as "I couldn't spot a face" — while faces were all it saw.
 async def capture_rejection() -> None:
-    from afon.brain.tools import camera as cam
+    from mushegh.brain.tools import camera as cam
 
     print("\n[09.F2] the burst is judged, and each cause is named")
     good = cam.capture_verdict([(120.0, 1)] * 8)

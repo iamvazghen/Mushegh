@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Afon hears a wake phrase, transcribes, and only then asks who spoke. This system is that
+Mushegh hears a wake phrase, transcribes, and only then asks who spoke. This system is that
 question. It sits after speech-to-text, scores the utterance against the enrolled voiceprint,
 and drops the transcript when the voice is not the owner's, so the brain never acts on it. A
 stranger, the television, and a podcast all end in the same place: silence.
@@ -28,23 +28,23 @@ If it is absent, the television commands the laptop, and nothing in the system n
 
 | Path | Role |
 |---|---|
-| `src/afon/edge/speaker_id.py` | ECAPA-TDNN embedding, 192-dim, lazy import; the pure decision `should_accept()` and the bar derivation `derive_threshold()` |
-| `src/afon/edge/speaker_gate.py` | Rolling audio buffer; when the STT emits a frame the buffer is embedded and compared; a non-match drops the transcript |
-| `src/afon/edge/enroll_quality.py` | Per-clip admission: long enough, loud enough, clean enough, actually speech |
+| `src/mushegh/edge/speaker_id.py` | ECAPA-TDNN embedding, 192-dim, lazy import; the pure decision `should_accept()` and the bar derivation `derive_threshold()` |
+| `src/mushegh/edge/speaker_gate.py` | Rolling audio buffer; when the STT emits a frame the buffer is embedded and compared; a non-match drops the transcript |
+| `src/mushegh/edge/enroll_quality.py` | Per-clip admission: long enough, loud enough, clean enough, actually speech |
 | `bench/enroll_voice.py` | Writes the voiceprint, then measures owner against impostor and records that band |
-| `src/afon/shared/paths.py` | `state_dir()`, the one root for state on this host |
+| `src/mushegh/shared/paths.py` | `state_dir()`, the one root for state on this host |
 
-The voiceprint is a small JSON file at `$AFON_SPEAKER_PROFILE` — a list of L2-normalised
+The voiceprint is a small JSON file at `$MUSHEGH_SPEAKER_PROFILE` — a list of L2-normalised
 embeddings, not a mean vector, plus a `separation` block holding the owner and impostor scores
 measured against *those* vectors. All of this runs in the **edge** process, where the owner is;
 the brain receives a transcript or silence and never sees the biometric.
 
 Two facts about the code that the registry does not record. The accept bar is
-`settings.speaker_threshold`, default **0.30** (`src/afon/config.py`), used only when the
+`settings.speaker_threshold`, default **0.30** (`src/mushegh/config.py`), used only when the
 profile carries no measured separation; D-15 names **0.75**. And `should_accept()` returns
 `True` when the feature is off, no profile exists, or the `identity` extra is not installed.
 The gate fails **open** by construction. That is the documented degradation contract of the
-rest of Afon, applied to the one component where fail-open is the expensive direction.
+rest of Mushegh, applied to the one component where fail-open is the expensive direction.
 
 ## Goals
 
@@ -62,21 +62,21 @@ rest of Afon, applied to the one component where fail-open is the expensive dire
 |---|---|---|---|---|
 | 1 | B1 | `uv run python bench/test_speaker_gate_scoping.py` | a second speaker in the same room never scores above the bar | registry records 10.F1 done; run not reproduced here — not yet measured |
 | 2 | B1 | new `bench/test_speaker_verdict.py` (planned, M11 — does not exist yet) | 0 false-owner matches in 100 impostor trials; unsure never resolves to grant or refusal | not yet measured |
-| 3 | B5 | `uv run python bench/test_phase5_identity_bench.py`, then read `separation` in the profile JSON | derived bar inside the measured band; a band narrower than `MIN_SEPARATION = 0.10` is reported as unsplittable rather than given a bar | enrolled voiceprint scores **0.47** against a 0.60 target, per the `src/afon/edge/enroll_quality.py` docstring — that figure belongs to S08 (M09), so every threshold here is provisional. not yet measured for S10 |
+| 3 | B5 | `uv run python bench/test_phase5_identity_bench.py`, then read `separation` in the profile JSON | derived bar inside the measured band; a band narrower than `MIN_SEPARATION = 0.10` is reported as unsplittable rather than given a bar | enrolled voiceprint scores **0.47** against a 0.60 target, per the `src/mushegh/edge/enroll_quality.py` docstring — that figure belongs to S08 (M09), so every threshold here is provisional. not yet measured for S10 |
 | 4 | B1 | `uv run python bench/test_speaker_warmup.py` | 0 mis-scored first utterances across a cold start | registry records 10.F2 done; run not reproduced here — not yet measured |
 | 5 | B1 | new `bench/test_speaker_verdict.py` [broadcast fixture] (planned — does not exist yet) | 0 of 20 television and music clips pass the gate | not yet measured |
-| 6 | B4 | `should_accept()` in `src/afon/edge/speaker_id.py` | a raised bar is the only lever; no code path lowers a bar at runtime without a profile rewrite | not yet measured — structural claim, unverified: the argument is a reading of the code, with no run and no date |
+| 6 | B4 | `should_accept()` in `src/mushegh/edge/speaker_id.py` | a raised bar is the only lever; no code path lowers a bar at runtime without a profile rewrite | not yet measured — structural claim, unverified: the argument is a reading of the code, with no run and no date |
 
 ## Failure modes
 
 **The identity extra is missing or no profile is enrolled.** `verify()` accepts everything, the
 gate becomes a no-op, and the system looks healthy while being open. The owner sees a
-stranger's sentence answered as his own. Diagnose: `journalctl -u openafon-edge -n 200 |
-grep -i "speaker profile"`, then `ls "$AFON_SPEAKER_PROFILE"`, then `uv run python
+stranger's sentence answered as his own. Diagnose: `journalctl -u openmushegh-edge -n 200 |
+grep -i "speaker profile"`, then `ls "$MUSHEGH_SPEAKER_PROFILE"`, then `uv run python
 bench/test_speaker_gate_scoping.py`. No log line for the profile means no gate.
 
 **Cold start.** The first utterance is embedded against a buffer that has not filled. Registry
-records this as fixed (10.F2); if it regresses, the owner sees Afon ignoring him once after
+records this as fixed (10.F2); if it regresses, the owner sees Mushegh ignoring him once after
 every restart, and learning to re-speak more loudly.
 
 **The bar is stale.** A profile rewritten with `--append` deliberately drops the old

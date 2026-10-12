@@ -43,8 +43,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain import tools as T
-    from afon.edge import pc_agent
+    from mushegh.brain import tools as T
+    from mushegh.edge import pc_agent
 
     edges = RM.build()
 
@@ -84,7 +84,7 @@ def main() -> int:
           len(parts["ok"]) >= len(edges) * 0.9,
           f"{len(parts['stale'])} awaiting a rebuild — run `graphify update .`")
     check("slug folds __init__ and strips a leading underscore",
-          RM.slug("src/afon/brain/tools/__init__") == "src_afon_brain_tools_init"
+          RM.slug("src/mushegh/brain/tools/__init__") == "src_mushegh_brain_tools_init"
           and RM.slug("_run_op") == "run_op")
 
     print("\n[3] injection is idempotent and cannot overwrite an extracted edge")

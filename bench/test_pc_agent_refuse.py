@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from afon.edge.pc_agent import _refused
+from mushegh.edge.pc_agent import _refused
 
 
 def test_refuse_list() -> None:

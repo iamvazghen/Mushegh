@@ -23,10 +23,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 async def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.brain.modes import MODES
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.modes import MODES
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._self_improve = False
 
     print("Does the turn that says 'focus mode is off' actually turn it off?\n")
@@ -46,7 +46,7 @@ async def main() -> int:
     print(f"  the reply claims focus mode is off : {claimed_off}")
     print(f"  focus mode is actually off        : {not after}")
     if claimed_off and after:
-        print("\n  THE REPLY IS FALSE. Afon says he has dropped a mode and has not, so the")
+        print("\n  THE REPLY IS FALSE. Mushegh says he has dropped a mode and has not, so the")
         print("  owner's expectation of being uninterrupted does not match reality.")
         print("  That is a correctness bug, not a score.")
     elif not claimed_off and after:

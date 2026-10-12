@@ -30,9 +30,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    import afon.brain.tools.web as web
-    from afon.brain.cache import CACHE
-    from afon.config import settings
+    import mushegh.brain.tools.web as web
+    from mushegh.brain.cache import CACHE
+    from mushegh.config import settings
 
     async def boom(_q):
         raise RuntimeError("provider outage")
@@ -100,7 +100,7 @@ def main() -> None:
                                      or "error" in out3.lower() or "sir" in out3.lower()), out3)
 
     print("\n[5] read-only web tools are never confirm-gated; interactive browser IS (Phase 3.5)")
-    from afon.brain.proactive import confirm_required
+    from mushegh.brain.proactive import confirm_required
     check("scrape_url is not confirm-gated", confirm_required("scrape_url", {"url": "x"}) is False)
     check("web_search is not confirm-gated", confirm_required("web_search", {"query": "x"}) is False)
     check("browse_web (read-only fetch) is not confirm-gated",
@@ -110,7 +110,7 @@ def main() -> None:
     check("interactive browser IS confirm-gated", confirm_required("browser", {"url": "x"}) is True)
 
     print("\n[empty-body case] a wall in front of a page is never summarised as the page  [05.F3]")
-    from afon.brain.tools.web import obstructed
+    from mushegh.brain.tools.web import obstructed
 
     check("nothing at all is named as nothing", "nothing came back" in obstructed(""))
     check("a title-only JS shell is not an article",

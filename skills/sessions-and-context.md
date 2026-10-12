@@ -25,7 +25,7 @@ existed, a conversation long enough to trim lost its opening and nothing recorde
 - `max_history_turns = 12` → 24 messages kept in working history
 - `_max_tool_iters = 4` → at most 4 tool rounds in one turn
 - `_dropped_flush_turns = 3` → after 3 trimmed user turns, flush the buffer to the journal
-- Session snapshot persists to `afon_session.json` (state dir), so a restart resumes the thread
+- Session snapshot persists to `mushegh_session.json` (state dir), so a restart resumes the thread
 - Idle reset fires after `_idle_reset_min` (configurable; 0 disables it)
 
 If you need one of these changed, that is a code change with a test — not a judgement call made

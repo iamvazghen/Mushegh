@@ -12,7 +12,7 @@ So what has to be true:
   1. one failure is not evidence — a single blip must not move a provider;
   2. two inside five minutes is, and the provider is **deprioritised**;
   3. deprioritised means moved to the BACK of the chain, never removed. A provider that failed
-     twice is not proven dead, and a chain that can empty itself is a chain that can leave Afon
+     twice is not proven dead, and a chain that can empty itself is a chain that can leave Mushegh
      mute — the failure this whole file is downstream of;
   4. repeat offences cost more, and a success clears the record. Without the second half, the
      first bad five minutes of a day benches a provider until the next restart;
@@ -36,7 +36,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import afon.brain.llm as L  # noqa: E402
+import mushegh.brain.llm as L  # noqa: E402
 
 PASS = 0
 FAIL = 0
@@ -102,7 +102,7 @@ def main() -> int:
     L.note_provider_failure("groq:a")
     ordered = L.LLMClient._deprioritise(chain)
     check(f"every entry survives the reorder ({ordered})", sorted(ordered) == sorted(chain),
-          "a chain that can empty itself can leave Afon mute")
+          "a chain that can empty itself can leave Mushegh mute")
     check("the cooling provider's entries are at the back",
           [e for e in ordered[-2:] if L.provider_of(e) == "groq"] == ["groq:a", "groq:c"],
           str(ordered))
@@ -175,7 +175,7 @@ def main() -> int:
     L.reset_provider_health()
     L.note_provider_failure("groq:a", why="429 rate limited")
     L.note_provider_failure("groq:a", why="429 rate limited")
-    from afon.brain.hud import hud_snapshot
+    from mushegh.brain.hud import hud_snapshot
     rows = hud_snapshot().get("llm_providers") or []
     by = {r["provider"]: r for r in rows}
     known = {name for name, *_ in L._PROVIDERS} | {L._DEFAULT_PROVIDER}

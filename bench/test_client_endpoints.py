@@ -1,7 +1,7 @@
 """J4.5 — the browser clients are checked statically, and never against the brain they call.
 
 `clients/iphone/index.html` and `clients/hud/index.html` are the two surfaces a human touches
-without Afon's voice: one sends audio to `/talk`, the other polls `/hud.json`. Both talk to the
+without Mushegh's voice: one sends audio to `/talk`, the other polls `/hud.json`. Both talk to the
 brain's HTTP handler in `brain/server.py`, and nothing connected the two sides — the existing client
 test verifies the page in isolation ("statically + server injection"), which cannot see a route that
 was renamed, a method that changed, or an auth scheme the server stopped accepting.
@@ -64,7 +64,7 @@ def _handler_body(src: str, name: str) -> str:
 
 
 def main() -> None:
-    server_src = (ROOT / "src" / "afon" / "brain" / "server.py").read_text(encoding="utf-8")
+    server_src = (ROOT / "src" / "mushegh" / "brain" / "server.py").read_text(encoding="utf-8")
     pages = sorted((ROOT / "clients").rglob("index.html"))
 
     print("[1] the surfaces this checks")

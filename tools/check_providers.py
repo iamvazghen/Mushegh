@@ -84,8 +84,8 @@ async def main() -> int:
     args = ap.parse_args()
 
     try:
-        from afon.config import settings
-        from afon.brain.llm import LLMClient
+        from mushegh.config import settings
+        from mushegh.brain.llm import LLMClient
     except Exception as exc:  # noqa: BLE001
         print(f"cannot load the runtime: {type(exc).__name__}: {exc}")
         return 2
@@ -112,12 +112,12 @@ async def main() -> int:
 
     print(f"\n{len(live)} of {len(chain)} entries can answer")
     if not live:
-        print("\nNOTHING can answer. Afon cannot complete a turn at all.")
+        print("\nNOTHING can answer. Mushegh cannot complete a turn at all.")
         return 1
     if len(live) < args.min:
         print(f"\nBelow the floor of {args.min}. A primary is not a fallback: with one reachable "
               f"entry there is no failover when it fails, and the measured behavioural score "
-              f"becomes a measurement of that one provider rather than of Afon.")
+              f"becomes a measurement of that one provider rather than of Mushegh.")
         return 1
     if len(live) > 1 and len(live) < len(chain):
         print("\nThe dead entries are not free. Each one costs a failed round trip on every turn "

@@ -12,9 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import os
-os.environ["AFON_SYSTEM_TOOLS_ENABLED"] = "true"
+os.environ["MUSHEGH_SYSTEM_TOOLS_ENABLED"] = "true"
 
-from afon.brain.tools.system import SCHEMAS, _process_op_local  # noqa: E402
+from mushegh.brain.tools.system import SCHEMAS, _process_op_local  # noqa: E402
 
 _ok = _fail = 0
 

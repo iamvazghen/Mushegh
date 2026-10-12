@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.config import Settings  # noqa: E402
+from mushegh.config import Settings  # noqa: E402
 
 ASSIGN_RE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_]*)=(.*)$")
 
@@ -52,7 +52,7 @@ def blank_typed_keys() -> list[tuple[int, str, str]]:
         key, value = m.group(1), m.group(2)
         if value.split("#", 1)[0].strip():  # has a real value
             continue
-        field_name = key.removeprefix("AFON_").upper()
+        field_name = key.removeprefix("MUSHEGH_").upper()
         if field_name in typed:
             hits.append((n, key, typed[field_name]))
     return hits

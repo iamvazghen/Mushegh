@@ -51,7 +51,7 @@ def _mature(F, led: Path, n: int = 12, outcome: str | None = None) -> None:
 
 
 def main() -> None:
-    from afon.brain import forecast as F
+    from mushegh.brain import forecast as F
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         led = Path(d) / "forecasts.jsonl"
@@ -131,7 +131,7 @@ def main() -> None:
         F.record(weak, quiet)
         check("it went into the ledger anyway", len(F.rows(quiet)) == 1, F.rows(quiet))
         check("the code says why", "flatter" in (Path(__file__).resolve().parents[1] /
-              "src/afon/brain/forecast.py").read_text(encoding="utf-8"),
+              "src/mushegh/brain/forecast.py").read_text(encoding="utf-8"),
               "scoring only the confident ones would make the accuracy figure meaningless")
 
         print("\n[scoring ledger] the baseline is reported beside the score, always")
@@ -162,7 +162,7 @@ def main() -> None:
 
     print("\n[predictor] it runs where the owner already asks about his day")
     day_shape = (Path(__file__).resolve().parents[1]
-                 / "src/afon/brain/tools/day_shape.py").read_text(encoding="utf-8")
+                 / "src/mushegh/brain/tools/day_shape.py").read_text(encoding="utf-8")
     check("day_clashes carries the forecast", "_forecast_line(events)" in day_shape)
     check("...recording it whether or not it speaks", "forecast.record(p)" in day_shape)
     check("...and never breaking the answer it decorates",
@@ -170,11 +170,11 @@ def main() -> None:
     check("no new per-turn tool was added for it",
           "predict_day_fit" not in day_shape.split("SCHEMAS = [")[1],
           "a schema slot is charged on every turn, asked or not")
-    from afon.brain.inventory import by_name
+    from mushegh.brain.inventory import by_name
 
     check("the ledger is declared in the data inventory", by_name("forecasts.jsonl") is not None)
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/forecast.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/forecast.py").read_text(encoding="utf-8")
     check("no model is called on the forecast path", "llm" not in src.lower().split('"""')[2])
     check("the declined alternatives are recorded, with why",
           "Prophet" in src and "decoration" in src)

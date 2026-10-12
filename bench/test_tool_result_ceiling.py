@@ -38,8 +38,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.tools import base  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain.tools import base  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 passed = failed = 0
 
@@ -82,7 +82,7 @@ def main() -> None:
 
     print("\n[4] the backstop never fights a tool's own sizing decision")
     limits: list[tuple[str, int]] = []
-    for path in (ROOT / "src" / "afon").rglob("*.py"):
+    for path in (ROOT / "src" / "mushegh").rglob("*.py"):
         text = path.read_text(encoding="utf-8", errors="replace")
         for m in re.finditer(r"\bclip\(\s*[^,()]+,\s*(\d{2,6})\s*\)", text):
             limits.append((path.name, int(m.group(1))))
@@ -92,7 +92,7 @@ def main() -> None:
 
     print("\n[5] BOTH message paths go through it — the live turn and the autonomous one")
     for name in ("agent.py", "worker.py"):
-        src = (ROOT / "src" / "afon" / "brain" / name).read_text(encoding="utf-8")
+        src = (ROOT / "src" / "mushegh" / "brain" / name).read_text(encoding="utf-8")
         appended = re.search(r'messages\.append\(\{"role": "tool".*?\}\)', src, re.DOTALL)
         check(appended is not None, f"{name}: found the tool-result append site")
         if appended:

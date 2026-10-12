@@ -1,10 +1,10 @@
-# Afon — Live Production Testing Guide
+# Mushegh — Live Production Testing Guide
 
-**What this is.** A single ordered pass over every capability Afon has, tested *live* — real voice,
+**What this is.** A single ordered pass over every capability Mushegh has, tested *live* — real voice,
 real keys, real network, real side effects. Not the hermetic suite. `bench/run_all_tests.py` proves
 the code is internally consistent; this document proves the **system works in the world**.
 
-**The claim it supports.** If every check here passes on the machines Afon actually runs on, Afon is
+**The claim it supports.** If every check here passes on the machines Mushegh actually runs on, Mushegh is
 production-ready. Nothing else in this repo makes that claim, and the hermetic suite explicitly
 cannot: it has passed 118/118 through a day in which three subsystems were silently broken.
 
@@ -20,7 +20,7 @@ on any FAIL in Sections 0–3; later sections can be triaged.
 
 Four rules, each of which exists because ignoring it produced a false green in this repo:
 
-1. **A tool that answers is not a tool that worked.** Afon degrades politely. `not_configured()`
+1. **A tool that answers is not a tool that worked.** Mushegh degrades politely. `not_configured()`
    returns a fluent sentence when a key is missing, so "he replied sensibly" proves nothing. For
    every integration check, verify the **side effect at the destination** — the message in Telegram,
    the row in Notion, the event in Calendar.
@@ -43,8 +43,8 @@ uv run python bench/run_all_tests.py         # hermetic gate must be green FIRST
 Do not start live testing against a red hermetic suite — you will not know which layer failed.
 
 **Known-unconfigured integrations** (as of this writing) — their checks are expected SKIP, not FAIL:
-Home Assistant (`AFON_HA_TOKEN`), Twilio (`AFON_TWILIO_AUTH_TOKEN`), Google Maps
-(`AFON_GOOGLE_MAPS_API_KEY`), Brave (`AFON_BRAVE_API_KEY`), Firecrawl, Cerebras. Confirm the current
+Home Assistant (`MUSHEGH_HA_TOKEN`), Twilio (`MUSHEGH_TWILIO_AUTH_TOKEN`), Google Maps
+(`MUSHEGH_GOOGLE_MAPS_API_KEY`), Brave (`MUSHEGH_BRAVE_API_KEY`), Firecrawl, Cerebras. Confirm the current
 list with the credential audit in SOP §2.3 rather than trusting this paragraph.
 
 ---
@@ -55,27 +55,27 @@ list with the credential audit in SOP §2.3 rather than trusting this paragraph.
 |---|---|---|---|
 | 0.1 | `curl -s http://<brain-host>:8766/healthz` | `ok` | brain down; see SOP §4.1 |
 | 0.2 | `curl -sH "Authorization: Bearer $TOKEN" http://<brain-host>:8766/metrics` | JSON with `counters`, `latency_ms` | auth token wrong, or brain started before .env loaded |
-| 0.3 | On the laptop: list `pythonw` processes **with their parents** | **Four** — a supervisor + worker for each of `AfonEdge` and `AfonPcAgent`; exactly one supervisor per role | see 0.4 and the note below |
-| 0.4 | Start a *second* edge deliberately | It exits, logging that another holds the role | `shared/singleton.py` guard broken — two edges both hold the mic and you hear Afon twice |
+| 0.3 | On the laptop: list `pythonw` processes **with their parents** | **Four** — a supervisor + worker for each of `MusheghEdge` and `MusheghPcAgent`; exactly one supervisor per role | see 0.4 and the note below |
+| 0.4 | Start a *second* edge deliberately | It exits, logging that another holds the role | `shared/singleton.py` guard broken — two edges both hold the mic and you hear Mushegh twice |
 | 0.5 | `uv run python bench/show_errors.py --summary` | No CRITICAL in the last 24h | read the entries before proceeding |
-| 0.6 | `Get-ScheduledTask \| ? {$_.TaskName -match 'Afon\|Watari\|Jarvis'}` | `AfonEdge`, `AfonPcAgent`, `AfonEdgeRefresh`, `AfonEdgeGuard` — Ready/Running, all pointing at paths that exist, **no `Watari*`/`Jarvis*` left** | see the box below |
+| 0.6 | `Get-ScheduledTask \| ? {$_.TaskName -match 'Mushegh\|Watari\|Jarvis'}` | `MusheghEdge`, `MusheghPcAgent`, `MusheghEdgeRefresh`, `MusheghEdgeGuard` — Ready/Running, all pointing at paths that exist, **no `Watari*`/`Jarvis*` left** | see the box below |
 | 0.7 | Reboot the laptop, wait 2 min | Edge comes back by itself | autostart is registered but broken — 0.6 |
 
 > **Why 0.4 is not optional.** Duplicate processes are the most common production failure in this
-> system and the hardest to diagnose from symptoms — it presents as "Afon answers twice", "the
+> system and the hardest to diagnose from symptoms — it presents as "Mushegh answers twice", "the
 > speaker gate fights itself", or doubled proactive messages.
 
 > **Why 0.6 is not optional — it was already broken when this guide was written.** On 2026-08-09 the
 > live tasks were still the pre-rename `JarvisEdge`, `WatariPcAgent` and `WatariEdgeRefresh`, all
-> pointing into **`C:\Jarvis`, a directory that no longer exists**, while `AfonEdgeGuard` was
+> pointing into **`C:\Jarvis`, a directory that no longer exists**, while `MusheghEdgeGuard` was
 > **Disabled**. No edge process was running, nothing would have started one at logon, and the
 > watchdog whose job is to notice was off. A Scheduled Task with a missing executable fails
 > **silently** — no error anywhere, the edge is simply never there.
-> Fix: `powershell -ExecutionPolicy Bypass -File scripts\finish_afon_rename.ps1` (elevated).
+> Fix: `powershell -ExecutionPolicy Bypass -File scripts\finish_mushegh_rename.ps1` (elevated).
 > `scripts/preflight.sh` now asserts it permanently.
 
 > **On process count (0.3 vs 0.4):** expect **four** `pythonw` processes, not two —
-> `AfonEdge` and `AfonPcAgent` each run a supervisor plus its worker (`_supervisor.run_supervised`).
+> `MusheghEdge` and `MusheghPcAgent` each run a supervisor plus its worker (`_supervisor.run_supervised`).
 > A duplicate is two processes with the **same parent** (Task Scheduler, PID ~2308) running the same
 > module. Check parentage with
 > `Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" | Select ProcessId,ParentProcessId,CommandLine`
@@ -88,26 +88,26 @@ list with the credential audit in SOP §2.3 rather than trusting this paragraph.
 
 | # | Say/Do | Expect | Fail means |
 |---|---|---|---|
-| 1.1 | Say **"Hey Afon"**, then wait | Listening indicator/pulse; no response to the wake phrase alone | wake model not loaded — check `.wakewords/*.onnx` |
-| 1.2 | "Hey Afon, what time is it?" | Answer in **under ~1s**, no network round trip | edge reflex not firing (`edge/reflexes.py`) — see 1.3 |
+| 1.1 | Say **"Hey Mushegh"**, then wait | Listening indicator/pulse; no response to the wake phrase alone | wake model not loaded — check `.wakewords/*.onnx` |
+| 1.2 | "Hey Mushegh, what time is it?" | Answer in **under ~1s**, no network round trip | edge reflex not firing (`edge/reflexes.py`) — see 1.3 |
 | 1.3 | Same, with the brain stopped | Still answers | reflexes are supposed to be zero-VPS; if it fails, the reflex gate is routing to the brain |
-| 1.4 | Talk *near* Afon without the wake word for 2 min | No response at all | false-fire; retrain or raise the wake threshold |
+| 1.4 | Talk *near* Mushegh without the wake word for 2 min | No response at all | false-fire; retrain or raise the wake threshold |
 | 1.5 | Say a phrase similar to the wake word ("hey a phone") | No trigger | threshold too permissive |
-| 1.6 | Start speaking **while Afon is talking** | He stops promptly and listens | barge-in broken (`edge/vad_bargein.py`) |
-| 1.7 | Connect AirPods mid-session, then say "Hey Afon" | Recovers within ~30s and answers | audio watchdog (`edge/audio_watchdog.py`) — this was the recurring "I say hey afon and nothing comes" bug |
+| 1.6 | Start speaking **while Mushegh is talking** | He stops promptly and listens | barge-in broken (`edge/vad_bargein.py`) |
+| 1.7 | Connect AirPods mid-session, then say "Hey Mushegh" | Recovers within ~30s and answers | audio watchdog (`edge/audio_watchdog.py`) — this was the recurring "I say hey mushegh and nothing comes" bug |
 | 1.8 | Disconnect them again, repeat | Recovers again | same |
-| 1.9 | Close the laptop lid, wait 10 min, reopen, say "Hey Afon" | Answers | sleep/resume deafness — the wall-clock jump detector |
+| 1.9 | Close the laptop lid, wait 10 min, reopen, say "Hey Mushegh" | Answers | sleep/resume deafness — the wall-clock jump detector |
 
-**Bench support:** `uv run python bench/verify_wakeword.py .wakewords/afon.onnx <clips...>` scores a
+**Bench support:** `uv run python bench/verify_wakeword.py .wakewords/mushegh.onnx <clips...>` scores a
 model on WAV clips. Use it to quantify 1.4/1.5 rather than guessing.
 
 > **On a fresh clone, 1.1 will fail unless you know this.** openWakeWord ships pretrained models for
-> only a handful of phrases, and "afon" is not one of them, so `edge/wake_word.py:_MAP` routes
-> `"afon"` / `"hey afon"` onto the pretrained **`hey_jarvis`** model. Configure the phrase as "hey
-> afon" and the thing actually listening for is *"hey Jarvis"* — the log gives it away
+> only a handful of phrases, and "mushegh" is not one of them, so `edge/wake_word.py:_MAP` routes
+> `"mushegh"` / `"hey mushegh"` onto the pretrained **`hey_jarvis`** model. Configure the phrase as "hey
+> mushegh" and the thing actually listening for is *"hey Jarvis"* — the log gives it away
 > (`wake words active: ['hey_jarvis']`). Either say "hey Jarvis", pick a phrase from the pretrained
-> set, or train a custom model and point `AFON_WAKE_WORDS` at the `.onnx` **path** (which is what
-> this deployment does: `wake: 'hey_afon' detected`). Check the log line before concluding the wake
+> set, or train a custom model and point `MUSHEGH_WAKE_WORDS` at the `.onnx` **path** (which is what
+> this deployment does: `wake: 'hey_mushegh' detected`). Check the log line before concluding the wake
 > word is broken.
 
 ---
@@ -116,12 +116,12 @@ model on WAV clips. Use it to quantify 1.4/1.5 rather than guessing.
 
 | # | Say/Do | Expect | Fail means |
 |---|---|---|---|
-| 2.1 | "Hey Afon, tell me a joke" | Speaks within ~2s; natural prosody | pure-chat fast path not engaging (should carry **zero** tools) |
+| 2.1 | "Hey Mushegh, tell me a joke" | Speaks within ~2s; natural prosody | pure-chat fast path not engaging (should carry **zero** tools) |
 | 2.2 | Watch the log for `turn latency:` | `stt/brain/tts/total` all present | latency tracer not wired |
 | 2.3 | `uv run python bench/voice_live_bench.py` | 10-utterance battery; TTFW recorded per turn | — |
 | 2.4 | `uv run python bench/edge_readiness.py` | Injects synthesized audio through the real pipeline; pass per stage | isolates edge software from mic hardware |
 | 2.5 | Ask something emotional ("I had a rough day") | Warmer delivery, not just warmer words | affect→TTS is text-only today; **this is a known open item, judge by ear** |
-| 2.6 | Pull the network, say "Hey Afon, what time is it?" | Local answer | — |
+| 2.6 | Pull the network, say "Hey Mushegh, what time is it?" | Local answer | — |
 | 2.7 | `uv run python bench/voice_offline_check.py` | Fully-local turn viable (Whisper + Piper) | local models missing |
 
 > **2.5 is the one check here with no automated backstop.** Prosody ships with starting values that
@@ -133,10 +133,10 @@ model on WAV clips. Use it to quantify 1.4/1.5 rather than guessing.
 
 | # | Say/Do | Expect | Fail means |
 |---|---|---|---|
-| 3.1 | Owner says "Hey Afon, who am I?" | Recognises the owner | voiceprint stale — re-enroll with `bench/enroll_voice.py` |
+| 3.1 | Owner says "Hey Mushegh, who am I?" | Recognises the owner | voiceprint stale — re-enroll with `bench/enroll_voice.py` |
 | 3.2 | **Someone else** says the same | Does *not* claim they are the owner | `speaker_threshold` too permissive |
 | 3.3 | Stranger asks for something confirm-gated (e.g. "send an email") | Refused or escalated, not executed | the identity gate is decorative |
-| 3.4 | Owner: "learn my face" (seated, lit) | Enrolls; refs land in `~/.afon/faces/owner.npy` | camera path — on a VPS brain this must route through PC_LINK |
+| 3.4 | Owner: "learn my face" (seated, lit) | Enrolls; refs land in `~/.mushegh/faces/owner.npy` | camera path — on a VPS brain this must route through PC_LINK |
 | 3.5 | "Look around" / "who's here" | Describes the room; owner matched | camera tool running headless on the VPS instead of the laptop |
 
 > Face refs are **machine-local**. `scripts/preflight.sh` asserts they exist at the path the code
@@ -219,7 +219,7 @@ screen/camera physically is.
 
 ## Section 5 — Integrations, end to end
 
-For every row: **check the destination app**, not Afon's reply.
+For every row: **check the destination app**, not Mushegh's reply.
 
 | Integration | Say | Verify at the destination |
 |---|---|---|
@@ -295,8 +295,8 @@ Eight protocols, three of which produce a report delivered to you.
 | `backup` | "Back up your memory" | archive written |
 | `checkpoint` | "Run a checkpoint" | `.zip` delivered as an attachment |
 | `auditpack` | "Archive the audit logs" | `.zip` delivered |
-| `goodnight` | "Goodnight protocol" | **stops Afon** — run last |
-| `phoenix` | "Phoenix protocol" | restarts Afon |
+| `goodnight` | "Goodnight protocol" | **stops Mushegh** — run last |
+| `phoenix` | "Phoenix protocol" | restarts Mushegh |
 | `ragnarok` | "Ragnarok protocol" | restarts the laptop — **destructive, schedule it** |
 
 All require the protocol password and are confirm-gated.
@@ -320,7 +320,7 @@ All require the protocol password and are confirm-gated.
 | 9.5 | **Force an error** — ask for a tool whose key is removed | appears in the journal within seconds |
 | 9.6 | Force an edge error with the brain unreachable | spooled, then **replayed on reconnect** |
 | 9.7 | `/metrics` | `tool_calls`, `tool_errors`, `turns` climbing |
-| 9.8 | `cat ~/.afon/tool_usage.json` | per-tool counts, surviving a restart |
+| 9.8 | `cat ~/.mushegh/tool_usage.json` | per-tool counts, surviving a restart |
 | 9.9 | Check for a **swallowed** exception | `subsystem=swallowed/*` entries reviewed |
 
 > 9.5 and 9.6 are the checks that matter. Error tracking that has only ever seen zero errors is
@@ -333,13 +333,13 @@ All require the protocol password and are confirm-gated.
 
 | # | Do | Expect |
 |---|---|---|
-| 10.1 | `taskkill` the edge process | `AfonEdgeGuard` restarts it within ~30 min |
+| 10.1 | `taskkill` the edge process | `MusheghEdgeGuard` restarts it within ~30 min |
 | 10.2 | Stop the edge **deliberately** (documented way) | guard does **not** fight you |
 | 10.3 | Kill the brain | systemd restarts it; sessions recover |
 | 10.4 | Revoke/blank the primary LLM key | fails over to the next provider in the chain, **out loud or in the log** |
 | 10.5 | Break the primary TTS | falls back to local Piper — and does **not** demote a healthy provider on a transient idle-close |
 | 10.6 | Unplug the network mid-turn | degrades, no hang; recovers |
-| 10.7 | Corrupt `~/.afon/tool_usage.json` | starts fresh, does not crash the brain |
+| 10.7 | Corrupt `~/.mushegh/tool_usage.json` | starts fresh, does not crash the brain |
 | 10.8 | Reboot the laptop | edge autostarts; `pc_agent` elevated |
 | 10.9 | Reboot the VPS | brain autostarts (systemd + linger) |
 | 10.10 | Fill the disk to >90% | degrades gracefully; alerts |
@@ -355,14 +355,14 @@ Proactivity cannot be rushed; that is the point. Verify **restraint** as careful
 
 | # | Do | Expect |
 |---|---|---|
-| 11.1 | Use Afon normally for a day | at most `proactive_daily_budget` interjections |
+| 11.1 | Use Mushegh normally for a day | at most `proactive_daily_budget` interjections |
 | 11.2 | During quiet hours | silence, unless urgency ≥ override — then **push, never spoken** |
 | 11.3 | While in a meeting / deep work | routine nudges **held**, not spoken |
 | 11.4 | Dismiss a kind 3× | that kind backs off (learned penalty) |
 | 11.5 | Act on a kind | it eases back |
 | 11.6 | Have a calendar event in 15 min | prep nudge |
 | 11.7 | After an autonomous action | **an action report** — what he did and why |
-| 11.8 | `cat ~/.afon/proactive_state.json` | `shown` **and** `held_*` counters per kind |
+| 11.8 | `cat ~/.mushegh/proactive_state.json` | `shown` **and** `held_*` counters per kind |
 
 > **11.8 is how you tell "correctly restrained" from "never generated".** Before the `held_*`
 > counters existed, both looked like zero — which is how five companion capabilities were read as
@@ -402,7 +402,7 @@ Read this before concluding a store is broken.
 | 13.7 | Very long rambling request | handles or asks to narrow |
 
 > **13.4 is the anti-fabrication check.** In a sibling system a security agent invented a CVE. If
-> Afon ever fills a gap with plausible fiction, stop and treat it as a P1.
+> Mushegh ever fills a gap with plausible fiction, stop and treat it as a P1.
 
 ---
 
@@ -467,7 +467,7 @@ Copy per run. `P` pass · `F` fail · `S` skip (unconfigured) · `N` not run.
 | `bench/voice_offline_check.py` | is a fully-local turn possible |
 | `bench/verify_remote_brain.py` | does the VPS brain stream back over the tailnet |
 | `bench/verify_wakeword.py` | does the wake model fire and stay quiet |
-| `bench/demo_live_actions.py` | Afon performs every integration himself |
+| `bench/demo_live_actions.py` | Mushegh performs every integration himself |
 | `bench/behavioral_suite.py` | judges *how well*, not just that it works |
 | `bench/efficiency_report.py` | hot paths vs targets |
 | `bench/verify_multilingual.py` | 6-language comprehension |

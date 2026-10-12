@@ -43,7 +43,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import health  # noqa: E402
+from mushegh.brain import health  # noqa: E402
 
 passed = failed = 0
 
@@ -89,7 +89,7 @@ class _Link:
 
 
 async def main() -> None:
-    from afon.brain import pc_link as pl
+    from mushegh.brain import pc_link as pl
 
     print("[0] the stub agrees with the class it stands for")
     real = pl.PcLink

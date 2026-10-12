@@ -6,7 +6,7 @@ clause that was routed and its tool never *fired*. "No per-clause trace exists t
 tell them apart, and the next change depends on the answer."
 
 This gate is that trace, and it answers the question from a live turn rather than
-from a claim. It drives real compound prompts through `AfonAgent.respond`, then
+from a claim. It drives real compound prompts through `MusheghAgent.respond`, then
 reads `turn_trace` and attributes every clause.
 
 Live by design: the answer is about the running system, and a hermetic stub would
@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import turn_trace  # noqa: E402
+from mushegh.brain import turn_trace  # noqa: E402
 
 # Compound prompts in the shape 01.E1 measures: two or more independent asks that
 # each route to a different tool, so a missing clause is visible rather than
@@ -57,8 +57,8 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 
 def _classify(agent_module: Any) -> Any:
-    from afon.brain.agent import AfonAgent
-    agent = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    agent = MusheghAgent()
     agent._history = []
     agent._persist_session = lambda: None
     agent._spawn_review = lambda: None
@@ -66,14 +66,14 @@ def _classify(agent_module: Any) -> Any:
 
 
 async def _live() -> int:
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
     totals = {"satisfied": 0, "completion_failure": 0, "unrouted": 0}
     turns_with_clauses = 0
     per_prompt: list[tuple[str, list[dict[str, Any]], list[str]]] = []
 
     for prompt, note in PROMPTS:
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._history = []
         agent._persist_session = lambda: None
         agent._spawn_review = lambda: None

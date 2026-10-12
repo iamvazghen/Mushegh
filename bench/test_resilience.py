@@ -35,7 +35,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 async def test_llm_failover() -> None:
     print("[1] LLM primary fails -> the chain answers via a fallback (no crash)")
-    from afon.brain.llm import LLMClient
+    from mushegh.brain.llm import LLMClient
 
     llm = LLMClient()
     # Two models in the chain; the first returns a choiceless 200 (proxy error), the second answers.
@@ -54,7 +54,7 @@ async def test_llm_failover() -> None:
 
 async def test_cache_fails_open() -> None:
     print("\n[2] the cache never becomes the failure — a miss, or an error, just runs the work")
-    from afon.brain.cache import Cache
+    from mushegh.brain.cache import Cache
 
     # O3.2 dropped the Redis tier (Jev p=0.98), so "Redis is down" is no longer a reachable state.
     # The failure mode that remains is the one that always mattered more: the thing BEHIND the cache
@@ -88,7 +88,7 @@ def _should_not_run():  # pragma: no cover - only called if the cache failed to 
 
 async def test_scheduler_failure() -> None:
     print("\n[3] Scheduler backend fails -> set_reminder degrades to a spoken error, brain survives")
-    import afon.brain.tools.reminders as rem
+    import mushegh.brain.tools.reminders as rem
 
     class _BrokenScheduler:
         def add_reminder(self, *a, **kw):
@@ -109,9 +109,9 @@ async def test_scheduler_failure() -> None:
 
 async def test_tool_raises_in_turn() -> None:
     print("\n[4] A tool raises mid-turn -> the turn returns a safe reply (no crash)")
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
 
     async def boom(_args: dict) -> str:
         raise RuntimeError("kaboom")
@@ -149,9 +149,9 @@ async def test_degraded_still_answers() -> None:
     print("\n[5] degraded: no LLM at all, yet time, reminders and status still answer")
     import time as _time
 
-    from afon.edge import degraded_answers as da
-    from afon.edge.reflexes import reflex_answer
-    from afon.shared import degraded
+    from mushegh.edge import degraded_answers as da
+    from mushegh.edge.reflexes import reflex_answer
+    from mushegh.shared import degraded
 
     # time — the one that already worked, asserted here so the trio is covered in one place
     check("time is answered with no brain and no model",
@@ -211,7 +211,7 @@ async def test_degraded_still_answers() -> None:
         check("a corrupt digest reads as absent, never a crash", da.load(p) is None)
 
     # the routing order is the point: no model is spent on an answer that never needed one
-    src = (ROOT / "src/afon/edge/remote_brain.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/edge/remote_brain.py").read_text(encoding="utf-8")
     i_deg, i_std = src.index("_degraded_answer(text)"), src.index("_answer_local(text)")
     check("the degraded answer is tried BEFORE the LLM standby", i_deg < i_std)
     check("...and before 23.R4's queue, so trivia is answered rather than held",

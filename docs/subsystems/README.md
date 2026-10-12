@@ -45,7 +45,7 @@ Three at most. A doc with no open questions is a doc that stopped thinking.
 
 ### Rules
 
-1. **Real paths only.** Every `src/afon/...` path cited must exist. Verify before
+1. **Real paths only.** Every `src/mushegh/...` path cited must exist. Verify before
    citing — a phantom path in a subsystem doc is worse than no path, because it will
    be trusted.
 2. **Decisions, not vibes.** Where the charter constrains a system, cite the `D-nn`.
@@ -131,7 +131,7 @@ Three at most. A doc with no open questions is a doc that stopped thinking.
    [`../HARDWARE.md`](../HARDWARE.md), and a system with hardware pointed at it is still
    `not yet measured` until the sensor is in the wall. The mmWave sensors change what S43
    can claim, the smoke detectors change what S35 must have written down first, and the
-   smart lock is the one device Afon may read and never actuate (D-65).
+   smart lock is the one device Mushegh may read and never actuate (D-65).
 
 ## Adding or removing a system
 

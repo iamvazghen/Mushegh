@@ -1,4 +1,4 @@
-"""Offline voice readiness — can Afon do a FULLY-LOCAL spoken turn, no network? (Roadmap 3.5)
+"""Offline voice readiness — can Mushegh do a FULLY-LOCAL spoken turn, no network? (Roadmap 3.5)
 
 The project's promise is local-first / privacy: with the cloud keys removed and the local models
 present, one full spoken turn (mic -> Whisper STT -> brain -> Piper/Kokoro TTS -> speaker) must work
@@ -39,7 +39,7 @@ def _line(label: str, ok: bool, note: str = "") -> None:
 
 
 def main() -> None:
-    from afon.config import STTProvider, TTSProvider, settings
+    from mushegh.config import STTProvider, TTSProvider, settings
 
     print("Offline voice readiness — fully-local STT/TTS stack (no cloud, no network).\n")
 
@@ -63,7 +63,7 @@ def main() -> None:
     try:
         settings.stt_provider = STTProvider.whisper
         try:
-            from afon.edge.stt import build_stt
+            from mushegh.edge.stt import build_stt
 
             build_stt()
             stt_ok = True
@@ -72,7 +72,7 @@ def main() -> None:
 
         settings.tts_provider = TTSProvider.piper
         try:
-            from afon.edge.tts import build_tts
+            from mushegh.edge.tts import build_tts
 
             build_tts()
             tts_ok = True
@@ -100,10 +100,10 @@ def main() -> None:
               f"{GREEN}uv sync --extra local-voice{RESET}, then re-run. "
               "Models (Whisper, Piper voice) auto-download ONCE, after which it's 100% offline.")
 
-    print("\n  Decision (per docs): the PERSONAL Afon instance defaults to CLOUD quality "
+    print("\n  Decision (per docs): the PERSONAL Mushegh instance defaults to CLOUD quality "
           "(Deepgram STT + ElevenLabs TTS) with automatic LOCAL fallback when a key/engine is "
           "missing (voice_local_fallback=on). For a 100%-private run set "
-          "AFON_STT_PROVIDER=whisper + AFON_TTS_PROVIDER=piper. The OpenAfon FRAMEWORK default "
+          "MUSHEGH_STT_PROVIDER=whisper + MUSHEGH_TTS_PROVIDER=piper. The OpenMushegh FRAMEWORK default "
           "is local/BYO-key so a stranger needs no paid accounts.")
     print(f"\n  current config: STT={settings.stt_provider.value}  TTS={settings.tts_provider.value}  "
           f"local_fallback={settings.voice_local_fallback}")

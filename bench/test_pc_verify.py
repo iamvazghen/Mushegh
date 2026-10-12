@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import afon.edge.pc_agent as pc  # noqa: E402
-from afon.edge.pc_agent import _run_op, _verify_effect  # noqa: E402
+import mushegh.edge.pc_agent as pc  # noqa: E402
+from mushegh.edge.pc_agent import _run_op, _verify_effect  # noqa: E402
 
 _ok = _fail = 0
 
@@ -77,7 +77,7 @@ asyncio.run(run())
 async def run_linkdown():
     import time as _t
 
-    from afon.brain.pc_link import STALE_AFTER_S, PcLink
+    from mushegh.brain.pc_link import STALE_AFTER_S, PcLink
 
     class DeadWS:
         """A socket whose peer is gone: the send succeeds, the ping is never answered."""
@@ -131,9 +131,9 @@ async def run_linkdown():
 
     # Health used to call `PC_LINK.active()` — a property, so it raised TypeError, was swallowed,
     # and the laptop was reported down with a made-up reason even while it was connected.
-    from afon.brain import health
+    from mushegh.brain import health
 
-    from afon.brain import pc_link as pl
+    from mushegh.brain import pc_link as pl
 
     real = pl.PC_LINK
     pl.PC_LINK = link
@@ -155,7 +155,7 @@ asyncio.run(run_linkdown())
 def test_launch_and_volume_are_verified() -> None:
     """04.R1 — the two cases `_verify_effect` used to decline, and the answer that was a wish."""
     print("\n[04.R1] a launch is verified by the same probe that verifies a kill")
-    from afon.edge.pc_agent import _image_name
+    from mushegh.edge.pc_agent import _image_name
 
     for given, want in [("notepad", "notepad.exe"), ("chrome.exe", "chrome.exe"),
                         ("C:/Program Files/X/code.exe", "code.exe"), ('"notepad"', "notepad.exe")]:
@@ -193,11 +193,11 @@ def test_volume_reports_what_it_measured() -> None:
     print("\n[04.R1] the volume answer is a reading, not the number that was requested")
     import asyncio as _a
 
-    from afon.brain.tools import audioout as A
-    from afon.brain.playback import Playing
+    from mushegh.brain.tools import audioout as A
+    from mushegh.brain.playback import Playing
 
     real_fwd, real_cur = A._forward, None
-    import afon.brain.playback as _pb
+    import mushegh.brain.playback as _pb
     real_cur = _pb.current
 
     async def _fake_current():

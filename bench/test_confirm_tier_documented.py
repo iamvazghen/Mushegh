@@ -47,7 +47,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain.proactive import CONFIRM_TIER
+    from mushegh.brain.proactive import CONFIRM_TIER
 
     doc_path = ROOT / "SECURITY.md"
     doc = doc_path.read_text(encoding="utf-8")
@@ -73,9 +73,9 @@ def main() -> None:
     # `_is_affirmation`), which a backtick regex cannot tell from tool names. Discriminate against
     # the real tool registry rather than an exclusion list — a list would need editing every time
     # the prose does, which is the same rot this test exists to prevent.
-    from afon.brain.tools import tool_schemas
+    from mushegh.brain.tools import tool_schemas
 
-    # Afon has TWO tool registries, and using only the module one here was a hole: `tool_schemas()`
+    # Mushegh has TWO tool registries, and using only the module one here was a hole: `tool_schemas()`
     # enumerates brain/tools/*.py (136 tools), while `get_time`, `delegate_to_fleet`, `work_on_task`
     # and friends are AGENT BUILT-INS defined in agent.py and merged into the handler map alongside
     # `**tool_handlers()`. They are advertised to the model exactly like any other tool, so
@@ -84,9 +84,9 @@ def main() -> None:
     # Taken from the LIVE handler map rather than a hard-coded list: a list of built-ins would need
     # editing every time one is added, and would then silently stop covering the new one — the same
     # rot this file exists to catch.
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    real_tools = {s["function"]["name"] for s in tool_schemas()} | set(AfonAgent()._registry)
+    real_tools = {s["function"]["name"] for s in tool_schemas()} | set(MusheghAgent()._registry)
     phantom = sorted(n for n in named
                      if n in real_tools and n not in CONFIRM_TIER and n not in DOCUMENTED_AS_UNGATED)
     check("SECURITY.md names no tool it cannot back with a real gate", not phantom, str(phantom))

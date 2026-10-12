@@ -43,7 +43,7 @@ class Clock:
 
 
 def make_engine(signals, listening=True, **kw):
-    from afon.brain.proactive import ProactiveEngine
+    from mushegh.brain.proactive import ProactiveEngine
 
     sent = []
 
@@ -68,7 +68,7 @@ def make_engine(signals, listening=True, **kw):
 
 
 def main() -> None:
-    from afon.brain.proactive import (
+    from mushegh.brain.proactive import (
         Signal,
         confirm_required,
         in_quiet_hours,
@@ -174,7 +174,7 @@ def main() -> None:
     print("\n[12] calendar signal source — imminent timed events nudge, all-day skipped")
     from datetime import timedelta, timezone
 
-    from afon.brain.tools import calendar as cal
+    from mushegh.brain.tools import calendar as cal
 
     now = datetime.now(timezone.utc)
     soon = (now + timedelta(minutes=10)).isoformat()

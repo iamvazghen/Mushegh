@@ -1,4 +1,4 @@
-# Decisions — the OpenAfon charter
+# Decisions — the OpenMushegh charter
 
 **Status:** authoritative. Dated 2026-10-03; D-79–D-90 added 2026-10-06; D-83 amends D-12; D-88 extends D-07; D-90 implements D-08; D-91 corrects M42's transport.
 **Origin:** a 100-question interview with the owner, answered 2026-10-03, plus the
@@ -43,7 +43,7 @@ SQLite was correct from day one; the multi-adapter migration was blueprint
 > **Carried out 2026-10-04, milestone M02.** Gone: `postgres_client.py`,
 > `postgres_vectors.py`, `store_migration.py`, `sql/postgres_vectors.sql`, and their two
 > gates. Also gone: the `postgres_dsn` setting, the `postgres` extra in `pyproject.toml`,
-> `psycopg` from the lockfile (`uv lock` dropped both wheels), and the `AFON_POSTGRES_DSN`
+> `psycopg` from the lockfile (`uv lock` dropped both wheels), and the `MUSHEGH_POSTGRES_DSN`
 > block in `.env.example`. **No migration was needed** — the runtime never read the DSN, so
 > there was no dual-write to unwind and no data to move.
 >
@@ -51,12 +51,12 @@ SQLite was correct from day one; the multi-adapter migration was blueprint
 > - the `!postgres` entry in `data_classes.STORES`. The runtime store is SQLite and always
 >   was, but a host that ran the staged adapters may still have a Postgres directory on
 >   disk, and an unclassified store is the failure that table exists to prevent.
-> - `afon_graph.sqlite` in the migration list, for the same reason: a file the code no
+> - `mushegh_graph.sqlite` in the migration list, for the same reason: a file the code no
 >   longer writes is still a file the owner may have.
 >
 > **What the deleted module also contained, and where it went.** `store_migration.py`
 > was not only scaffolding — it held a read-only inventory and guarded, verifiable SQLite
-> snapshots. That capability is real, and `afon.protocols.backup` provides it
+> snapshots. That capability is real, and `mushegh.protocols.backup` provides it
 > (`make_backup` / `verify_backup` / `restore_backup` / `run_restore_drill`).
 > `bench/test_s30_migration_removed.py` proves that with a real backup -> verify -> restore
 > into a fresh directory -> drill round trip, 25/25. A gate that only checked the
@@ -117,7 +117,7 @@ unused for 60 days is culled. Growth is now a subtraction task. **Applies to S03
 
 ## D-07 — The silent-ok list **(commit)**
 
-Afon may act **without asking** for exactly these:
+Mushegh may act **without asking** for exactly these:
 
 - toggling predefined lighting scenes
 - appending entries to daily notes
@@ -130,7 +130,7 @@ silent-ok action is a decision, not a feature. **Applies to S36, S44, S03.**
 
 ## D-08 — The self-edit rule **(commit)**
 
-Afon may commit its own code only when **all four** hold:
+Mushegh may commit its own code only when **all four** hold:
 
 1. to a dedicated branch, never `main`;
 2. the complete test suite passes;
@@ -176,7 +176,7 @@ integration inside the brain and is not true of a CLI the owner wrote himself.
 
 ## D-13 — Blast-radius limit **(commit)**
 
-Afon can never touch, without the owner physically present:
+Mushegh can never touch, without the owner physically present:
 
 - physical door locks
 - main power breakers
@@ -214,7 +214,7 @@ reversal of it.)*
 
 ## D-18 — Unprompted speech has a hard scope **(commit)**
 
-Afon speaks unprompted **only** for:
+Mushegh speaks unprompted **only** for:
 
 - physical security and safety triggers (water, fire, security breach)
 - hard calendar count-downs (departure in 5 minutes)
@@ -287,8 +287,8 @@ explain itself. **Applies to S30, S45.**
 
 ## D-26 — The cross-entity graph relation layer goes **(commit — DONE 2026-10-04, M04)**
 
-> **Removed 2026-10-04, milestone M04.** `src/afon/brain/graph.py` and
-> `src/afon/brain/tools/graphmem.py` are deleted. The `graph` lazy tool group is
+> **Removed 2026-10-04, milestone M04.** `src/mushegh/brain/graph.py` and
+> `src/mushegh/brain/tools/graphmem.py` are deleted. The `graph` lazy tool group is
 > unregistered, the L5b recall layer is gone from `fused_recall`, the background reviewer
 > no longer writes triples, `forget` no longer sweeps them, and `what_i_dont_know` no longer
 > speaks from a store the owner had stopped trusting. The name `L5b` is still accepted and
@@ -298,7 +298,7 @@ explain itself. **Applies to S30, S45.**
 >
 > What was deliberately **kept**: `world_model.py` stays, because it is goals and events
 > rather than relations — `note_event` is a TTL scratchpad that webhooks depends on. Only
-> its one graph-aware method went. And `afon_graph.sqlite` stays in the migration list,
+> its one graph-aware method went. And `mushegh_graph.sqlite` stays in the migration list,
 > because a host that ran the old code may still have one sitting in its repo.
 The vector knowledge graph "lied constantly by pulling stale, irrelevant semantic
 noise" and consumed weeks of indexing for negligible utility. Losing multi-hop
@@ -307,7 +307,7 @@ deleted rather than maintained. **Applies to S24, S30, S15.**
 
 ## D-27 — No recommendation system **(commit)**
 
-Afon answers and acts. It does not suggest. Proactive recommendation is intrusive
+Mushegh answers and acts. It does not suggest. Proactive recommendation is intrusive
 noise. **S15 is removed, not scheduled.** Its nearest existing code
 (`brain/coaching.py`) is a tool, not a recommender, and must not grow into one.
 
@@ -343,7 +343,7 @@ Fires on the first morning device interaction (workstation unlock). Rendered
 
 ## D-34 — No unsolicited content discovery **(commit)**
 
-Afon never brings something unasked because it seemed interesting. Research happens in
+Mushegh never brings something unasked because it seemed interesting. Research happens in
 focused sessions, not ambient feeds. **Applies to S13, S15, S41.**
 
 ## D-35 — Latency budgets **(commit)**
@@ -382,7 +382,7 @@ S43, S07.**
 
 ## D-41 — The remote kill **(commit)**
 
-`systemctl stop openafon-edge` over SSH/Tailnet. In-flight tasks take SIGTERM, escalate
+`systemctl stop openmushegh-edge` over SSH/Tailnet. In-flight tasks take SIGTERM, escalate
 to SIGKILL after 3 s, and uncommitted edits remain in a Git stash — never lost, never
 committed by the kill path. **Applies to S04, S22.**
 
@@ -520,7 +520,7 @@ Dry, precise brevity. No sycophancy: no unsolicited apologies, no filler, no fei
 emotional investment. No moods, no synthetic emotional variance — a stable, transparent
 instrument. Affect that degrades operational predictability is not charm, it is noise.
 
-**A bad Afon** (the failure to notice within a week): it speaks when uninvited,
+**A bad Mushegh** (the failure to notice within a week): it speaks when uninvited,
 misinterprets intent, and produces half-baked background actions that force the owner
 to open a terminal to undo them.
 
@@ -549,7 +549,7 @@ store must be legible to `sqlite3` and readable in a text editor.
 ## D-55 — The handover gap **(commit)**
 
 Missing for a clean transfer: a reproducible bare-metal setup script and real
-documentation of edge audio hardware tuning. Both are prerequisites for OpenAfon being
+documentation of edge audio hardware tuning. Both are prerequisites for OpenMushegh being
 adoptable by anyone else, and neither exists. **Applies to S22, S18.**
 
 ## D-56 — On a poor microphone, refuse to guess **(commit)**
@@ -559,9 +559,9 @@ transcribing through noise. A missed word is cheap; a fabricated one is not.
 
 ## D-57 — Open-source is a forcing function **(commit)**
 
-Afon is a personal operational system first. Publishing OpenAfon is how the owner
+Mushegh is a personal operational system first. Publishing OpenMushegh is how the owner
 prevents sloppy hardcoding, spaghetti architecture and uncommitted secrets. The repo is
-private; the framework is the sanitized engine; "Afon" is the personal instance holding
+private; the framework is the sanitized engine; "Mushegh" is the personal instance holding
 the vault, tokens and hardware topology.
 
 **Never in the public repo:** personal notes, vault contents, network hostnames,
@@ -601,27 +601,27 @@ list has to describe the machine that exists:
 
 | Credential | System | Answers to |
 |---|---|---|
-| `AFON_HA_TOKEN`, `AFON_HA_URL` | S28 | D-07 (lighting scenes flow silently) |
+| `MUSHEGH_HA_TOKEN`, `MUSHEGH_HA_URL` | S28 | D-07 (lighting scenes flow silently) |
 | Google OAuth — client, secret, refresh | S21, S38 | D-62, D-13 (dispatch refuses regardless) |
 | Telegram — bot token, api id, hash, session | S38, S13 | D-62, D-18 |
-| `AFON_NOTION_TOKEN` | S33 | D-62 |
-| `AFON_TICKER_TOKEN` | S40 | D-12 (read-only market lookups only) |
-| `AFON_TAVILY_API_KEY`, `AFON_JINA_API_KEY` | S41 | D-34 (focused sessions, never ambient) |
-| `AFON_GIPHY_API_KEY` | S42 | D-62 |
-| `AFON_BROWSERBASE_API_KEY` + project id | S05 | D-62 |
-| `AFON_GITHUB_TOKEN` | S29, S39 | D-08 (self-edit rule) |
-| `AFON_NTFY_TOPIC` | S13, S35 | D-11 (push, never an outbound voice call) |
-| 7 × `AFON_PROTOCOL_*_PASSWORD` | S31 | D-02 (plaintext shell, no auth service) |
-| `AFON_API_AUTH_TOKEN` | S36 | D-03 (transport auth) |
+| `MUSHEGH_NOTION_TOKEN` | S33 | D-62 |
+| `MUSHEGH_TICKER_TOKEN` | S40 | D-12 (read-only market lookups only) |
+| `MUSHEGH_TAVILY_API_KEY`, `MUSHEGH_JINA_API_KEY` | S41 | D-34 (focused sessions, never ambient) |
+| `MUSHEGH_GIPHY_API_KEY` | S42 | D-62 |
+| `MUSHEGH_BROWSERBASE_API_KEY` + project id | S05 | D-62 |
+| `MUSHEGH_GITHUB_TOKEN` | S29, S39 | D-08 (self-edit rule) |
+| `MUSHEGH_NTFY_TOPIC` | S13, S35 | D-11 (push, never an outbound voice call) |
+| 7 × `MUSHEGH_PROTOCOL_*_PASSWORD` | S31 | D-02 (plaintext shell, no auth service) |
+| `MUSHEGH_API_AUTH_TOKEN` | S36 | D-03 (transport auth) |
 
 **And three that currently contradict this charter:**
 
-- `AFON_ELEVENLABS_API_KEY` — D-17 says local TTS wins, and the key is configured **and
-  `tts_provider` defaults to `elevenlabs` in `src/afon/config.py`**. So the decision is not
+- `MUSHEGH_ELEVENLABS_API_KEY` — D-17 says local TTS wins, and the key is configured **and
+  `tts_provider` defaults to `elevenlabs` in `src/mushegh/config.py`**. So the decision is not
   merely unrecorded; the code's default is the thing D-17 rejects. Piper/Kokoro exists as a
   fallback that only fires when a cloud provider cannot be constructed. **Task `18.R4`.**
-- `AFON_WAKE_WORD_ENGINE`, `AFON_PORCUPINE_ACCESS_KEY` — listed in `.env.example`, and read
-  by **nothing**. `src/afon/config.py` records that Porcupine was evaluated and dropped on
+- `MUSHEGH_WAKE_WORD_ENGINE`, `MUSHEGH_PORCUPINE_ACCESS_KEY` — listed in `.env.example`, and read
+  by **nothing**. `src/mushegh/config.py` records that Porcupine was evaluated and dropped on
   2026-08-01 and that these settings "sat here afterwards being read by nothing — settable in
   .env, and setting them did precisely nothing". The wake path is already on-device via
   openWakeWord, so **D-19 is honoured**; what is missing is the offline assertion and the
@@ -646,7 +646,7 @@ does not get integrated:
    permanently off-limits to ambient hardware (D-38), so placement is decided before the box
    is unboxed.
 3. **Read or actuate?** Reads are cheap and reversible. A device that both reads and acts is
-   split: Afon keeps the read, the physical act stays with the owner (D-14).
+   split: Mushegh keeps the read, the physical act stays with the owner (D-14).
 
 **Applies to every device in the inventory.** Falsified by a device that reports to a vendor
 cloud, sits in a bedroom, or actuates something physical without the owner.
@@ -658,7 +658,7 @@ depending on which claimed them last. The ZBT-1 is the coordinator; Home Assista
 built-in radio stays unused. Same principle as D-03 — no second network boundary, no second
 thing that can be down.
 
-## D-65 — A smart lock is read-only to Afon **(commit)**
+## D-65 — A smart lock is read-only to Mushegh **(commit)**
 
 The Aqara U200's state may be read and reported ("the front door is unlocked"). **No code
 path actuates it** — not over Matter, not over Thread, not over Zigbee, not through Home
@@ -682,7 +682,7 @@ nothing else.
 This extends D-61, which covered derived context, to pixels. It is load-bearing because the
 configured vision chain is **cloud-only** today, so a frame that reaches it has left.
 
-**The codebase already contains both patterns.** In `src/afon/brain/tools/camera.py`,
+**The codebase already contains both patterns.** In `src/mushegh/brain/tools/camera.py`,
 `look_around` hands a webcam frame to a vision model, while `visual_presence` counts faces
 locally and never lets the image leave — its own docstring says so. D-66 is therefore not a
 new constraint: it is the rule that the second behaviour must be the only one on the
@@ -697,8 +697,8 @@ must know it exists when it decides which presence source is authoritative.
 
 ## D-67 — One wake phrase on three always-listening satellites **(commit, proposed)**
 
-D-19 says one wake phrase, and the code has **seven** (`src/afon/config.py`:
-`afon, alfred, robbin, assist, time to work, wake up, six-one-nine`). On a single laptop
+D-19 says one wake phrase, and the code has **seven** (`src/mushegh/config.py`:
+`mushegh, alfred, robbin, assist, time to work, wake up, six-one-nine`). On a single laptop
 button-press that is a harmless convenience. On **three** HA Voice satellites it multiplies
 false wakes threefold, and a 3 AM false wake is precisely the failure D-19 exists to
 prevent.
@@ -717,7 +717,7 @@ boundary, not a product name. Awaiting the owner's nod on which circuits are in 
 
 ## D-69 — Presence is a house fact, not a laptop poll **(commit)**
 
-`src/afon/brain/presence.py` is a **laptop activity poller**: it reports which app is in
+`src/mushegh/brain/presence.py` is a **laptop activity poller**: it reports which app is in
 the foreground and how long the owner has been idle. That is not presence, and the docs that
 described presence as "BLE plus PIR" were describing an intention rather than the code.
 
@@ -733,7 +733,7 @@ that is now met: the owner owns a Prusa CORE One, a fire-suppression ball, a fil
 and a maintenance kit.
 
 The recommendation is to **keep S49 dropped**, because the second half of the trigger is not
-met. A printer in a workshop is a tool for making brackets; a printer Afon can drive is a
+met. A printer in a workshop is a tool for making brackets; a printer Mushegh can drive is a
 safety surface with a heated bed and moving axes, in a house where D-13 already refuses door
 locks. By D-47 this needs the owner's sign-off, not mine — but the charter's instinct was
 right and the new hardware confirms it.
@@ -861,7 +861,7 @@ That line is asserted in the gate, not just written here: a framing note that me
 budget or a quiet hour fails the test. A model that could talk its way past the three-a-day
 limit would make the limit a suggestion.
 
-**Tone refines; it does not replace.** `afon.brain.affect`'s cue-word inference is local,
+**Tone refines; it does not replace.** `mushegh.brain.affect`'s cue-word inference is local,
 always available and cheap, and stays the floor. Jev's register (`direct`, `steady`,
 `gentle`, `curt`) refines it when the service answered. A Jev outage costs the refinement
 and nothing else.
@@ -975,7 +975,7 @@ the egress, and here it plainly is. What decided it is a measurement, not a pref
 **2. STT is an OPEN CONFLICT, and the shipped default stays `deepgram`.** The owner wants the
 local ear, and the reason is a defect rather than a preference: Deepgram's nova-3 `multi` model
 covers en/es/fr/de/ru and **not Ukrainian**, so a Ukrainian sentence did not fail — it came back
-as plausible Russian, the language detector agreed with it, and Afon answered confidently in the
+as plausible Russian, the language detector agreed with it, and Mushegh answered confidently in the
 wrong language. A setting listing six languages while the ear hears five is exactly what looks
 configured and is not.
 
@@ -1019,7 +1019,7 @@ measurable instead of folklore. Closing that last turn needs a predictive LID, w
 cannot afford — and that is the trade, not an oversight.
 
 **The asymmetry this produces, named so a later reader can see what was traded:** what the owner
-*says* is currently sent to a cloud recogniser; Afon's *replies* are sent to a cloud voice. The
+*says* is currently sent to a cloud recogniser; Mushegh's *replies* are sent to a cloud voice. The
 37.R5 never-store guard does **not** cover either surface — it withholds a D-24 payload from the
 audit trail, not from an STT or TTS request. What it does guarantee is narrower and worth having:
 a never-store *refusal* is one of four fixed spoken strings, so a refused secret cannot reach the
@@ -1031,13 +1031,13 @@ and a `match` implementation for it. Built, the code default could return to loc
 costing a single language. Until then the honest line is that local-first holds on the
 ear and not on the mouth, and no amount of prose should make that sound otherwise.
 
-## D-79 — Afon routes work to executors; it does not do their jobs **(commit, owner's decision 2026-10-06)**
+## D-79 — Mushegh routes work to executors; it does not do their jobs **(commit, owner's decision 2026-10-06)**
 
-> "Afon has to be a Jev guided brain that can use the browser manage my daily life and so
+> "Mushegh has to be a Jev guided brain that can use the browser manage my daily life and so
 > on, the daily tasks are routed to openclaw agents, the coding tasks are handled by Claude
 > Code through the CLI … financial analysis … through Rubo CLI."
 
-Afon's own job is the voice, the judgement, the typed boundary and the audit trail. The work
+Mushegh's own job is the voice, the judgement, the typed boundary and the audit trail. The work
 itself goes to whichever executor is best at it:
 
 | Domain | Executor |
@@ -1046,17 +1046,17 @@ itself goes to whichever executor is best at it:
 | Coding | Claude Code, Codex, and a third if one exists |
 | Financial research | Rubo (see D-83 for the line it may not cross) |
 | Reading and summarisation | the owner's own SDK (D-86) |
-| The web | Afon's own visible browser (D-82) |
+| The web | Mushegh's own visible browser (D-82) |
 
 **What this does not change.** D-05 still holds in full: an executor is a tool, never the
-assistant, and its answer reaches the owner in Afon's voice after Afon has checked it. The
-identity never leaks outward, and an executor's output is never delivered as Afon's own
+assistant, and its answer reaches the owner in Mushegh's voice after Mushegh has checked it. The
+identity never leaks outward, and an executor's output is never delivered as Mushegh's own
 judgement without a verification gate.
 
 **The cost, stated rather than discovered later.** This is the largest single addition of
 moving parts the project has accepted, and it argues against D-01. The mitigation is that
 every executor implements **one** adapter contract — one dispatch surface, one cost ledger
-entry against `src/afon/brain/governor.py`, one audit row — so the 2 AM question has one
+entry against `src/mushegh/brain/governor.py`, one audit row — so the 2 AM question has one
 answer rather than four. An executor that cannot be diagnosed through that one surface is a
 defect in the adapter, not a new subsystem.
 
@@ -1081,13 +1081,13 @@ interactive shell with root or network access."* The line is therefore drawn at
   the vault, biometric templates, or any secret, and the adapter is where that is enforced.
 
 **This reverses a declined row.** `docs/ARCHITECTURE.md` records the blueprint's
-"Claude→Codex→MCode chain" as declined in favour of `src/afon/brain/code_improve.py`. That
+"Claude→Codex→MCode chain" as declined in favour of `src/mushegh/brain/code_improve.py`. That
 decline was right about the gVisor sandbox fleet and wrong about the chain: the CLIs now ship
 the headless, permission-moded, schema-enforced interfaces that the decline assumed did not
 exist. The table owes a correction.
 
 **Falsified by:** an executor reaching a file outside the brief's repo, or a diff landing on
-any branch without an owner approval recorded in `src/afon/brain/audit.py`.
+any branch without an owner approval recorded in `src/mushegh/brain/audit.py`.
 
 ## D-81 — Jev picks the executor, within candidates code produced **(commit, owner's decision 2026-10-06)**
 
@@ -1119,7 +1119,7 @@ when the operation is a type. **That is D-04 and D-72 in a domain where we had n
 them.** It is adopted.
 
 **What is not traded away.** S05 exists for a *visible* browser on the owner's screen with his
-persistent logins — `src/afon/brain/tools/browser.py` forwarding to `src/afon/edge/pc_agent.py`.
+persistent logins — `src/mushegh/brain/tools/browser.py` forwarding to `src/mushegh/edge/pc_agent.py`.
 A headless agent driving an invisible browser with an empty cookie jar is the cloud path that
 already exists, and the subsystem doc is explicit that conflating the two is how a headless
 fetch answers as though he had been watching. So:
@@ -1153,12 +1153,12 @@ radius, not capability. Its own sentence is *"transaction data is an unacceptabl
 zero assistive gain"* — and the gain is no longer zero, because the work is now done by a CLI the
 owner wrote, on his own hardware, rather than by an API integration inside the brain.
 
-**So the line moves to where the charter already draws it, and no further.** Afon may read,
+**So the line moves to where the charter already draws it, and no further.** Mushegh may read,
 compute, model, draft and propose across all of it — taxes, investments, portfolio, salary
 planning and distribution schedules. What it may not do by itself is **move money**, because
 D-13 puts external dispatch outside the blast radius without the owner physically present, and
 D-14 says a refusal is overridden by a typed flag or a hardware key rather than by asking. A
-transfer, a payment and a trade are external dispatch. They are prepared by Afon and executed by
+transfer, a payment and a trade are external dispatch. They are prepared by Mushegh and executed by
 the owner.
 
 That is one standing decision, not a new hesitation — if the owner wants it struck, the thing to
@@ -1181,7 +1181,7 @@ or any path that executes a transfer, payment or trade without the owner's physi
 > "make sure that our openwatari can seamlessly integrate with hardware of different kind."
 
 Seamless means **one** integration seam, not a driver per device. Home Assistant is that
-seam: devices join HA, and Afon speaks to HA. `docs/HARDWARE.md` keeps sequencing authority
+seam: devices join HA, and Mushegh speaks to HA. `docs/HARDWARE.md` keeps sequencing authority
 for all 28 devices, and nothing here overrides it.
 
 Three protocol facts the plan has to carry, because reaching for the obvious library gets one
@@ -1192,17 +1192,17 @@ of them wrong:
   stop-wake-word. H5 is right about what to buy and would have been wrong about how to talk
   to it.
 - **Services speak Wyoming.** openWakeWord, Whisper and Piper behind the Assist pipeline — the
-  same components `src/afon/edge/` already runs locally.
+  same components `src/mushegh/edge/` already runs locally.
 - **One radio owns the mesh** (D-64), and the smart lock is read-only forever (D-65),
   already enforced by `bench/test_blast_radius_refusal.py`.
 
-**Falsified by:** a device integrated through a bespoke Afon driver when an HA integration
+**Falsified by:** a device integrated through a bespoke Mushegh driver when an HA integration
 existed, or satellite code depending on the retired satellite client.
 
 ## D-85 — A capability enters through MCP first, a subprocess second, and our own code last **(commit, 2026-10-06)**
 
-`src/afon/brain/mcp_client.py` already converts any stdio MCP server into normal
-schema-validated Afon tools, namespaced `mcp__<server>__<tool>`, launching **only** servers
+`src/mushegh/brain/mcp_client.py` already converts any stdio MCP server into normal
+schema-validated Mushegh tools, namespaced `mcp__<server>__<tool>`, launching **only** servers
 listed in the `mcp_servers` setting. That is the cheapest door and the one with the smallest
 surface, so it is tried first; a non-interactive CLI with machine-readable output is second;
 writing it ourselves is last and needs a recorded reason.
@@ -1223,7 +1223,7 @@ Markdown, PDF, a concept-map graph, a claim audit and a manifest.
 reading the repository changed that.** The decline is recorded rather than quietly dropped, because
 the reasons generalise to the next library someone wants to route through the executor contract:
 
-1. **Its own first rule is that Python holds the keys in the process.** Afon's brain *is* the
+1. **Its own first rule is that Python holds the keys in the process.** Mushegh's brain *is* the
    server-side Python process the SDK is designed to live in. A subprocess would marshal
    `GEMINI_API_KEY` into a child for no gain.
 2. **The CLI has no `preflight`.** `bookroom` exposes serve / check / describe / guide / extract,
@@ -1233,7 +1233,7 @@ the reasons generalise to the next library someone wants to route through the ex
    the contract's deadline-and-result shape, which fits an errand.
 
 **So the executor contract applies to agents, and a library is a tool.** The line is worth stating
-because it is the one that keeps `src/afon/brain/executors/` meaningful: that contract exists to
+because it is the one that keeps `src/mushegh/brain/executors/` meaningful: that contract exists to
 bound something which acts on its own judgement. Nothing on the other side of Bookroom decides
 anything.
 
@@ -1262,7 +1262,7 @@ incomplete until a real book has produced a validated report: *"do not report su
 strength of a unit test alone."*
 
 **Falsified by:** a guide running against a book that was not priced; a partial run reported as a
-pass; the claim audit described as verification; or any code in `src/afon/` importing the SDK at
+pass; the claim audit described as verification; or any code in `src/mushegh/` importing the SDK at
 module import time rather than inside the handler.
 
 ## D-87 — Personal work runs on free models; corporate work runs on the best **(commit, owner's decision 2026-10-06)**
@@ -1276,7 +1276,7 @@ is how the budget for the second disappears.
 
 So `tier` is a field on a brief, not a setting on the system: **the same executor binary serves
 both tiers under different agent configurations**, which is why `openclaw-personal` and
-`openclaw-business` are two rows in `src/afon/brain/executors/__init__.py` rather than one row
+`openclaw-business` are two rows in `src/mushegh/brain/executors/__init__.py` rather than one row
 with a flag. A row per tier is what makes the routing legible in an audit line — "which model
 paid for this" is answerable by reading the executor name.
 
@@ -1304,7 +1304,7 @@ anything other than the domain table.
 This **extends D-07's silent-ok list**, which is a whitelist and not a starting point — so the
 extension is a decision with bounds rather than a feature. The bounds are the decision:
 
-- **Exactly four tools**, named in `src/afon/brain/toolchain.py`: Claude Code, Codex, MiniMax Code
+- **Exactly four tools**, named in `src/mushegh/brain/toolchain.py`: Claude Code, Codex, MiniMax Code
   and OpenClaw. Nothing else on the host is touched, and adding a fifth is another decision.
 - **One at a time, each proved before the next is touched.** Updating four and then pinging four
   leaves four suspects for one failure.
@@ -1314,7 +1314,7 @@ extension is a decision with bounds rather than a feature. The bounds are the de
 - **The ping runs only when a version actually changed.** It costs money on three of the four, and
   proving the path worked yesterday says nothing about today's release.
 - **A quiet run is silent.** A daily "nothing changed" is an interruption bought with no
-  information (D-29, D-30, D-34). Afon speaks when something changed or broke.
+  information (D-29, D-30, D-34). Mushegh speaks when something changed or broke.
 - **It can be switched off** — `toolchain_autoupdate_enabled`. An unattended host mutation that
   cannot be turned off is not a setting, it is a fact about the machine.
 
@@ -1397,7 +1397,7 @@ returns in utility, it is a candidate for deletion under D-46.
 
 ## D-90 — D-08's "dedicated branch" is a *place*, not a branch name **(commit, 2026-10-06)**
 
-D-08 is four conditions and the implementation of it is `src/afon/brain/executors/landing.py`.
+D-08 is four conditions and the implementation of it is `src/mushegh/brain/executors/landing.py`.
 Writing that module changed how one of the four is enforced, which makes it a decision rather than
 a detail.
 
@@ -1410,14 +1410,14 @@ repo, on its own new branch. Condition 1 is satisfied by where the work happens.
 
 **Provenance, not naming, is the check at commit time.** `commit_approved()` refuses any worktree
 it did not create. The gate caught both shapes of the weaker rule: a blank path resolved to the
-current directory — which was Afon's own repo — and a worktree whose branch merely was not called
+current directory — which was Mushegh's own repo — and a worktree whose branch merely was not called
 `main` was accepted, so a dirty owner checkout passed in would have been committed to.
 
 **Nothing is discarded, ever.** `tools/coding.py` has no reset, clean, stash or branch-delete
 because "he can't lose your work" outranks tidiness, and this module keeps that rule: its entire
 git vocabulary is `worktree add`, `add`, `diff`, `rev-parse` and `commit`, enumerated in the gate so
 a sixth verb has to be added there deliberately. A refusal **leaves the worktree where it is** and
-says where. Accumulating directories is the cost; throwing away a proposal Afon just paid an
+says where. Accumulating directories is the cost; throwing away a proposal Mushegh just paid an
 executor for is not.
 
 **An approval is approval of a diff, not of a directory.** `ApprovalQueue` is durable, so the owner
@@ -1458,7 +1458,7 @@ guess I had written:**
   docstring said *"if a brief legitimately needs a `&`, the fix is to hand the task on stdin or in
   a file — not to guess at quoting"*, and now it does. A brief that reads *Draft a reply about "the
   boiler" & the rent* used to be refused; it runs.
-- **`--deliver` defaults to false**, and Afon never passes it, nor any `--channel`, `--reply-to`
+- **`--deliver` defaults to false**, and Mushegh never passes it, nor any `--channel`, `--reply-to`
   or `--to`. So an agent turn produces a reply and **sends nothing**. The owner-consent gate for
   fleet work therefore lives in the *transport* rather than in a prompt, which is the only place a
   model cannot be talked out of it. The gate asserts no `"--deliver"` string literal exists in the
@@ -1496,9 +1496,9 @@ what exists and names the one thing that is still undecided. Recording a
 built system as a plan is the drift `docs/README.md` exists to prevent.
 
 **What is already there.** `JudgmentService.assess_turn()` in
-`src/afon/brain/judgment.py` assembles **one** request carrying **four parallel
+`src/mushegh/brain/judgment.py` assembles **one** request carrying **four parallel
 questions** — `route` (a Choice over candidate groups that *code* produced),
-`clarity`, `urgency` and `tone` — and `src/afon/brain/agent.py` makes exactly
+`clarity`, `urgency` and `tone` — and `src/mushegh/brain/agent.py` makes exactly
 one bounded call per turn, cited to D-72 and D-74. Four properties of that
 implementation are the design, and none of them are incidental:
 
@@ -1552,7 +1552,7 @@ the prefix guard in `_verbalize_judgment` being removed; or a caller reaching Je
 with options the code did not produce.
 
 **Now implemented as configuration (2026-10-07).** The open item above is no
-longer an open item; it is a setting. `AFON_VERBALIZER_MODELS` names a dedicated
+longer an open item; it is a setting. `MUSHEGH_VERBALIZER_MODELS` names a dedicated
 cheap tier for the verbalizer only, and `LLMClient.complete(only=...)` narrows
 that one call to it. Three properties, and each is gated:
 
@@ -1566,7 +1566,7 @@ that one call to it. Three properties, and each is gated:
 - **Narrowing never widens.** An empty or blank tier yields an empty chain, so a
   misconfiguration cannot quietly hand the primary back and look like it worked.
 
-Note what was *not* built: `AFON_LLM_FAST_MODEL` and the `ollama` provider already
+Note what was *not* built: `MUSHEGH_LLM_FAST_MODEL` and the `ollama` provider already
 existed, so a small model was always reachable. The only genuinely missing piece
 was the ability to say "this call only", and that is what `only` adds.
 
@@ -1603,14 +1603,14 @@ S46, S47, S48, S49 and S50 received **zero** additions.
 rather than a shortfall: install the Home Assistant token (`28.F1`, four hours,
 un-darkens S28 and every IoT item downstream); write `emergency.md` by hand and
 delete `call` from `ACTIONS`; add the ArcFace enrolment driver behind
-`src/afon/brain/tools/camera.py`; and set `AFON_WHISPER_LANGUAGE`, which is
-currently unset, leaving `src/afon/edge/stt.py` pinned to `en` so that a
+`src/mushegh/brain/tools/camera.py`; and set `MUSHEGH_WHISPER_LANGUAGE`, which is
+currently unset, leaving `src/mushegh/edge/stt.py` pinned to `en` so that a
 Ukrainian turn during a cloud outage is answered in English.
 
 **Every cited path was verified before it was written down.**
 `subsystems/README.md` rule 1 is that a phantom path is worse than no path,
 because it will be trusted. The inventory in `INTEGRATIONS.md` was produced with
-a verifier that asserts each cited `src/afon/...` path exists and that the three
+a verifier that asserts each cited `src/mushegh/...` path exists and that the three
 recorded gaps really are still absent.
 
 **Falsified by:** a row in `INTEGRATIONS.md` whose cited path does not exist, or
@@ -1666,7 +1666,7 @@ that keeps the 2 AM rule (`PRINCIPLES.md` Â§1) intact.
 message broker, no container runtime, no policy service, no secrets manager, and no second
 database". Self-hosting Infisical means a server and a Postgres, which is exactly the
 addition that line forbids. So the integration is the **CLI or the v3 REST API against a remote
-workspace** (`AFON_INFISICAL_*`), and nothing is vendored.
+workspace** (`MUSHEGH_INFISICAL_*`), and nothing is vendored.
 
 **The ordering is the decision, not the product.** Environment wins, then Infisical, then an
 `age`-encrypted file. `age` (`FiloSottile/age`, BSD-3-Clause) earns the third slot because a
@@ -1678,7 +1678,7 @@ both for the platform and for `Infisical/cli`. That is not a permissive licence 
 read by hand. This is an open item, not a blocker for reading secrets at runtime, and it is the
 reason the `age` floor is kept rather than treated as redundant.
 
-**Hydration cannot raise.** `afon/shared/secrets.py` catches at both the per-backend and the
+**Hydration cannot raise.** `mushegh/shared/secrets.py` catches at both the per-backend and the
 whole-run level and returns a `SecretReport` carrying names and counts only. There is no field
 on that report that can hold a value, so `repr()` of it is loggable by construction.
 
@@ -1691,3 +1691,36 @@ nothing.
 **Falsified by:** a boot that fails when Infisical is unreachable; a secret appearing in any log,
 audit line, or `SecretReport`; or the owner moving to a self-hosted Infisical and finding that a
 second database has been introduced without the `ARCHITECTURE.md` line being amended first.
+
+## D-96 — The website stays on Next 14; the security value of Next 16 is not there for a static docs site **(commit, 2026-07-10 — recovered 2026-10-11)**
+
+> **Provenance.** This decision was made on 2026-07-10 and recorded only in
+> `.kilo/worktrees/disco-satin/docs/NEXT-UPGRADE-DECISION.md` ("P6.3"). That worktree was broken by
+> the `C:\Afon` → `C:\Mushegh` rename and marked `prunable` by git, so the record existed nowhere
+> in the tracked tree. It was recovered verbatim in substance on 2026-10-11 and is recorded here so
+> it cannot be lost a second time. **The owner should confirm the wording.**
+
+**Stay on Next 14** — bumped 14.2.15 → 14.2.35. **Do not upgrade to Next 16 / React 19 now.**
+
+**Why.** `npm audit` flagged one critical plus advisories on 14.2.15. The patch to 14.2.35 is a
+zero-code-change bump that clears the critical, leaving `1 high, 1 moderate`. The remainder are
+feature-gated to capabilities this site does not use — it is static docs: no `middleware.ts`, no
+server actions, no `rewrites`, no `remotePatterns` on the image optimizer, no CSP nonces, no auth,
+no user input. `npm audit` is feature-blind and lists every CVE for the installed version whether
+or not the app exercises the vulnerable path. The one partially-applicable class, image-optimiser
+DoS, is mitigated by Vercel's managed platform. Next 16 + React 19 is a breaking major with
+near-zero real security benefit once 14.2.35 is in, so the regression risk outweighs the upside.
+
+**What was done:** `website/package.json` 14.2.15 → 14.2.35 (reinstalled; critical cleared).
+**Not redeployed at the time** — outward-facing, so it was left for an explicit go-ahead. **Verified
+2026-10-11:** the tree carries the bump — `next: ^14.2.35` in `website/package.json` and
+`website/node_modules/next` resolves to 14.2.35, with React 18.3.1 (not 19). **What remains
+unverified is production**: whether a `vercel --prod` has shipped it. That is the owner's
+deployment to make and an agent's to ask about, not to assume.
+
+**Revisit when:** the site gains dynamic features (auth, forms, server actions, middleware), or
+Next 14.x reaches end-of-life, or an advisory lands that actually applies to a static site. Then:
+React 19 codemod, upgrade in a branch, `npm run build` + visual QA, then redeploy.
+
+**Falsified by:** the site adopting any dynamic feature while the remaining advisories are still
+listed as "not applicable"; or Next 14.x reaching end-of-life without this decision being reopened.

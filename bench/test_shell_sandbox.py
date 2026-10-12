@@ -30,8 +30,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.proactive import CONFIRM_TIER, confirm_required   # noqa: E402
-from afon.brain.tools import system as sysmod                     # noqa: E402
+from mushegh.brain.proactive import CONFIRM_TIER, confirm_required   # noqa: E402
+from mushegh.brain.tools import system as sysmod                     # noqa: E402
 
 passed = failed = 0
 
@@ -107,8 +107,8 @@ def main() -> int:
         root = sysmod.shell_workdir()
         check("there is a real directory, and it exists", root.is_dir(), str(root))
         check("it is inside the state dir by default, not the repo and not the home root",
-              ".afon" in str(root).lower() or sysmod.settings.shell_workdir, str(root))
-        src = (ROOT / "src/afon/brain/tools/system.py").read_text(encoding="utf-8")
+              ".mushegh" in str(root).lower() or sysmod.settings.shell_workdir, str(root))
+        src = (ROOT / "src/mushegh/brain/tools/system.py").read_text(encoding="utf-8")
         check("the shell actually RUNS there — both invocations pass cwd",
               src.count("cwd=str(workdir)") == 2, str(src.count("cwd=str(workdir)")))
         check("and the code says in writing that the scan is a tripwire, not a sandbox",

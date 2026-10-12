@@ -1,12 +1,12 @@
 # S29 — Automation & Workflow
 
-> **One line:** Everything Afon runs on its own — reminders, macros, saved sequences, scheduled briefs, background loops — listed in one place, dry-runnable before it is enabled, and single-use where it confirms.
+> **One line:** Everything Mushegh runs on its own — reminders, macros, saved sequences, scheduled briefs, background loops — listed in one place, dry-runnable before it is enabled, and single-use where it confirms.
 > **Status:** built, not well structured · **Registry:** S29 · 4/4 floor, 0/3 raise, 0/1 elite
 > **Milestones:** M28 · **Decisions:** D-01, D-09
 
 ## Purpose
 
-An automation is anything Afon does without being asked in that turn: a reminder that
+An automation is anything Mushegh does without being asked in that turn: a reminder that
 fires, a macro that runs a saved sequence, a scheduled brief, a background loop, a
 weekly review. This system's job is that the owner can see all of them at once, with
 the last run, the next run and the outcome, and can find out what one would do before
@@ -18,36 +18,36 @@ SQLite and the existing worker, which is the substitution the blueprint-replacem
 table in `docs/ARCHITECTURE.md` records. Under D-01, a system that cannot be diagnosed
 from a shell in 90 seconds is not worth a server.
 
-If this is absent: the owner's only way to find out what Afon did on its own is to read
+If this is absent: the owner's only way to find out what Mushegh did on its own is to read
 a log, and the only way to stop it is to find the right file. That is the failure mode
-in D-50's bad Afon — half-baked background actions that force a terminal.
+in D-50's bad Mushegh — half-baked background actions that force a terminal.
 
 ## Structure
 
-- `src/afon/brain/automations.py` — the unified list (29.F4, done). Three unrelated
+- `src/mushegh/brain/automations.py` — the unified list (29.F4, done). Three unrelated
   kinds of automation that each knew only about themselves are now one table with
   `automations()`, `spoken(rows)`, and `NEVER`/`ON_REQUEST`/`UNKNOWN` for the states
   that must not be guessed at.
-- `src/afon/brain/scheduler.py` — a process-wide APScheduler `AsyncIOScheduler`
+- `src/mushegh/brain/scheduler.py` — a process-wide APScheduler `AsyncIOScheduler`
   persisted to SQLite, so reminders survive a restart. Job targets: `_fire_briefing`,
   `_fire_backlog`, `_fire_objectives`, `_fire_pattern_scan`, `_fire_weekly_review`,
   `_fire_backup`, `_fire_restore_drill`, `_fire_portable_drill`. `cancel_everywhere`
   and `_cancel_on_ticker` are the stop switch.
-- `src/afon/brain/worker.py` — `TaskWorker`, the bounded autonomous loop. It refuses to
+- `src/mushegh/brain/worker.py` — `TaskWorker`, the bounded autonomous loop. It refuses to
   send email, publish, spend or delete while running unattended and notes the step
   instead of taking it.
-- `src/afon/brain/tools/macros.py` — if/then macros. The parsed comparison operator is
+- `src/mushegh/brain/tools/macros.py` — if/then macros. The parsed comparison operator is
   applied, so `== 0` and `!= 0` no longer mean the same thing (29.F1, `done` in the
   registry, `bench/test_if_then_operator.py`). The registry's only evidence for it is
   `unverified-import` — an imported claim, not a verified run — so there is no dated run
   to record.
-- `src/afon/brain/tools/skills.py` — saved sequences. `run_macro` and `invoke_skill` are
+- `src/mushegh/brain/tools/skills.py` — saved sequences. `run_macro` and `invoke_skill` are
   in `CONFIRM_TIER` and are gated dynamically: a macro containing a gated tool reads
   itself back first, a read-only macro does not interrogate the owner
-  (`_sequence_needs_confirm` in `src/afon/brain/proactive.py`).
-- `src/afon/brain/approvals.py` — `ApprovalQueue`. A deferred outward step becomes an
+  (`_sequence_needs_confirm` in `src/mushegh/brain/proactive.py`).
+- `src/mushegh/brain/approvals.py` — `ApprovalQueue`. A deferred outward step becomes an
   approvable action rather than a silent non-action (29.F3, done).
-- `src/afon/brain/_scheduled_jobs.py` — module-level job targets so APScheduler can
+- `src/mushegh/brain/_scheduled_jobs.py` — module-level job targets so APScheduler can
   serialise them.
 
 Ownership: the brain process, one SQLite file. No broker, no worker fleet, no second
@@ -94,11 +94,11 @@ authoring with read-back, `29.E1` ten automations for a month.
 ## Failure modes
 
 **An automation fires at the wrong time or not at all.** The scheduler is persisted, so
-the usual cause is a job whose target raised. List what Afon thinks it is running:
+the usual cause is a job whose target raised. List what Mushegh thinks it is running:
 
-    python -c "from afon.brain.automations import automations, spoken; print(spoken(automations()))"
-    journalctl -u openafon-brain --since "24h" | grep -iE "scheduler|apscheduler|job"
-    python -m afon.brain.automations
+    python -c "from mushegh.brain.automations import automations, spoken; print(spoken(automations()))"
+    journalctl -u openmushegh-brain --since "24h" | grep -iE "scheduler|apscheduler|job"
+    python -m mushegh.brain.automations
 
 **A macro does something twice.** The macro guard covers self-triggering, and
 `run_macro` is confirm-gated when its steps contain a gated tool. A repeat that survives
@@ -109,7 +109,7 @@ treat it as a D-09 defect rather than a tuning problem.
 spend and delete while unattended and queues the step in `approvals.py`. The owner sees
 nothing happen and no error. Check the queue:
 
-    python -c "from afon.brain.approvals import ApprovalQueue; print(ApprovalQueue().pending())"
+    python -c "from mushegh.brain.approvals import ApprovalQueue; print(ApprovalQueue().pending())"
     grep -c . audit_log/*.jsonl | tail -1
 
 **A scheduled job silently duplicated a manual action.** `_cancel_on_ticker` is the

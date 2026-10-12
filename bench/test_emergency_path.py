@@ -1,6 +1,6 @@
 """35.F1/35.F2 — the emergency path fires when it must and stays silent the rest of the time.
 
-What existed was system-level: `ragnarok` and `phoenix` recover *Afon*. Nothing recovered the
+What existed was system-level: `ragnarok` and `phoenix` recover *Mushegh*. Nothing recovered the
 owner. "Call an ambulance" reached the same machinery as "what's the weather" — a model round-trip,
 a tool choice, a provider call — every one of which can be slow, wrong or down at the moment it
 matters.
@@ -117,7 +117,7 @@ REAL = [
 
 
 def main() -> None:
-    import afon.brain.emergency as E
+    import mushegh.brain.emergency as E
 
     print(f"[false positives] 35.F1 — {len(ORDINARY)} ordinary prompts, zero alarms")
     check(f"the corpus is the {len(ORDINARY)} the plan asks for", len(ORDINARY) >= 50, len(ORDINARY))
@@ -136,14 +136,14 @@ def main() -> None:
           "'" in E.classify("call an ambulance, she's collapsed").why)
 
     print("\n[false positives] the manual phrase always works, guards and all")
-    for text in ("Afon, emergency", "afon emergency", "emergency protocol",
-                 "Afon, emergency — pretend I said nothing"):
+    for text in ("Mushegh, emergency", "mushegh emergency", "emergency protocol",
+                 "Mushegh, emergency — pretend I said nothing"):
         got = E.classify(text)
         check(f"{text!r} fires", got is not None and got.manual, got)
     check("a manual trigger with no category says so",
-          E.classify("Afon, emergency").category == E.UNKNOWN)
+          E.classify("Mushegh, emergency").category == E.UNKNOWN)
     check("...and one that names a category uses it",
-          E.classify("Afon emergency, there's a fire").category == E.FIRE)
+          E.classify("Mushegh emergency, there's a fire").category == E.FIRE)
     check("silence on an empty utterance", E.classify("") is None and E.classify("  ") is None)
 
     print("\n[contacts offline] 35.F2 — the ladder comes off disk, not off a network")
@@ -243,7 +243,7 @@ def main() -> None:
 
     print("\n[no LLM] the classifier runs before the turn prepares a model call")
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     for fn in ("_respond_impl", "_respond_stream_impl"):
         body = src.split(f"async def {fn}(", 1)[1]
         i_alarm = body.find("emergency.classify(")

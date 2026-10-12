@@ -9,21 +9,21 @@
 Backup that has been restored, not just taken. Self-repair for the failure shapes that
 actually happen. A remote kill that stops the assistant mid-edit without losing the edit.
 And the handover package: a reproducible bare-metal setup script and an edge audio tuning
-guide, which is what makes OpenAfon adoptable by anyone but the owner (D-55). The remote
-kill contract is the sharpest thing in the charter (D-41): `systemctl stop openafon-edge`
+guide, which is what makes OpenMushegh adoptable by anyone but the owner (D-55). The remote
+kill contract is the sharpest thing in the charter (D-41): `systemctl stop openmushegh-edge`
 over SSH or the tailnet; in-flight tasks take SIGTERM, escalate to SIGKILL after 3 s, and
 uncommitted edits remain in a Git stash — never lost, never committed by the kill path.
 
-**None of that is built.** No `openafon-edge` systemd unit exists under `deploy/`: the
+**None of that is built.** No `openmushegh-edge` systemd unit exists under `deploy/`: the
 string names a unit the repository has never had, and it recurs across the docs —
 `docs/DECISIONS.md:289` is one of twelve occurrences in seven files, not the only one. The
-units `deploy/vps/` actually holds are `afon-brain.service` and `afon-ticker.service`. The
+units `deploy/vps/` actually holds are `mushegh-brain.service` and `mushegh-ticker.service`. The
 escalation, the 3-second clock and the stash are M36, unstarted. The open raise task is
 config rollback (22.R1), and the only rollback artefact today is the `.env.bak-<stamp>` the
 setup wizard writes before
-overwriting. The handover package does not exist either: `src/afon/setup_wizard.py` is an
+overwriting. The handover package does not exist either: `src/mushegh/setup_wizard.py` is an
 interactive `.env` writer, not a bare-metal setup script, and there is no edge audio tuning
-guide in `docs/`. Until M39 lands, OpenAfon is a personal system that happens to be open
+guide in `docs/`. Until M39 lands, OpenMushegh is a personal system that happens to be open
 source.
 
 If this system is absent the loss is not a crash; it is the owner facing an unexplained gap —
@@ -35,9 +35,9 @@ Mac Mini, Proxmox, NAS ([../HARDWARE.md](../HARDWARE.md) H1). "Only" is the load
 word: a UPS that also fed the house would report a clean shutdown while the lights died during
 a cut, which is a worse failure than the outage it was bought for. The UPS is also **the one
 device permitted to cut power in this house, and it does that on its own battery logic, never
-on Afon's instruction** (D-13). What the plan adds here is a read, not an actuator: on battery,
+on Mushegh's instruction** (D-13). What the plan adds here is a read, not an actuator: on battery,
 on line, estimated runtime, exposed to the brain as a vital by S31, with the recovery drill
-staying in S22. Nothing in `src/afon/` reads a UPS today.
+staying in S22. Nothing in `src/mushegh/` reads a UPS today.
 
 **A 2×4 TB RAID 1 NAS holds Frigate video and vault snapshots, and a mirror is not a
 backup.** It protects against one disk failing and exactly nothing else — not a deleted file,
@@ -50,16 +50,16 @@ Two hosts, two mechanisms, one policy.
 
 | Path | Role |
 |---|---|
-| `src/afon/protocols/backup.py` | `make_backup()`, `restore_backup()`; restore refuses a non-empty target without `--force` |
-| `src/afon/protocols/checkpoint.py` | Checkpoint archives of non-secret context |
-| `src/afon/shared/paths.py` | `backups_dir()` — where those artefacts land |
+| `src/mushegh/protocols/backup.py` | `make_backup()`, `restore_backup()`; restore refuses a non-empty target without `--force` |
+| `src/mushegh/protocols/checkpoint.py` | Checkpoint archives of non-secret context |
+| `src/mushegh/shared/paths.py` | `backups_dir()` — where those artefacts land |
 | `bench/test_backup_restore.py` | The roundtrip, the no-clobber guard, and the scheduled restore drill |
-| `src/afon/brain/reliability.py` | `safe_call()`, `health_probe()` every 4 h, `attempt_repair_and_escalate()` |
-| `src/afon/brain/health.py` | Vault, ticker, cache, task-queue checks; `degraded_signals()` |
-| `src/afon/brain/vitals.py` | A real reading store, inside a stated boundary |
-| `src/afon/brain/maintenance.py` | Learned-fact compaction, journal rotation, retention sweep |
-| `src/afon/shared/maintenance.py` | The park marker honoured by launchers, system units and scheduled tasks |
-| `deploy/vps/afon-brain.service`, `afon-ticker.service` | The two systemd units; the ticker is `Restart=always` |
+| `src/mushegh/brain/reliability.py` | `safe_call()`, `health_probe()` every 4 h, `attempt_repair_and_escalate()` |
+| `src/mushegh/brain/health.py` | Vault, ticker, cache, task-queue checks; `degraded_signals()` |
+| `src/mushegh/brain/vitals.py` | A real reading store, inside a stated boundary |
+| `src/mushegh/brain/maintenance.py` | Learned-fact compaction, journal rotation, retention sweep |
+| `src/mushegh/shared/maintenance.py` | The park marker honoured by launchers, system units and scheduled tasks |
+| `deploy/vps/mushegh-brain.service`, `mushegh-ticker.service` | The two systemd units; the ticker is `Restart=always` |
 | `deploy/vps/live-check.sh` | A weekly live drill on the VPS, installed by `install-live-check.sh` as a systemd timer |
 | `deploy/uptime_watch.py` | Liveness from a host that is not the VPS |
 
@@ -87,7 +87,7 @@ One static binary, no daemon, and it runs on the laptop too, so the drill is not
 VPS-only.
 
 **This is scoped to the destination and its verification.** It does not replace
-`src/afon/protocols/backup.py`, which owns the no-clobber guard, and it is not a
+`src/mushegh/protocols/backup.py`, which owns the no-clobber guard, and it is not a
 second backup system. What it changes is the sentence this document already
 makes and cannot yet back: *a mirror is not a backup.* `restic check` turns
 "we have a copy" into "the copy is intact".
@@ -102,7 +102,7 @@ commands, in order:
 ```
 restic snapshots
 restic check --read-data-subset=5%
-journalctl -u openafon-brain -n 200 --no-pager | grep -i backup
+journalctl -u openmushegh-brain -n 200 --no-pager | grep -i backup
 ```
 
 **Not proposed:** litestream, which is the obvious SQLite-replication answer and
@@ -129,7 +129,7 @@ Run `32.E1` instead. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
    (D-55, M39).
 8. The core rides out a cut on UPS, and the owner is told the box is on battery before the
    battery becomes the problem. Threshold: **1** vital carrying on-battery / on-line /
-   estimated-runtime; **0** paths where Afon instructs the UPS to cut power (D-13 — the UPS
+   estimated-runtime; **0** paths where Mushegh instructs the UPS to cut power (D-13 — the UPS
    cuts on its own battery logic, never on a request).
 9. A restore onto scratch from the RAID 1 NAS is legible to `sqlite3`, proving the mirror is
    worth more than a disk failure. Threshold: **≥1** drill per month (M32), **0** clobbers,
@@ -171,26 +171,26 @@ Run `32.E1` instead. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
 - **A restore is run over live memory.** `restore_backup` refuses a non-empty target without
   `--force`, which is the guard; a `--force` at 2 AM is the risk. The owner sees a system that
   starts cleanly and has forgotten the last month. Diagnose: the protocol's drill record, and
-  `sqlite3 afon_tasks.sqlite` for an empty queue.
+  `sqlite3 mushegh_tasks.sqlite` for an empty queue.
 - **The backup exists and the restore has never run.** The day it is needed, it fails on the
   untested path. Diagnose: `ls -l backups/`, then
-  `uv run python -m afon.protocols.backup restore backups/<archive>.zip` — into a scratch
+  `uv run python -m mushegh.protocols.backup restore backups/<archive>.zip` — into a scratch
   directory, never over the live one.
 - **A config change bricks the brain.** The only recovery today is the `.env.bak-<stamp>`
   the wizard wrote, plus a hand edit — that is 22.R1, and it is open. Diagnose:
-  `journalctl -u afon-brain -n 200 --no-pager`, then `ls .env.bak-*`.
+  `journalctl -u mushegh-brain -n 200 --no-pager`, then `ls .env.bak-*`.
 - **The kill loses an edit.** Not currently possible, because the kill path does not exist.
   When M36 lands it is diagnosable only by `git stash list` on the edge checkout.
 - **The daily freshness restart lands mid-work.** 22.F2 restarts both hosts, and a restart
-  at the wrong moment loses an in-flight turn. Diagnose: `journalctl -u afon-brain -n 200`,
-  and `systemctl status afon-brain` for `RestartSec`.
+  at the wrong moment loses an in-flight turn. Diagnose: `journalctl -u mushegh-brain -n 200`,
+  and `systemctl status mushegh-brain` for `RestartSec`.
 - **Everything is green and the system is still wrong.** Mock-only greens are the standing
   trap (D-43): `bench/test_self_repair.py` proves the repair code agrees with a fake
   transport. Only the live weekly drill answers this, which is why it is a timer.
 
 ## Open questions
 
-1. M36 names a unit, `openafon-edge`, that does not exist in `deploy/`. Is the kill
+1. M36 names a unit, `openmushegh-edge`, that does not exist in `deploy/`. Is the kill
    contract a systemd property on the edge service, a script, or both — and does the stash
    get created in the edge's own checkout, which is where the uncommitted edits are?
 2. 22.R1 asks for automatic config rollback, and the wizard already writes `.env.bak-<stamp>`

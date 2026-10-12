@@ -46,11 +46,11 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 #: What each protocol is FOR, and how you can tell it happened. `artifact` None means the utility
 #: is a machine action rather than a file, and is verified structurally instead.
 UTILITY = {
-    "backup":      ("archive Afon's memory",           "afon-memory-*.zip"),
-    "diagnostics": ("write a config health report",    "afon-diagnostics-*.txt"),
-    "auditpack":   ("archive the tool-call audit log", "afon-audit-*.zip"),
-    "checkpoint":  ("archive non-secret context",      "afon-checkpoint-*.zip"),
-    "ping":        ("prove the phone push works",      "afon-ping-*.txt"),
+    "backup":      ("archive Mushegh's memory",           "mushegh-memory-*.zip"),
+    "diagnostics": ("write a config health report",    "mushegh-diagnostics-*.txt"),
+    "auditpack":   ("archive the tool-call audit log", "mushegh-audit-*.zip"),
+    "checkpoint":  ("archive non-secret context",      "mushegh-checkpoint-*.zip"),
+    "ping":        ("prove the phone push works",      "mushegh-ping-*.txt"),
     "goodnight":   ("stop the edge on the laptop",     None),
     "phoenix":     ("restart the edge on the laptop",  None),
     "ragnarok":    ("restart the laptop",              None),
@@ -62,7 +62,7 @@ MACHINE = ("goodnight", "phoenix", "ragnarok")
 def run_script(name: str, tmp: Path) -> subprocess.CompletedProcess:
     """Run a protocol exactly as the runner launches it: <parent_pid> <repo_root> <python_exe>."""
     return subprocess.run(
-        [sys.executable, "-m", f"afon.protocols.{name}", "99999", str(tmp), sys.executable],
+        [sys.executable, "-m", f"mushegh.protocols.{name}", "99999", str(tmp), sys.executable],
         cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=180, env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")})
 
@@ -71,7 +71,7 @@ def main() -> int:
     import shutil
     import tempfile
 
-    from afon.brain.protocols import _REPORTS, _registry
+    from mushegh.brain.protocols import _REPORTS, _registry
 
     reg = _registry()
 
@@ -79,7 +79,7 @@ def main() -> int:
     check(f"the registry holds exactly the {len(UTILITY)} declared protocols",
           set(reg) == set(UTILITY), f"registry={sorted(reg)} declared={sorted(UTILITY)}")
     for name, entry in sorted(reg.items()):
-        script = ROOT / "src" / "afon" / "protocols" / entry["script"]
+        script = ROOT / "src" / "mushegh" / "protocols" / entry["script"]
         check(f"{name}: its script is present ({entry['script']})", script.is_file())
     for name, entry in sorted(reg.items()):
         check(f"{name}: describes itself as '{entry['description']}'", bool(entry["description"]))
@@ -87,7 +87,7 @@ def main() -> int:
     print("\n[2] the machine-level three are inert scripts routed to the laptop")
     # They must NOT act on the brain host. Before 2026-08-01 ragnarok's fallback aimed `shutdown`
     # at the VPS and goodnight killed the brain's own parent pid, which systemd revived seconds
-    # later — "goodnight" therefore meant "Afon dies and immediately returns".
+    # later — "goodnight" therefore meant "Mushegh dies and immediately returns".
     import ast
 
     import tempfile as _tf
@@ -97,7 +97,7 @@ def main() -> int:
         # Parsed, not grepped. Each of these files documents the destructive call it USED to make
         # ("taskkill", "shutdown"), so a substring scan flags the explanation as the offence — the
         # same mistake the exit-code scanner made against its own comment.
-        tree = ast.parse((ROOT / "src" / "afon" / "protocols" / entry["script"]).read_text(encoding="utf-8"))
+        tree = ast.parse((ROOT / "src" / "mushegh" / "protocols" / entry["script"]).read_text(encoding="utf-8"))
         # An inert script needs `sys` and nothing else, so that is the invariant — not a list of
         # forbidden calls. Chasing calls was the first version and `import subprocess as _s`
         # walked straight past it; an allowlist of imports cannot be aliased around, and it makes
@@ -125,7 +125,7 @@ def main() -> int:
           str(sorted(n for n, e in reg.items() if e.get("pc_command"))))
 
     print("\n[3] the brain-side five actually produce their artifact")
-    tmp = Path(tempfile.mkdtemp(prefix="afon-protocol-utility-"))
+    tmp = Path(tempfile.mkdtemp(prefix="mushegh-protocol-utility-"))
     try:
         # A repo_root of its own, so a real run cannot be mistaken for this one and vice versa.
         (tmp / "backups").mkdir()
@@ -149,17 +149,17 @@ def main() -> int:
         print("\n[4] auditpack archives the audit log that is ACTUALLY being written")
         # The defect this file was written for. A protocol that keeps its own copy of a path is a
         # protocol that quietly archives the wrong (or no) directory — J3.6, again.
-        from afon.brain.audit import _audit_dir
-        from afon.shared.paths import audit_dir
+        from mushegh.brain.audit import _audit_dir
+        from mushegh.shared.paths import audit_dir
         check("brain and protocols resolve the audit directory through one function",
               _audit_dir() == audit_dir(), f"{_audit_dir()} != {audit_dir()}")
-        src = (ROOT / "src" / "afon" / "protocols" / "auditpack.py").read_text(encoding="utf-8")
+        src = (ROOT / "src" / "mushegh" / "protocols" / "auditpack.py").read_text(encoding="utf-8")
         check("auditpack does not rebuild the path itself",
               'repo_root / "audit"' not in src,
               "its own spelling of the location is what made it archive nothing for months")
         check("it asks shared.paths instead", "audit_dir" in src)
 
-        made = sorted((tmp / "backups").glob("afon-audit-*.zip"))
+        made = sorted((tmp / "backups").glob("mushegh-audit-*.zip"))
         real = [p.name for p in audit_dir().glob("*.jsonl")] if audit_dir().is_dir() else []
         if made and real:
             names = zipfile.ZipFile(made[-1]).namelist()
@@ -174,12 +174,12 @@ def main() -> int:
         empty_root = tmp / "empty-audit"
         (empty_root / "backups").mkdir(parents=True)
         proc = subprocess.run(
-            [sys.executable, "-m", "afon.protocols.auditpack", "99999", str(empty_root), sys.executable],
+            [sys.executable, "-m", "mushegh.protocols.auditpack", "99999", str(empty_root), sys.executable],
             cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=180,
             env={**_os.environ, "PYTHONPATH": str(ROOT / "src"),
-                 "AFON_AUDIT_LOG_DIR": str(tmp / "no-such-audit-dir")})
-        empties = sorted((empty_root / "backups").glob("afon-audit-*.zip"))
+                 "MUSHEGH_AUDIT_LOG_DIR": str(tmp / "no-such-audit-dir")})
+        empties = sorted((empty_root / "backups").glob("mushegh-audit-*.zip"))
         check("with NO logs to archive it still produces an artifact",
               bool(empties),
               f"nothing written; the owner hears 'archive started' and then nothing. {proc.stdout[-120:]}")
@@ -192,11 +192,11 @@ def main() -> int:
         print("\n[5] ping REPORTS its verdict, including when the push fails")
         # The failure mode that mattered: `except Exception: return`. The one tool whose entire
         # purpose is detecting a broken push channel reported success when the push failed.
-        src = (ROOT / "src" / "afon" / "protocols" / "ping.py").read_text(encoding="utf-8")
+        src = (ROOT / "src" / "mushegh" / "protocols" / "ping.py").read_text(encoding="utf-8")
         check("a failed push is not swallowed",
               "except Exception:\n        return" not in src and "_report(" in src,
               "a test that always says yes is worse than no test")
-        pings = sorted((tmp / "backups").glob("afon-ping-*.txt"))
+        pings = sorted((tmp / "backups").glob("mushegh-ping-*.txt"))
         check("it writes a verdict either way", bool(pings), "no report written")
         if pings:
             body = pings[-1].read_text(encoding="utf-8")
@@ -209,16 +209,16 @@ def main() -> int:
         # a topic — so "no topic configured" never ran here either, and deleting its report passed.
         no_topic = tmp / "no-topic"
         (no_topic / "backups").mkdir(parents=True)
-        (no_topic / ".env").write_text("AFON_ASSISTANT_NAME=Afon\n", encoding="utf-8")
+        (no_topic / ".env").write_text("MUSHEGH_ASSISTANT_NAME=Mushegh\n", encoding="utf-8")
         run_script("ping", no_topic)
-        unconfigured = sorted((no_topic / "backups").glob("afon-ping-*.txt"))
+        unconfigured = sorted((no_topic / "backups").glob("mushegh-ping-*.txt"))
         check("an UNCONFIGURED push channel is reported, not passed over in silence",
               bool(unconfigured),
               "'no topic set' is the most likely reason a push never arrives, and the most "
               "silently returned")
         if unconfigured:
             check("...and the report names the setting to fix",
-                  "AFON_NTFY_TOPIC" in unconfigured[-1].read_text(encoding="utf-8"))
+                  "MUSHEGH_NTFY_TOPIC" in unconfigured[-1].read_text(encoding="utf-8"))
 
         print("\n[6] every protocol that produces a report has one delivered")
         producing = {n for n, (_u, pattern) in UTILITY.items() if pattern}
@@ -233,8 +233,8 @@ def main() -> int:
         import asyncio
         import time as _time
 
-        import afon.brain.protocols as P
-        import afon.brain.tools.telegram as TG
+        import mushegh.brain.protocols as P
+        import mushegh.brain.tools.telegram as TG
 
         sent: list[dict] = []
 
@@ -245,7 +245,7 @@ def main() -> int:
         saved_send, saved_reports, saved_wait = TG.send_telegram, dict(P._REPORTS), P._REPORT_WAIT_S
         try:
             TG.send_telegram = _fake_send
-            P._REPORTS["nevermade"] = "afon-nevermade-*.zip"
+            P._REPORTS["nevermade"] = "mushegh-nevermade-*.zip"
             P._REPORT_WAIT_S = 0.1          # don't spend 90s proving a negative
             asyncio.run(P._deliver_report("nevermade", _time.time()))
             check("a protocol that produces NOTHING tells the owner so", bool(sent),

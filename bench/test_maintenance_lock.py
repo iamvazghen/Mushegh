@@ -1,6 +1,6 @@
-"""The park switch, whose failure mode is that Afon comes back on his own.
+"""The park switch, whose failure mode is that Mushegh comes back on his own.
 
-Taking Afon out of production on 2026-08-13 exposed that neither launcher could express it: the
+Taking Mushegh out of production on 2026-08-13 exposed that neither launcher could express it: the
 laptop's scheduled tasks repeat every 5 minutes and need elevation to disable, and the VPS ticker is
 a system unit with Restart=always under a user with no passwordless sudo. `shared/maintenance.py` is
 therefore the only place "stay stopped" is expressible — which makes it exactly the kind of switch
@@ -15,7 +15,7 @@ Three things are checked, and the third is the one that decays:
   * every entry point still CALLS it. A new entry point, or a refactor that drops the call, is the
     realistic way this stops working — nothing else in the suite would notice.
 
-Hermetic: the lock path is monkeypatched to a temp dir, so it never touches the real ~/.afon.
+Hermetic: the lock path is monkeypatched to a temp dir, so it never touches the real ~/.mushegh.
 
     uv run python bench/test_maintenance_lock.py
 """
@@ -30,17 +30,17 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.shared import maintenance  # noqa: E402
+from mushegh.shared import maintenance  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
-#: entry point -> the role string it must park under. `deploy/vps/afon_ticker.py` inlines an
+#: entry point -> the role string it must park under. `deploy/vps/mushegh_ticker.py` inlines an
 #: equivalent guard instead of importing the package (it ships standalone), so it is matched on the
 #: lock path rather than the call.
 ENTRY_POINTS = {
-    "src/afon/edge/assistant.py": "edge",
-    "src/afon/edge/pc_agent.py": "pc_agent",
-    "src/afon/brain/server.py": "brain",
+    "src/mushegh/edge/assistant.py": "edge",
+    "src/mushegh/edge/pc_agent.py": "pc_agent",
+    "src/mushegh/brain/server.py": "brain",
 }
 
 passed = failed = 0
@@ -90,11 +90,11 @@ def main() -> None:
             check(bool(called), f"{rel} parks as '{role}'", "no halt_if_parked call found")
         # The edge's call must sit ABOVE the pipecat import, or a parked laptop pays a ~20s audio
         # stack load on every one of the launcher's 5-minute relaunches.
-        edge = (ROOT / "src/afon/edge/assistant.py").read_text(encoding="utf-8")
+        edge = (ROOT / "src/mushegh/edge/assistant.py").read_text(encoding="utf-8")
         check(edge.index("halt_if_parked") < edge.index("loading audio stack"),
               "the edge parks BEFORE loading the audio stack")
-        ticker = (ROOT / "deploy/vps/afon_ticker.py").read_text(encoding="utf-8")
-        check('".afon" / "MAINTENANCE"' in ticker.replace("'", '"'),
+        ticker = (ROOT / "deploy/vps/mushegh_ticker.py").read_text(encoding="utf-8")
+        check('".mushegh" / "MAINTENANCE"' in ticker.replace("'", '"'),
               "the standalone VPS ticker carries the same lock check")
         # ...and it must come after __future__, which is what broke the deployed copy the first time.
         check(ticker.index("from __future__") < ticker.index("MAINTENANCE"),

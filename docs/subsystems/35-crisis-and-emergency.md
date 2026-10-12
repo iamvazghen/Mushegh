@@ -12,7 +12,7 @@ contact list, and an escalating notification — before the language model is co
 and without requiring a provider, a token, or a synced vault (D-11, and the module's
 own stated reason: the network is a thing that fails during emergencies).
 
-What was there before was system-level: `ragnarok` and `phoenix` recover *Afon*.
+What was there before was system-level: `ragnarok` and `phoenix` recover *Mushegh*.
 Nothing recovered the owner. That gap is the system, and it is still half-built because
 the list does not exist. `emergency.md` is **not on disk**; `emergency.configured()`
 returns False and `ladder()` falls back to a single `push` step with an empty target.
@@ -36,7 +36,7 @@ with an empty target and no stop conditions is a worse system than no detector, 
 manufactures the appearance of a working emergency path while reaching nobody. `35.R1` is
 blocked on the owner decision recorded below, and the honest sequence is the list, then the
 hardware, then the drill. The leak sensors are read-only and the shut-off valve stays a
-physical act: Afon reports *"the basin under the kitchen sink is wet"*, and the owner turns
+physical act: Mushegh reports *"the basin under the kitchen sink is wet"*, and the owner turns
 the valve (D-13, D-63).
 
 If this is absent: an alarm reaches nobody, and the one system that exists purely for
@@ -44,11 +44,11 @@ the worst ten minutes of the owner's life is the one with no owner-decided conte
 
 ## Structure
 
-`src/afon/brain/emergency.py`, 365 lines, and the whole system.
+`src/mushegh/brain/emergency.py`, 365 lines, and the whole system.
 
 - `classify(text)` — the deterministic classifier: `MEDICAL`, `FIRE`, `INTRUDER`,
   `ACCIDENT`, `UNKNOWN`, with `DEFAULT` for the fallback. `MANUAL` holds the exact
-  trigger phrases — `afon emergency`, `emergency protocol`, and two more — so a manual
+  trigger phrases — `mushegh emergency`, `emergency protocol`, and two more — so a manual
   trigger exists for someone who cannot be classified (35.F1, done).
 - `ladder(category)` — reads `emergency.md` from disk **every time**, never cached,
   because a stale ladder held in a process up for three weeks is exactly the failure
@@ -56,16 +56,16 @@ the worst ten minutes of the owner's life is the one with no owner-decided conte
   `_path()` honours `settings.emergency_contacts_path`, else `emergency.md` at the repo
   root. The file is gitignored and the format is one line per category: action targets
   in the order to try them. `ACTIONS` today is `push, call, signal, telegram, email`;
-  under D-11 the outbound voice `call` does not belong in a ladder Afon climbs on its
+  under D-11 the outbound voice `call` does not belong in a ladder Mushegh climbs on its
   own, and the third party is a person, not a channel.
 - `raise_alarm(alarm, text)` — walks the ladder with `STEP_TIMEOUT_S = 2.5` per step, so
-  one unreachable contact cannot stall the next. `python -m afon.brain.emergency` runs
+  one unreachable contact cannot stall the next. `python -m mushegh.brain.emergency` runs
   the module selfcheck.
 - `35.F2` (a contact list with a defined action per category, stored locally) is
   recorded `done` — the *code* reads a list. The list itself does not exist, which is
   the whole of the remaining gap.
-- `src/afon/brain/protocols.py` and the `ragnarok` / `phoenix` drills
-  (`bench/test_protocol_drills.py`) cover the Afon-level side. `src/afon/shared/errors.py`
+- `src/mushegh/brain/protocols.py` and the `ragnarok` / `phoenix` drills
+  (`bench/test_protocol_drills.py`) cover the Mushegh-level side. `src/mushegh/shared/errors.py`
   and the dead-man's switch (`bench/test_deadmans_switch.py`) are where `35.R2` silence
   detection would attach.
 
@@ -136,9 +136,9 @@ Ownership: the brain process. No LLM, no network dependency, no new daemon.
 **An alarm fires and nobody is contacted.** The defining failure. The ladder file is the
 first thing to check, and it is absent today:
 
-    python -c "from afon.brain.emergency import configured; print('ladder configured:', configured())"
-    python -c "from afon.brain.emergency import ladder; print(ladder())"
-    journalctl -u openafon-brain -n 200 | grep -iE "emergency|ladder|raise_alarm"
+    python -c "from mushegh.brain.emergency import configured; print('ladder configured:', configured())"
+    python -c "from mushegh.brain.emergency import ladder; print(ladder())"
+    journalctl -u openmushegh-brain -n 200 | grep -iE "emergency|ladder|raise_alarm"
 
 `configured(): False` with a `push` step and no target means the system is working
 exactly as written and the content is missing.

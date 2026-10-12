@@ -1,17 +1,17 @@
-# Configuring OpenAfon for yourself
+# Configuring OpenMushegh for yourself
 
-OpenAfon is designed to be **forked and customised**. Every personality trait, operating rule,
+OpenMushegh is designed to be **forked and customised**. Every personality trait, operating rule,
 skill, and tool is either in a `.md` boilerplate file under `personality/` (loaded at every
-prompt) or wired through `.env`. Nothing about how Afon behaves is hardcoded in code that you
+prompt) or wired through `.env`. Nothing about how Mushegh behaves is hardcoded in code that you
 have to fork Python to edit.
 
 This guide walks through the four customisation surfaces, in order of frequency:
 
-1. **`.env`** — who Afon is, what he answers to, what devices he uses
+1. **`.env`** — who Mushegh is, what he answers to, what devices he uses
 2. **`personality/*.md`** — how he talks, what defaults he uses
 3. **`skills/*.md`** — domain-specific playbooks the LLM can read on demand
-4. **`memory/learned/`** — facts Afon has picked up about you (auto-curated; stored
-   under `AFON_STATE_DIR`, default `~/.afon`)
+4. **`memory/learned/`** — facts Mushegh has picked up about you (auto-curated; stored
+   under `MUSHEGH_STATE_DIR`, default `~/.mushegh`)
 
 ---
 
@@ -23,24 +23,24 @@ walks through the essentials; this section is for fine-tuning.
 
 | Variable | What it sets | Typical edit |
 |---|---|---|
-| `AFON_USER_NAME` | Calls you (default: from setup) | `AFON_USER_NAME=Vazghen` |
-| `AFON_USER_ADDRESS` | How he addresses you — "sir", "boss", "homie", your name | `AFON_USER_ADDRESS=sir` |
-| `AFON_UNDERSTOOD_LANGUAGES` | Comma-separated STT languages ("en,hy,ru") | `AFON_UNDERSTOOD_LANGUAGES=en,hy,ru,fr,de` |
-| `AFON_REPLY_LANGUAGE` | TTS language (always one of the understood set) | `AFON_REPLY_LANGUAGE=en` |
-| `AFON_PERSONA_FILE` | Which persona `.md` to load at brain startup | `AFON_PERSONA_FILE=personality/afon.md` |
-| `AFON_HOT_MIC_AFTER_WAKE` | After the first wake word, keep the mic open for N minutes instead of needing a re-wake every sentence | `AFON_HOT_MIC_AFTER_WAKE=true` |
-| `AFON_HOT_MIC_IDLE_MINUTES` | How many minutes of silence close the hot-mic window | `AFON_HOT_MIC_IDLE_MINUTES=30` |
-| `AFON_DEEPGRAM_ENDPOINTING_MS` | ms of trailing silence before STT hands the utterance to the LLM | `AFON_DEEPGRAM_ENDPOINTING_MS=700` |
-| `AFON_SPEAKER_ID_ENABLED` | True → only your enrolled voice gets obeyed | `AFON_SPEAKER_ID_ENABLED=true` |
-| `AFON_BARGE_IN_MODE` | `auto` enables barge-in only on private endpoints (headphones/AirPods); `on` always; `off` never | `AFON_BARGE_IN_MODE=auto` |
-| `AFON_OPENCLAW_DELEGATION_ENABLED` | If true, complex tasks are delegated to your OpenClaw fleet | `AFON_OPENCLAW_DELEGATION_ENABLED=true` |
-| `AFON_FLEET_AUTHORIZED` | Master switch for fleet delegation. Off by default. | `AFON_FLEET_AUTHORIZED=true` |
-| `AFON_COMPOSIO_API_KEY` | 250+ external apps via Composio | `AFON_COMPOSIO_API_KEY=ak_...` |
+| `MUSHEGH_USER_NAME` | Calls you (default: from setup) | `MUSHEGH_USER_NAME=Vazghen` |
+| `MUSHEGH_USER_ADDRESS` | How he addresses you — "sir", "boss", "homie", your name | `MUSHEGH_USER_ADDRESS=sir` |
+| `MUSHEGH_UNDERSTOOD_LANGUAGES` | Comma-separated STT languages ("en,hy,ru") | `MUSHEGH_UNDERSTOOD_LANGUAGES=en,hy,ru,fr,de` |
+| `MUSHEGH_REPLY_LANGUAGE` | TTS language (always one of the understood set) | `MUSHEGH_REPLY_LANGUAGE=en` |
+| `MUSHEGH_PERSONA_FILE` | Which persona `.md` to load at brain startup | `MUSHEGH_PERSONA_FILE=personality/mushegh.md` |
+| `MUSHEGH_HOT_MIC_AFTER_WAKE` | After the first wake word, keep the mic open for N minutes instead of needing a re-wake every sentence | `MUSHEGH_HOT_MIC_AFTER_WAKE=true` |
+| `MUSHEGH_HOT_MIC_IDLE_MINUTES` | How many minutes of silence close the hot-mic window | `MUSHEGH_HOT_MIC_IDLE_MINUTES=30` |
+| `MUSHEGH_DEEPGRAM_ENDPOINTING_MS` | ms of trailing silence before STT hands the utterance to the LLM | `MUSHEGH_DEEPGRAM_ENDPOINTING_MS=700` |
+| `MUSHEGH_SPEAKER_ID_ENABLED` | True → only your enrolled voice gets obeyed | `MUSHEGH_SPEAKER_ID_ENABLED=true` |
+| `MUSHEGH_BARGE_IN_MODE` | `auto` enables barge-in only on private endpoints (headphones/AirPods); `on` always; `off` never | `MUSHEGH_BARGE_IN_MODE=auto` |
+| `MUSHEGH_OPENCLAW_DELEGATION_ENABLED` | If true, complex tasks are delegated to your OpenClaw fleet | `MUSHEGH_OPENCLAW_DELEGATION_ENABLED=true` |
+| `MUSHEGH_FLEET_AUTHORIZED` | Master switch for fleet delegation. Off by default. | `MUSHEGH_FLEET_AUTHORIZED=true` |
+| `MUSHEGH_COMPOSIO_API_KEY` | 250+ external apps via Composio | `MUSHEGH_COMPOSIO_API_KEY=ak_...` |
 | `TYPESAFE_API_KEY` | Optional TypeSafe Jev key for typed contextual decisions | provider key |
-| `AFON_JEV_ENABLED` | Enables Jev when a key is present; it never changes action authorization | `true` |
-| `AFON_JEV_MODEL` | Typed judgment model alias | `jev-latest` |
-| `AFON_JEV_TIMEOUT_SECONDS` | Maximum wait before the decision is held and the owner is asked | `8` |
-| `AFON_PROACTIVE_*` | Proactive engine: budget, threshold, quiet hours | see `.env` defaults |
+| `MUSHEGH_JEV_ENABLED` | Enables Jev when a key is present; it never changes action authorization | `true` |
+| `MUSHEGH_JEV_MODEL` | Typed judgment model alias | `jev-latest` |
+| `MUSHEGH_JEV_TIMEOUT_SECONDS` | Maximum wait before the decision is held and the owner is asked | `8` |
+| `MUSHEGH_PROACTIVE_*` | Proactive engine: budget, threshold, quiet hours | see `.env` defaults |
 
 The setup wizard (`scripts/setup.sh`) writes most of these. Re-run it any time to update.
 
@@ -49,13 +49,13 @@ The setup wizard (`scripts/setup.sh`) writes most of these. Re-run it any time t
 ## 2 · Persona files — `personality/*.md`
 
 The persona is a **boilerplate Markdown file** with placeholders that get filled from `.env`
-at brain startup. The default is `personality/afon.md`.
+at brain startup. The default is `personality/mushegh.md`.
 
 ### Placeholders
 
 | Placeholder | Filled from |
 |---|---|
-| `{assistant_name}` | `AFON_USER_NAME` (with `assistant_name`-style default if blank) |
+| `{assistant_name}` | `MUSHEGH_USER_NAME` (with `assistant_name`-style default if blank) |
 | `{owner_possessive}` | `"<NAME>'s"` if a name is set, else `"your"` |
 | `{address_line}` | `"Address him as \"<ADDRESS>\""` when an address is set |
 | `{language_line}` | Single- or multi-language reply directive |
@@ -64,10 +64,10 @@ You can also drop the placeholders and write literals — the templating is opti
 
 ### How to roll your own
 
-1. Copy `personality/afon.md` → `personality/my_assistant.md`
+1. Copy `personality/mushegh.md` → `personality/my_assistant.md`
 2. Edit the voice, behaviour, boundaries sections
-3. Set `AFON_PERSONA_FILE=personality/my_assistant.md` in `.env`
-4. Restart the brain: `systemctl --user restart afon-brain`
+3. Set `MUSHEGH_PERSONA_FILE=personality/my_assistant.md` in `.env`
+4. Restart the brain: `systemctl --user restart mushegh-brain`
 
 That's it. Next system prompt is your custom voice.
 
@@ -141,21 +141,21 @@ disk and appears in `list_skills` after the next brain start.
 
 ### Where state lives — one root, per host
 
-Everything Afon **writes** about you — learned facts, the journal, every sqlite store, the
-relationship model, the voiceprint — lives under one root: `AFON_STATE_DIR`, default `~/.afon`.
+Everything Mushegh **writes** about you — learned facts, the journal, every sqlite store, the
+relationship model, the voiceprint — lives under one root: `MUSHEGH_STATE_DIR`, default `~/.mushegh`.
 The repo holds code and the things *you* write (`.env`, `memory/*.md`); it holds no state.
 
 That separation is load-bearing, not tidiness. These stores used to be resolved against the repo
 root, i.e. wherever the code happened to be unpacked — so deploying the brain to a second machine
 gave it a second, empty set of memories under the same names, and neither host could tell. If you
 are upgrading from a build that kept state in the repo, the brain moves it on the next start;
-`uv run python -m afon.shared.paths` shows where everything resolves and reports any leftovers.
+`uv run python -m mushegh.shared.paths` shows where everything resolves and reports any leftovers.
 Two hosts that already diverged are merged with `scripts/merge_memory.py`, which unions the facts
 rather than picking a winner.
 
-Afon remembers across sessions in **five layers**:
+Mushegh remembers across sessions in **five layers**:
 
-**S30 migration preparation:** `AFON_POSTGRES_DSN` is an optional secret-valued staging setting,
+**S30 migration preparation:** `MUSHEGH_POSTGRES_DSN` is an optional secret-valued staging setting,
 not a backend switch. Leave it unset on the laptop. The staged client requires an explicitly
 selected `brain-server` role on Linux before importing its optional driver or opening a connection.
 Current runtime stores still use SQLite. The `postgres` dependency extra adds Psycopg; if using
@@ -164,10 +164,10 @@ See `docs/S30-MIGRATION.md` for the remaining parity, backup and authorized-cuto
 
 | Layer | Where | What goes there | How it's written |
 |---|---|---|---|
-| **L0 Working** | `<state>/afon_session.json` | The rolling conversation thread | automatic |
+| **L0 Working** | `<state>/mushegh_session.json` | The rolling conversation thread | automatic |
 | **L1 Learned** | `<state>/memory/learned/*.md` | Durable facts: preferences, decisions, names | `remember(text, tags)`; or extracted by background_review every N turns |
 | **L2 Journal** | `<state>/memory/journal/YYYY-MM-DD.md` | A daily summary of what happened | `STORE.journal_append(summary)`; automated at session end |
-| **L3 Obsidian vault** | wherever `AFON_VAULT_PATH` points | Your own notes — anything you put there | you (or `write_vault` tool) |
+| **L3 Obsidian vault** | wherever `MUSHEGH_VAULT_PATH` points | Your own notes — anything you put there | you (or `write_vault` tool) |
 | **L5 Semantic** | SQLite / FAISS, lazily | Embedding-backed similarity | automatic when `sentence-transformers` is installed |
 
 ### What the LLM sees by default
@@ -201,11 +201,11 @@ A typical customisation:
 
 1. Fork the repo on GitHub.
 2. `cp .env.example .env`, run `scripts/setup.sh`, fill in your keys.
-3. `cp personality/afon.md personality/me.md`, edit to taste.
-4. `AFON_PERSONA_FILE=personality/me.md` in `.env`.
+3. `cp personality/mushegh.md personality/me.md`, edit to taste.
+4. `MUSHEGH_PERSONA_FILE=personality/me.md` in `.env`.
 5. `cp skills/research-method.md skills/my-research.md`, edit the procedure.
-6. `git add . && git commit -m "personalise afon" && git push`.
+6. `git add . && git commit -m "personalise mushegh" && git push`.
 7. `scripts/deploy_vps.sh` to redeploy.
 
-Afon now lives in your VPS, sounds like your voice, follows your rules, has your skills,
+Mushegh now lives in your VPS, sounds like your voice, follows your rules, has your skills,
 and remembers what you've taught him. Voice-first, 24/7.

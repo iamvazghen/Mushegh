@@ -3,9 +3,9 @@ NEVER launches the real (stop/restart/reboot) script. Patches subprocess.Popen t
 """
 import asyncio
 
-import afon.brain.protocols as proto
-from afon.brain.protocols import protocol_names, run_protocol
-from afon.config import settings
+import mushegh.brain.protocols as proto
+from mushegh.brain.protocols import protocol_names, run_protocol
+from mushegh.config import settings
 
 _ok = 0
 _fail = 0
@@ -84,7 +84,7 @@ async def main():
     check((not r_unk.ok) and "no protocol" in r_unk.message, "unknown protocol reported cleanly")
 
     # --- 4) the tool surface exposes drill + still gates on the password --------------------
-    from afon.brain.tools.protocols import run_protocol as tool_run, SCHEMAS
+    from mushegh.brain.tools.protocols import run_protocol as tool_run, SCHEMAS
     said = await tool_run({"name": names[0], "drill": True})  # no password
     check("password" in said.lower(), "tool asks for the password before drilling")
     props = SCHEMAS[0]["function"]["parameters"]["properties"]
@@ -95,7 +95,7 @@ async def main():
     # Must be a BRAIN-SIDE protocol. Since 2026-08-01 the sync launcher refuses the PC_LINK-routed
     # three outright (they'd run laptop-era taskkill/shutdown against the VPS), so using names[0] —
     # goodnight — would now assert the very behaviour that was removed as a hazard.
-    from afon.brain.protocols import _registry as _proto_reg
+    from mushegh.brain.protocols import _registry as _proto_reg
 
     live_name = next(n for n, p in _proto_reg().items() if not p.get("pc_command"))
     r_live = run_protocol(live_name, _password_for(live_name), drill=False)
@@ -106,8 +106,8 @@ async def main():
     # --- 6) machine-level protocols act on the LAPTOP, not on whatever host the brain runs on ---
     # Regression guard for the 2026-07-30 finding: with the brain on the VPS these ran server-side and
     # reported success while doing nothing (shutdown without sudo / taskkill on Linux).
-    from afon.brain import pc_link
-    from afon.brain.protocols import run_protocol_async
+    from mushegh.brain import pc_link
+    from mushegh.brain.protocols import run_protocol_async
 
     forwarded = []
 

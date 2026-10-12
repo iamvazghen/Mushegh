@@ -19,11 +19,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.agent import AfonAgent  # noqa: E402
+from mushegh.brain.agent import MusheghAgent  # noqa: E402
 
 
 def main() -> int:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     names = sorted(agent._registry)
     needle = sys.argv[1].lower() if len(sys.argv) > 1 else ""
     if needle:

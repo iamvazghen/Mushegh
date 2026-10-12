@@ -18,8 +18,8 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from afon.brain.agent import USER_TZ, AfonAgent, _is_affirmation
-from afon.config import settings
+from mushegh.brain.agent import USER_TZ, MusheghAgent, _is_affirmation
+from mushegh.config import settings
 
 PASS = 0
 FAIL = 0
@@ -44,7 +44,7 @@ def test_affirmation() -> None:
 
 
 def test_begin_turn_supersede() -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._pending_confirm = {"name": "send_email", "args": {}}
     agent._last_turn_at = datetime.now(USER_TZ)
     agent._begin_turn("yes please")
@@ -57,7 +57,7 @@ def test_begin_turn_supersede() -> None:
 
 
 def test_smart_reset() -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._idle_reset_min = 180
     agent._history = [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}]
     agent._last_turn_at = datetime.now(USER_TZ) - timedelta(minutes=200)
@@ -75,9 +75,9 @@ def test_smart_reset() -> None:
 
 
 def test_proactive_durable() -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     captured: list[str] = []
-    from afon.brain import memory as memmod
+    from mushegh.brain import memory as memmod
 
     orig = memmod.STORE.journal_append
     memmod.STORE.journal_append = lambda summary, when=None: captured.append(summary)  # type: ignore
@@ -97,7 +97,7 @@ async def _none() -> None:
 
 
 async def test_confirm_gate() -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     sent: list[dict] = []
 
     async def spy(args: dict) -> str:
@@ -158,7 +158,7 @@ async def test_confirm_gate() -> None:
 
 
 async def test_vault_write() -> None:
-    from afon.brain.tools.vault import write_vault
+    from mushegh.brain.tools.vault import write_vault
 
     settings.vault_writable = False
     r = await write_vault({"content": "hello"})
@@ -170,11 +170,11 @@ async def test_vault_write() -> None:
         settings.vault_writable = True
         try:
             await write_vault({"note": "Decisions", "content": "Chose MIT license.", "mode": "create"})
-            f = Path(d) / "Afon" / "Decisions.md"
+            f = Path(d) / "Mushegh" / "Decisions.md"
             check("vault write creates a note",
                   f.is_file() and "MIT" in f.read_text(encoding="utf-8"))
-            await write_vault({"note": "Decisions", "content": "Added OpenAfon rename."})
-            check("vault write appends to an existing note", "OpenAfon" in f.read_text(encoding="utf-8"))
+            await write_vault({"note": "Decisions", "content": "Added OpenMushegh rename."})
+            check("vault write appends to an existing note", "OpenMushegh" in f.read_text(encoding="utf-8"))
             await write_vault({"note": "../../escape", "content": "x"})
             check("vault write can't traverse outside the vault",
                   not (Path(d).parent / "escape.md").exists())
@@ -183,7 +183,7 @@ async def test_vault_write() -> None:
 
 
 def test_ack_for() -> None:
-    from afon.brain.agent import _ack_for
+    from mushegh.brain.agent import _ack_for
 
     check("ack is contextual (uses the query)", "BTC" in _ack_for("web_search", {"query": "BTC price"}))
     check("ack for delegate mentions the team lead", "team lead" in _ack_for("delegate_to_fleet", {"task": "x"}))
@@ -194,9 +194,9 @@ def test_ack_for() -> None:
 def test_immediate_ack() -> None:
     # G1: the immediate ack now ROTATES a phrase pool (no fixed line), and stays silent when a
     # specific per-tool ack is imminent (a zero-arg read). So assert POOL membership, not one phrase.
-    from afon.brain.agent import _WORK_ACKS, _CHAT_ACKS
+    from mushegh.brain.agent import _WORK_ACKS, _CHAT_ACKS
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     notes: list[str] = []
     agent._immediate_ack("set a reminder for 5pm", notes.append)   # arg-bearing command -> WORK pool
     check("immediate ack fires on a command", len(notes) == 1 and notes[0] in _WORK_ACKS)
@@ -207,7 +207,7 @@ def test_immediate_ack() -> None:
 
 
 async def test_progress_watchdog() -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     old_warn, old_every = settings.tool_slow_warn_seconds, settings.tool_long_update_seconds
     settings.tool_slow_warn_seconds = 0.08
     settings.tool_long_update_seconds = 0.08
@@ -246,13 +246,13 @@ def test_session_persistence() -> None:
     tmp = Path(tempfile.mkdtemp()) / "sess.json"
     settings.session_persist_path = str(tmp)
     try:
-        a = AfonAgent()
+        a = MusheghAgent()
         a._history = [{"role": "user", "content": "remember 42"},
                       {"role": "assistant", "content": "noted, sir"}]
         a._trim()  # persists
         check("snapshot file written on turn", tmp.exists())
 
-        b = AfonAgent()  # simulates a brain restart
+        b = MusheghAgent()  # simulates a brain restart
         check("new agent resumes the thread after restart",
               b._history == a._history and len(b._history) == 2)
 
@@ -261,13 +261,13 @@ def test_session_persistence() -> None:
         import time as _t
         tmp.write_text(_j.dumps({"saved_at": _t.time() - 4 * 3600,
                                  "history": [{"role": "user", "content": "stale"}]}), encoding="utf-8")
-        c = AfonAgent()
+        c = MusheghAgent()
         c._idle_reset_min = 180
         c._load_session()
         check("expired snapshot is dropped on load", c._history == [])
 
         # Manual reset clears the snapshot too.
-        d = AfonAgent()
+        d = MusheghAgent()
         d._history = [{"role": "user", "content": "x"}]
         d._trim()
         d.reset_session("manual")
@@ -299,12 +299,12 @@ def main() -> None:
     asyncio.run(test_progress_watchdog())
     # --- 34.F3: health talk stays inside a stated boundary -------------------------------------
     # Observations and patterns, never diagnosis. Not squeamishness: "you slept five hours, three
-    # nights running" is a fact Afon measured, and "you're not sleeping because of X" is a claim he
+    # nights running" is a fact Mushegh measured, and "you're not sleeping because of X" is a claim he
     # invented that a person may act on instead of asking somebody qualified.
     print("\n[34.F3] health talk: observations and patterns, never a diagnosis")
     from pathlib import Path as _Path
 
-    from afon.brain import vitals as V
+    from mushegh.brain import vitals as V
 
     check("the boundary is stated in one place", len(V.BOUNDARY.split()) >= 15)
     for phrase in ("name conditions", "explain causes", "advise on treatment", "qualified"):
@@ -322,12 +322,12 @@ def main() -> None:
     # exact sentence: the first version of this check matched a literal string complete with
     # its line wrap, so rewrapping a comment turned it red while the behaviour was untouched.
     _doc = " ".join((V.diagnostic_language.__doc__ or "").split()).lower()
-    check("the guard says, where it lives, that it reads Afon's words and not the owner's",
+    check("the guard says, where it lives, that it reads Mushegh's words and not the owner's",
           "never what the owner says" in _doc)
     check("an empty history says so rather than inventing a trend",
           "no steps on file" in V.recent("steps", path=_Path("no-such-vitals.json")))
 
-    from afon.brain.tools import tool_schemas as _schemas
+    from mushegh.brain.tools import tool_schemas as _schemas
 
     described = {s["function"]["name"]: s["function"]["description"] for s in _schemas()}
     check("the trend tool is advertised", "vitals_trend" in described)

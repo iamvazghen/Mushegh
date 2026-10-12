@@ -16,8 +16,8 @@ owner.npy
 *.npy
 faces/
 runtime_prefs.json
-afon_session.json
-afon_tasks.sqlite
+mushegh_session.json
+mushegh_tasks.sqlite
 # --- Python / tooling ---
 .venv/
 __pycache__/
@@ -32,12 +32,12 @@ models/
 .piper-voices/
 # --- Runtime / generated state (machine-local, not source) ---
 # ALL runtime DBs (tasks/jobs/vectors/graph/coaching/presence ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â personal data)
-afon_*.sqlite
+mushegh_*.sqlite
 # runtime delivery state
 daily_digest_state.json
 audit/
 backups/
-.afon-browser/
+.mushegh-browser/
 # --- Private memory & profile (personal data ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â keep out of git; *.example.md templates ship) ---
 memory/learned/
 memory/journal/
@@ -49,10 +49,10 @@ memory/openclaw-fleet.md
 # --- Planning docs are TRACKED on purpose ---
 # docs/SYSTEMS.md (the plan), docs/MASTER-PLAN.md and TODO.md are the record of what this is and
 # why, so they belong in the repo. This block used to ignore fine-tuning.md, TODO-NOW.md and
-# AFON-PRODUCTION-RECOMMENDATIONS.md; none of those files still exists (they were folded into
+# MUSHEGH-PRODUCTION-RECOMMENDATIONS.md; none of those files still exists (they were folded into
 # TODO.md and docs/SYSTEMS.md), so the rules only meant that recreating one would silently
 # untrack it. Removed. Personal, per-instance checklists stay out below.
-IPHONE-AFON-CHECKLIST.md
+IPHONE-MUSHEGH-CHECKLIST.md
 # --- OS ---
 .DS_Store
 Thumbs.db
@@ -63,15 +63,31 @@ _suite_out.txt
 # --- Runtime logs (edge/pc_agent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â churn + may contain host/IP) ---
 logs/
 # Original logo/banner exports (clean copies tracked in assets/ + website/public/)
-/OpenAfon*.png
+/OpenMushegh*.png
 # Docs site ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deployed via Vercel CLI (vercel --cwd website --prod), kept out of the repo
 website/
 next-steps/
 # Personal finish-line checklist (this instance, not the framework)
-MY-AFON-CHECKLIST.md
+MY-MUSHEGH-CHECKLIST.md
 # Behavioral run artifacts (machine-generated, not source)
-# Personal contact book (Phase 4.3) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â private, never tracked
+# Personal contact book (Phase 4.3) — private, never tracked
 contacts.md
+# The JSON contact book and the places file ship as EMPTY TEMPLATES today — every email,
+# phone, handle and address field is "". Nothing personal is exposed by tracking them right now.
+# They are ignored anyway because they are DESIGNED to be filled ("Replace the empty values below
+# with real ones"), and `contacts.md` is already ignored for exactly that reason. The day they are
+# filled, a `git add -A` publishes real contacts and a home address.
+#
+# This is a guard against a future mistake, not a fix for a present leak. Note that
+# `check_public_clean.py` CANNOT be the thing that catches it: it scans untracked-but-unignored
+# files (correctly — that is where a fresh mistake lands) but its three patterns are API keys,
+# CGNAT addresses and one specific email, so it would see a filled contact book and pass it.
+#
+# Safe to ignore: contacts.py falls back to the markdown book when the JSON is absent, and
+# locations.py creates the file on first save. If you want a fresh clone to ship the SCHEMA, add
+# contacts.example.json / locations.example.json — the `*.example.md` convention is already used.
+contacts.json
+locations.json
 emergency.md
 # Personal VPS deploy target ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â keeps the host out of the public repo
 scripts/deploy_vps.env
@@ -81,3 +97,8 @@ scripts/deploy_vps.env
 /graphify-out/
 ledger.beancount
 bench/_*.txt
+
+# Edit backups. Same lesson as voiceprint.json.bak two lines up: a `.pre-<something>`
+# copy of a file is as sensitive as the file, and `.env` only ever matched `.env`
+# exactly before `.env.*` was added. These are a rollback path, not a deliverable.
+*.pre-*

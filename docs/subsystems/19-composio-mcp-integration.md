@@ -10,10 +10,10 @@ Composio fronts thousands of OAuth-managed actions across the apps the owner has
 — GitHub, Slack, Drive, Sheets, Linear. Advertising them all would spend the whole per-turn
 schema budget before the model picked a tool, so this system exposes **two** tools and a
 catalogue summary instead. The failure it exists to prevent is written down at the top of
-`src/afon/brain/composio_catalog.py`: with no visibility of what is available, the model
+`src/mushegh/brain/composio_catalog.py`: with no visibility of what is available, the model
 answers "I can't do that" about work one `composio_find_tools()` call away.
 
-The MCP half is the same idea from the other side. An external stdio server joins Afon's
+The MCP half is the same idea from the other side. An external stdio server joins Mushegh's
 normal tool registry instead of getting a second execution path of its own.
 
 It refuses two things. It refuses to offer an app that is not connected — the search is
@@ -31,20 +31,20 @@ rather than a system that justifies itself.
 
 | Path | What it holds |
 |---|---|
-| `src/afon/brain/tools/composio.py` | The two schemas — `composio_find_tools`, `composio_run_tool` — plus `_context()` (user id + active toolkits) and toolkit keyword hints |
-| `src/afon/brain/composio_catalog.py` | Disk-cached catalogue: `refresh()`, `compact_summary()`, `long_tail_lookup()`, `invalidate()` |
-| `src/afon/brain/mcp_client.py` | `StdioMCPServer`, `MCPRegistry`, `to_openai_schema` — JSON-RPC 2.0 over a child process's stdio, no new dependency |
-| `src/afon/brain/tool_usage.py` | Durable per-tool call counts, the input to the D-06 cull |
-| `src/afon/brain/_scheduled_jobs.py` | The off-hot-path job that refreshes the catalogue |
+| `src/mushegh/brain/tools/composio.py` | The two schemas — `composio_find_tools`, `composio_run_tool` — plus `_context()` (user id + active toolkits) and toolkit keyword hints |
+| `src/mushegh/brain/composio_catalog.py` | Disk-cached catalogue: `refresh()`, `compact_summary()`, `long_tail_lookup()`, `invalidate()` |
+| `src/mushegh/brain/mcp_client.py` | `StdioMCPServer`, `MCPRegistry`, `to_openai_schema` — JSON-RPC 2.0 over a child process's stdio, no new dependency |
+| `src/mushegh/brain/tool_usage.py` | Durable per-tool call counts, the input to the D-06 cull |
+| `src/mushegh/brain/_scheduled_jobs.py` | The off-hot-path job that refreshes the catalogue |
 
-Flow on a turn: the utterance is classified, `src/afon/brain/intent_router.py` picks tool
-names, `schemas_by_name()` in `src/afon/brain/tools/__init__.py` narrows the advertised
+Flow on a turn: the utterance is classified, `src/mushegh/brain/intent_router.py` picks tool
+names, `schemas_by_name()` in `src/mushegh/brain/tools/__init__.py` narrows the advertised
 family, and the model either calls `composio_find_tools` (a search across connected apps,
 served from the cached catalogue) or an MCP tool whose schema was converted by
 `to_openai_schema`. Writes are confirm-gated; reads run directly.
 
-What it stores: `~/.afon/composio_catalog.json`, the durable usage counts, and one audit
-line per call under `audit/`. The credential is `AFON_COMPOSIO_API_KEY` in `.env`, which is
+What it stores: `~/.mushegh/composio_catalog.json`, the durable usage counts, and one audit
+line per call under `audit/`. The credential is `MUSHEGH_COMPOSIO_API_KEY` in `.env`, which is
 gitignored and never in the repo.
 
 **Credential budget (D-62).** The charter admits exactly four tokens — Home Assistant,
@@ -87,7 +87,7 @@ S19 among the systems its inventory task (`36.R4`) must account for.
   and validates. Last: **not yet measured**.
 - **G5** · B1 · `bench/test_tool_usage.py`. Threshold: counts survive a process restart.
   Last: **not yet measured**.
-- **G6** · B1 · `bench/test_api_policy.py`, the table in `src/afon/brain/tools/base.py`.
+- **G6** · B1 · `bench/test_api_policy.py`, the table in `src/mushegh/brain/tools/base.py`.
   Threshold 0 self-declared HTTP clients outside the policy. Last: **not yet measured**.
 - **G7** · B5 · last-success per MCP server, read from the HUD surface. Threshold: **1**
   timestamp per configured server, **0** "unknown". No drill written yet (19.R2). Last: **not
@@ -99,24 +99,24 @@ S19 among the systems its inventory task (`36.R4`) must account for.
 ## Failure modes
 
 - **No key, or the key is wrong.** The router advertises nothing useful and the turn ends
-  in a spoken not-configured note. The owner sees Afon declining work it has done before.
-  Diagnose: `python -c "from afon.config import settings; print(bool(settings.composio_api_key))"`,
-  then `journalctl -u afon-brain -n 200 --no-pager | grep -i composio`.
-- **Catalogue stale or missing.** `~/.afon/composio_catalog.json` absent or older than the
+  in a spoken not-configured note. The owner sees Mushegh declining work it has done before.
+  Diagnose: `python -c "from mushegh.config import settings; print(bool(settings.composio_api_key))"`,
+  then `journalctl -u mushegh-brain -n 200 --no-pager | grep -i composio`.
+- **Catalogue stale or missing.** `~/.mushegh/composio_catalog.json` absent or older than the
   last app connection; the model falls back to "I can't" because the summary is empty.
-  Diagnose: `ls -l ~/.afon/composio_catalog.json` and the same journal grep for
+  Diagnose: `ls -l ~/.mushegh/composio_catalog.json` and the same journal grep for
   `composio_catalog.refresh`.
 - **Composio 5xx or rate limit.** A remote outage becomes a failed turn. The policy table
   classifies it as `unavailable` and retries as declared; if the retry budget is spent the
   turn reports the failure rather than inventing a result. Diagnose: the audit lines under
   `audit/`, filtered on the tool name.
 - **MCP child process dies mid-call.** The turn errors. There is no supervisor, so the
-  failure repeats until the brain restarts. Diagnose: `journalctl -u afon-brain | grep -i
+  failure repeats until the brain restarts. Diagnose: `journalctl -u mushegh-brain | grep -i
   mcp` — the gap is that this is the one failure here with no repair path (19.R2).
 - **The belt grows sideways.** Every connected app widens what the model can be offered.
-  The counter is usage: `sqlite3 "$AFON_TASKS_DB_PATH"` for the task queue — the default is
-  blank in `src/afon/config.py:445`, which means `<repo>/afon_tasks.sqlite` (stated the same
-  way in `src/afon/brain/tasks.py:9`) — and `src/afon/brain/tool_usage.py` for what was
+  The counter is usage: `sqlite3 "$MUSHEGH_TASKS_DB_PATH"` for the task queue — the default is
+  blank in `src/mushegh/config.py:445`, which means `<repo>/mushegh_tasks.sqlite` (stated the same
+  way in `src/mushegh/brain/tasks.py:9`) — and `src/mushegh/brain/tool_usage.py` for what was
   actually called, which is what D-06 culling reads.
 
 ## Open questions

@@ -9,7 +9,7 @@
 
 Date: 2026-09-21; implementation record updated 2026-10-03. Owner request: a React spatial Jarvis-style HUD with 10 core canvases, 8 expansion concepts, quarter/half/full/background tiling, dynamic transitions, selected dependencies installed, a single voice-addressable command/search surface, and a visible localhost preview.
 
-The checkout remains named Afon/OpenAfon internally. OpenWatari is the new HUD's presentation name; no repository-wide rename is performed. This record distinguishes implemented frontend behavior, available backend data, and future integration work.
+The checkout remains named Mushegh/OpenMushegh internally. OpenWatari is the new HUD's presentation name; no repository-wide rename is performed. This record distinguishes implemented frontend behavior, available backend data, and future integration work.
 
 ## Documentation inventory
 
@@ -23,8 +23,8 @@ The checkout remains named Afon/OpenAfon internally. OpenWatari is the new HUD's
 | `docs/SYSTEMS-DETAILS.md` | Governing projection model; S31 diagnostics and performance budgets; S45 explainability/control; queued intent versus mutating an in-flight turn; S06 document and S26 perception ownership. |
 | `docs/JEV-REPORT.md`, “The visible surface” | Earlier model preference for an interactive control room and belief visibility, preserving existing HTTP/WS boundary. Its low-confidence first-screen preference is not a design requirement. |
 | `docs/MASTER-PLAN.md` | Explicitly superseded historical snapshot. Not used as a current implementation authority. |
-| `src/afon/brain/hud.py` | Actual read-only snapshot producer; 16 current top-level fields, including identity metadata, observability, and the presentation-only HUD command stream. |
-| `src/afon/brain/server.py` | Existing authenticated HUD/review routes, static `clients/` handler, trusted-client token injection for the old HUD only. Default HTTP port 8766. |
+| `src/mushegh/brain/hud.py` | Actual read-only snapshot producer; 16 current top-level fields, including identity metadata, observability, and the presentation-only HUD command stream. |
+| `src/mushegh/brain/server.py` | Existing authenticated HUD/review routes, static `clients/` handler, trusted-client token injection for the old HUD only. Default HTTP port 8766. |
 | `clients/hud/index.html` | Existing functioning client with uncommitted user improvements. Left intact. |
 | `bench/test_hud.py`, `bench/test_hud_render.py` | Snapshot and rendering regressions; previously invisible data must remain discoverable. |
 
@@ -37,7 +37,7 @@ The hybrid architecture is a sound fit: one spatial coordinator, a registry of c
 1. A Vite build is a development toolchain, not a required production service. Compile React to static files and continue serving them through the existing Python HTTP/static boundary. The localhost Vite server is for development. The earlier plan conflated a build dependency with an always-on runtime.
 2. Use a fixed **12 by 12 usable workspace** below a single command/search field. There is no status bar, navigation rail, footer, toolbar, or background dock. An “infinite plane” and a bounded 12x12 screen are different coordinate systems; this implementation uses the bounded screen. Add a separate camera/pan transform only if a future workspace needs an infinite plane.
 3. React Grid Layout alone owns tile drag/resize geometry. A second react-dnd engine is unnecessary. Motion acts on nested panels, avoiding two engines writing the same transform. Preset/focus/background transitions use `layout`/`layoutId`; during direct dragging, spatial layout animation is disabled. Narrow screens stack rather than squeezing four panels into unreadable quarters.
-4. Persist serializable layout only: stable IDs, slot geometry, focus and background order. Keep callbacks, files, WebGL instances, media objects and authorization outside that record. Validate storage before restoring it. Pointer, keyboard, local text commands, and Afon's bounded remote commands all use the same typed reducer. A stream ID plus monotonic sequence cursor makes snapshot polling idempotent; commands from an unfamiliar stream are applied only while fresh.
+4. Persist serializable layout only: stable IDs, slot geometry, focus and background order. Keep callbacks, files, WebGL instances, media objects and authorization outside that record. Validate storage before restoring it. Pointer, keyboard, local text commands, and Mushegh's bounded remote commands all use the same typed reducer. A stream ID plus monotonic sequence cursor makes snapshot polling idempotent; commands from an unfamiliar stream are applied only while fresh.
 5. Backgrounding preserves component session state; the one search surface is the restore path, so a separate dock is unnecessary. Hidden PDF/WebGL views stop rendering. Local audio is an explicit exception and continues until paused or dismissed. Dismiss releases resources. Unlimited retained heavyweight renderers would exhaust memory, so future imported-document/model caches need an LRU budget.
 6. Full focus remembers the prior grid. Critical approval UI must be orthogonal to layout: closing an approval overlay should restore the previous state, not always force quad. The current preview does not invent an approval state machine or bypass the brain gate.
 7. Never display fake VRAM allocation, weights, percent-complete or initialization logs. Use actual fetch/parse/render phases and unknown progress when no denominator exists. Conversation animation must follow actual token events; a typewriter package cannot synchronize speech on its own.
@@ -51,10 +51,10 @@ Versions are resolved in `clients/hud-spatial/package-lock.json`. React is pinne
 
 | Canvas | Selected engine / alternative | Installation and implementation status |
 | --- | --- | --- |
-| Spatial shell | React 19.2, TypeScript, Vite, Tailwind 4, RGL 2, Motion and Lucide | Installed; working search-plus-grid client, local fonts, typed reducer, and idempotent Afon presentation command stream. No modal library or XState runtime is needed for this shell. |
+| Spatial shell | React 19.2, TypeScript, Vite, Tailwind 4, RGL 2, Motion and Lucide | Installed; working search-plus-grid client, local fonts, typed reducer, and idempotent Mushegh presentation command stream. No modal library or XState runtime is needed for this shell. |
 | 1 Conversation/memory | Native streamed React text + TanStack Virtual | Virtualizer installed for the future stream. Current conversation view honestly reports no transcript source. No typewriter package or fabricated history. |
 | 2 Documents/PDF | react-pdf with its matched PDF.js and locally bundled worker | Installed and implemented for local PDFs: page jump, previous/next, current-page text highlighting. No private `PDFFindController` coupling. Whole-document search, speech coordinates and library-backed document retrieval remain future adapters. |
-| 3 3D inspector | Three.js + R3F + Drei; official Three GLTFLoader | Installed and implemented: initially empty scene, Afon-authored safe primitives, orbit/zoom, local self-contained GLB, and mesh/vertex inspection. No fabricated specimen, separate three-stdlib dependency, OBJ ingestion, or AI mesh endpoint. |
+| 3 3D inspector | Three.js + R3F + Drei; official Three GLTFLoader | Installed and implemented: initially empty scene, Mushegh-authored safe primitives, orbit/zoom, local self-contained GLB, and mesh/vertex inspection. No fabricated specimen, separate three-stdlib dependency, OBJ ingestion, or AI mesh endpoint. |
 | 4 Browser | Existing browser tool + future capture/input gateway | Connection placeholder. Reuse the existing Python browser ownership; do not install a second Puppeteer service solely for the UI. No rrweb until replay is a named requirement. |
 | 5 Diagnostics | Recharts | Installed; actual snapshot values and sampled latency chart, raw detailed health/loops/providers/reliability/trace/unattended sections. No Tremor duplication or unmeasured circular gauges. CPU/GPU/VRAM/network collector absent. |
 | 6 Decisions | Semantic React list and native controls | Existing deferred objective decisions and approval summaries render. TanStack Table and shadcn generation would add no value to this small list. |
@@ -98,7 +98,7 @@ The 2026-10-03 raise batch asked Jev again because the canonical `45.R6` wording
 
 The development proxy only permits GET of HUD and review JSON; rejects other routes/methods; sets no-store; applies request timeouts; disables redirect following; uses the configured server-side bearer token. No browser action endpoint was added. The lazy `control_hud` tool publishes only bounded presentation intents to a process-local ring; it cannot approve, invoke another tool, mutate an in-flight turn, or touch the operating system. No root `.env` is copied into the client, no secret is placed in a `VITE_` variable, and no independent brain/autonomy process is started.
 
-The spatial client lives under `clients/hud-spatial/`; the bounded command bus and lazy tool live under `src/afon/brain/`. The original HUD HTML remains intact. The canonical system registry now records 45.R6 as verified while leaving the five later HUD raises open. Changes are uncommitted and unpushed.
+The spatial client lives under `clients/hud-spatial/`; the bounded command bus and lazy tool live under `src/mushegh/brain/`. The original HUD HTML remains intact. The canonical system registry now records 45.R6 as verified while leaving the five later HUD raises open. Changes are uncommitted and unpushed.
 
 ## Remaining work in a concrete order
 

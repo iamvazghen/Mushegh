@@ -22,11 +22,11 @@ owner has no way to tell which he got.
 
 D-07 applies throughout: reading a page is a read-only query, but *submitting* is not. A
 form that spends money or sends data requires a confirmation, and `05.R1` now enforces that in
-code — `submit_needs_confirm()` in `src/afon/brain/tools/browser.py`, called from
+code — `submit_needs_confirm()` in `src/mushegh/brain/tools/browser.py`, called from
 `proactive.confirm_required`. It is hermetically green and still owes D-43's seven days. D-34 applies too: a page that merely looked interesting is not a
 reason to raise the topic with the owner.
 
-If this is absent, Afon can extract text but cannot show anything, and every answer
+If this is absent, Mushegh can extract text but cannot show anything, and every answer
 about the web is second-hand.
 
 ## Structure
@@ -38,21 +38,21 @@ utterance ──> tools/browser.py   one tool, an `action`, ten ops:
                     │
                     │  forwarded to the laptop whenever it is connected
                     v
-   laptop: src/afon/edge/pc_agent.py   the visible Chromium, persistent profile
+   laptop: src/mushegh/edge/pc_agent.py   the visible Chromium, persistent profile
                     │
                     v
-   brain:  src/afon/brain/pc_link.py   (see S04)
-   text:   src/afon/brain/tools/web.py  the headless/cloud extraction path, degrade chain
+   brain:  src/mushegh/brain/pc_link.py   (see S04)
+   text:   src/mushegh/brain/tools/web.py  the headless/cloud extraction path, degrade chain
 ```
 
 | Concern | Where |
 |---|---|
-| The single `browser` tool and its ten actions | `src/afon/brain/tools/browser.py` |
-| Forwarding to the laptop | `src/afon/edge/pc_agent.py`; `test_pc_agent_routing.py` |
+| The single `browser` tool and its ten actions | `src/mushegh/brain/tools/browser.py` |
+| Forwarding to the laptop | `src/mushegh/edge/pc_agent.py`; `test_pc_agent_routing.py` |
 | Screenshot transport | `bench/test_screenshot_transport.py` |
-| Degrade chain, typed (05.F2) | `src/afon/brain/tools/web.py`; `test_web_fallback.py` |
+| Degrade chain, typed (05.F2) | `src/mushegh/brain/tools/web.py`; `test_web_fallback.py` |
 | Blocked / paywalled / empty body (05.F3) | `tools/web.py`; `test_web_fallback.py` extended with the empty-body case |
-| D-07 confirm tier for submits | `src/afon/brain/approvals.py`, `argcheck.py` |
+| D-07 confirm tier for submits | `src/mushegh/brain/approvals.py`, `argcheck.py` |
 
 **Process ownership:** edge, when the laptop is connected — the browser has to be visible
 on the owner's screen to be worth anything. It runs in-process in the brain only when the

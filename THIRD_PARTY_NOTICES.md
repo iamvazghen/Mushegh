@@ -1,6 +1,6 @@
 # Third-party notices
 
-OpenAfon itself is released under the **MIT License** (see [`LICENSE`](LICENSE)). It is a *framework*
+OpenMushegh itself is released under the **MIT License** (see [`LICENSE`](LICENSE)). It is a *framework*
 that orchestrates a number of third-party libraries and cloud services. This file records the
 licenses of the **direct** dependencies and the obligations that come with them, so you can
 distribute a fork with confidence.
@@ -88,9 +88,9 @@ when you sign up. They are **not** covered by this project's MIT license:
 
 The owner's requirement is free and open source, and it is **not** amended by anything in the list
 above. The line it draws — settled for the PinePhone and again for a WebXR headset — is that the
-requirement **binds what Afon depends on, not every service it talks to.** Every entry here is
+requirement **binds what Mushegh depends on, not every service it talks to.** Every entry here is
 bring-your-own-key and has either a local engine behind it (Deepgram → `faster-whisper`,
-ElevenLabs → Kokoro/Piper) or no function that Afon needs to run.
+ElevenLabs → Kokoro/Piper) or no function that Mushegh needs to run.
 
 So a hosted proprietary service may be added **only** as a tier that is *absent by default*: with no
 key configured the feature is not degraded, it simply does not exist, and every code path around it
@@ -100,7 +100,7 @@ and it is testable rather than aspirational — which is why each such tier carr
 (`14.R5` for TypeSafe).
 
 **TypeSafe is held to a stronger form of that rule than the rest of this list.** Today, a dead
-judgment provider cannot silently hand a contextual choice to the generative LLM: Afon asks whether
+judgment provider cannot silently hand a contextual choice to the generative LLM: Mushegh asks whether
 to retry or proceed without a recommendation. If `14.R6` later places Jev in the *interruption* path,
 an absent key, expired key, timeout, 429 or 529 must leave `14.R4` bit-for-bit identical. A provider
 that can silence the assistant is a provider that has been
@@ -115,10 +115,10 @@ model card before redistributing any weights with your fork.
 
 ## Naming & trademark note
 
-This project is **OpenAfon** and the assistant is **Afon** — names chosen specifically so the
-public brand does **not** rely on a franchise-associated mark. *Afon* is referenced only as the
+This project is **OpenMushegh** and the assistant is **Mushegh** — names chosen specifically so the
+public brand does **not** rely on a franchise-associated mark. *Mushegh* is referenced only as the
 blueprint/inspiration and is **not** used as the project's brand; the internal Python package keeps
-the short name `afon` (import paths/CLI) for stability, which is a code identifier, not a public
+the short name `mushegh` (import paths/CLI) for stability, which is a code identifier, not a public
 trademark. The MIT license grants **copyright** permissions, not **trademark** rights — if you fork
 under a different public name, pick one that's your own and update the persona file
-(`personality/afon.md`) and the wizard's display-name step accordingly.
+(`personality/mushegh.md`) and the wizard's display-name step accordingly.

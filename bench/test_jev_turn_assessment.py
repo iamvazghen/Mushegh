@@ -53,7 +53,7 @@ UNCLEAR = "set it to three"
 
 
 async def service_contract(root: Path) -> None:
-    from afon.brain.judgment import (
+    from mushegh.brain.judgment import (
         ENTROPY_FAST_MAX,
         ENTROPY_ROUTE_FAST_MAX,
         JudgmentService,
@@ -268,18 +268,18 @@ class _FakeLLM:
 
 
 async def agent_contract(root: Path) -> None:
-    import afon.brain.agent as agent_module
-    from afon.brain.agent import AfonAgent
-    from afon.brain.judgment import TurnSignals
+    import mushegh.brain.agent as agent_module
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.judgment import TurnSignals
 
-    os.environ["AFON_TRACE_DIR"] = str(root / "traces")
+    os.environ["MUSHEGH_TRACE_DIR"] = str(root / "traces")
     original = agent_module.JUDGMENTS
 
     print("\n[8] the turn asks, and no tool fires")
     try:
         asking = TurnSignals(("office", "docs"), None, None, None, "unclear", "decided", 1.0)
         agent_module.JUDGMENTS = _Stub(asking)
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._history = []
         agent._persist_session = lambda: None
         agent._spawn_review = lambda: None
@@ -298,7 +298,7 @@ async def agent_contract(root: Path) -> None:
     try:
         clear = TurnSignals(("office",), None, "soon", "steady", "clear", "decided", 1.0)
         agent_module.JUDGMENTS = _Stub(clear)
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._history = []
         agent._persist_session = lambda: None
         agent._spawn_review = lambda: None
@@ -317,11 +317,11 @@ async def agent_contract(root: Path) -> None:
                            probability=0.51,
                            distribution=(("office", 0.51), ("docs", 0.49)))
         agent_module.JUDGMENTS = _Stub(flip)
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._history = []
         agent._persist_session = lambda: None
         agent._spawn_review = lambda: None
-        from afon.brain.tools import group_tool_schemas
+        from mushegh.brain.tools import group_tool_schemas
         office = {s["function"]["name"] for s in group_tool_schemas("office")}
         llm = _FakeLLM("Looking at the document and your mail.")
         agent._llm = llm
@@ -340,12 +340,111 @@ async def agent_contract(root: Path) -> None:
         agent_module.JUDGMENTS = original
 
 
+async def answerable_contract(root: Path) -> None:
+    """01.J13 — the `answerable` verdict rides in the call that already happens.
+
+    Opt-in, so section [1]'s four-question assertion is the regression guard for the production
+    payload: if this ever starts being asked by default, [1] goes red, which is the point.
+    """
+    from mushegh.brain.judgment import (
+        ANSWERABLE_BANDS,
+        ANSWERABLE_INSTRUCTIONS,
+        JudgmentService,
+        answerable_note,
+    )
+
+    print("\n[11] the answerable verdict is a fifth QUESTION in the same call, not a fifth call")
+
+    def _answers(pick: str) -> dict:
+        return {"model": "jev-test", "answers": {
+            "route": {"choice": "group_2", "probabilities": {"group_1": 0.1, "group_2": 0.9}},
+            "clarity": {"choice": "clarity_clear", "probabilities": {"clarity_clear": 0.95}},
+            "urgency": {"choice": "urgency_now", "probabilities": {"urgency_now": 0.7}},
+            "tone": {"choice": "tone_direct", "probabilities": {"tone_direct": 0.6}},
+            "answerable": {"choice": f"answerability_{pick}",
+                           "probabilities": {"answerable": 0.95, "not_answerable": 0.05}},
+        }}
+
+    seen: list[dict] = []
+
+    async def not_answerable(payload, _k, _e, _t):
+        seen.append(payload)
+        return 200, _answers("not_answerable")
+
+    svc = JudgmentService(key="k", transport=not_answerable, log_path=root / "ans.jsonl")
+    sig = await svc.assess_turn(CLEAR, groups=["office", "docs"], ask_answerable=True)
+
+    check("still exactly one round trip", len(seen) == 1, str(len(seen)))
+    check("five questions in that one call",
+          sorted(seen[0]["questions"]) == ["answerable", "clarity", "route", "tone", "urgency"],
+          str(sorted(seen[0]["questions"])))
+    check("the verdict came back", sig is not None and sig.answerable == "not_answerable", repr(sig))
+    check("...and is carried as a hedge", sig is not None and sig.needs_hedge)
+    check("the labels are the ones code declared",
+          sorted(seen[0]["questions"]["answerable"]["criteria"]) ==
+          sorted(f"answerability_{b}" for b in ANSWERABLE_BANDS),
+          str(seen[0]["questions"]["answerable"]["criteria"]))
+
+    print("\n[12] the wording is load-bearing: a tool-answerable turn must not be ruled out")
+    # This is the finding from 01.J13, turned into a gate. The probe's `no-tools` wording scored
+    # "what time is it" at p=0.00, and a verdict used as-is would suppress the tool call on
+    # exactly the turns that need one — at 100% accuracy, which is how it would have looked
+    # like a win. The instruction has to keep admitting ordinary tools.
+    instr = seen[0]["questions"]["answerable"]["instructions"].lower()
+    check("the instructions still admit ordinary tools", "tool" in instr, instr[:120])
+    check("...specifically a clock or a lookup", "clock" in instr or "search" in instr, instr[:120])
+    check("...and do not forbid fetching", "without fetching" not in instr, instr[:120])
+    check("the shipped instructions are the measured ones",
+          ANSWERABLE_INSTRUCTIONS.lower() == instr)
+
+    print("\n[13] the note steers the generated answer and never the tool surface")
+    note = answerable_note(sig) or ""
+    check("a decided not_answerable produces a note", bool(note), note[:80])
+    check("...it tells the model not to invent a specific answer",
+          "do not invent" in note.lower(), note[:120])
+    check("...and explicitly tells it to KEEP using tools",
+          "tool" in note.lower() and "not a reason to skip" in note.lower(), note[:160])
+    check("answerable stays silent", answerable_note(
+        _signals_with("answerable")) is None)
+
+    print("\n[14] it is fail-closed: no advice means no hedge")
+    sig_unavailable = sig.__class__(("office", "docs"), None, None, None, "clear",
+                                     "unavailable", 400.0)
+    check("a timed-out assessment does NOT ask for a hedge",
+          sig_unavailable.needs_hedge is False, repr(sig_unavailable))
+    check("...and produces no note", answerable_note(sig_unavailable) is None)
+    check("a never-asked verdict is not a hedge either",
+          sig_unavailable.needs_hedge is False)
+
+    print("\n[15] the provenance row records the question and the pick, never the utterance")
+    rows = [json.loads(ln) for ln in
+            (root / "ans.jsonl").read_text(encoding="utf-8").splitlines() if ln.strip()]
+    check("one row per assessment", len(rows) == 1, str(len(rows)))
+    if rows:
+        row = rows[0]
+        check("it names the question that went out", "answerable" in (row.get("asked") or []),
+              str(row.get("asked")))
+        check("...and the pick, as a label",
+              (row.get("picked") or {}).get("answerable") == "not_answerable",
+              str(row.get("picked")))
+        blob = json.dumps(row).lower()
+        check("...and still NOT the utterance",
+              not any(w in blob for w in ("lease", "inbox", "document")), blob[:200])
+
+
+def _signals_with(answerable: str):
+    from mushegh.brain.judgment import TurnSignals
+    return TurnSignals(("office", "docs"), None, None, None, "clear", "decided", 1.0,
+                       answerable=answerable)
+
+
 async def main() -> int:
     import tempfile
-    with tempfile.TemporaryDirectory(prefix="afon-turn-assessment-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="mushegh-turn-assessment-") as tmp:
         root = Path(tmp)
         await service_contract(root)
         await agent_contract(root)
+        await answerable_contract(root)
     print(f"\n=== {passed + failed} checks: {passed} passed, {failed} failed ===")
     if not failed:
         print("ALL CHECKS PASSED ===")

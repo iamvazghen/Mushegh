@@ -10,7 +10,7 @@ marks whether any `_ROUTES` entry can return it, separating the ones that are ro
 the ones that are merely visible.
 
 Some are legitimately unrouted. `get_time` is the documented case: forcing it on "what
-time is it" was declined as gaming the scorer, because Afon already answers that inline.
+time is it" was declined as gaming the scorer, because Mushegh already answers that inline.
 Those need to be exempt *with a reason*, or the check is just noise.
 
 Usage:
@@ -27,16 +27,16 @@ sys.path.insert(0, str(ROOT / "src"))
 
 #: Tools deliberately NOT routed, with the reason each is acceptable.
 EXEMPT = {
-    "get_time": "declined deliberately - Afon answers the time inline and faster than a "
+    "get_time": "declined deliberately - Mushegh answers the time inline and faster than a "
                 "tool round-trip; forcing it was called gaming the scorer",
 }
 
 
 def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.brain.intent_router import _CLAUSE_ONLY_ROUTES, _ROUTES
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.intent_router import _CLAUSE_ONLY_ROUTES, _ROUTES
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     core = sorted(t["function"]["name"] for t in (agent._core_tools or []))
     routed: set[str] = set()
     for _, names in _ROUTES:

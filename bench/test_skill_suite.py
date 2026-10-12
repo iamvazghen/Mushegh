@@ -31,7 +31,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.tools.skills import _skill_files, _SKILLS_DIR, read_skill  # noqa: E402
+from mushegh.brain.tools.skills import _skill_files, _SKILLS_DIR, read_skill  # noqa: E402
 
 # read_skill clips at this. Mirrored, not imported, because the point is to catch someone
 # RAISING the limit in base.py without noticing what it was hiding.
@@ -43,10 +43,10 @@ passed = failed = 0
 # so that quietly promoting one of these into the registry (or quietly using a name that should
 # have been here) is visible in this file rather than inferred from a failure.
 NOT_TOOLS = {
-    "reset_session": "an AfonAgent method, not a tool — the model asks in prose",
+    "reset_session": "an MusheghAgent method, not a tool — the model asks in prose",
     "list_tools": "no such tool; the registry is authoritative via adding-a-tool.md",
     "ask_user": "no such tool; clarifying questions come from maybe_correct/maybe_ask",
-    "graphify": "an external CLI, not an Afon tool",
+    "graphify": "an external CLI, not an Mushegh tool",
     "clip": "base.clip, internal",
     # laptop-executor ops (edge/pc_agent.py) reached via file_op, not brain-registry tools
     "create_file": "a pc_agent op value for file_op, not a brain tool",
@@ -136,9 +136,9 @@ async def amain() -> None:  # noqa: C901 - linear gate
 
     print("\n=== 7. playbooks reference only tools that exist ===")
     try:
-        from afon.brain.agent import AfonAgent
+        from mushegh.brain.agent import MusheghAgent
 
-        registry = set(AfonAgent()._registry)
+        registry = set(MusheghAgent()._registry)
     except Exception as exc:  # noqa: BLE001
         registry = set()
         check("registry could be built", False, type(exc).__name__)

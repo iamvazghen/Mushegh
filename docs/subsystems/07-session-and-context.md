@@ -35,13 +35,13 @@ Brain owns session state; edges own the transport and the window.
 
 ```
 laptop / phone / panel
-   src/afon/edge/assistant.py ──┐
-   src/afon/edge/brain_bridge.py│
-   src/afon/edge/brain_client.py┘
+   src/mushegh/edge/assistant.py ──┐
+   src/mushegh/edge/brain_bridge.py│
+   src/mushegh/edge/brain_client.py┘
                     │
                     │ WS, one session id carried across (07.F1)
                     v
-   brain: src/afon/brain/server.py
+   brain: src/mushegh/brain/server.py
               │
               ├── context.py          build_system_prompt() — the working context
               ├── references.py       "it" / "that" / "the second one" (07.F3)
@@ -53,10 +53,10 @@ laptop / phone / panel
 
 | Concern | Where |
 |---|---|
-| Session identity across clients (07.F1, 07.R1) | `src/afon/brain/server.py`, `dbconn.py`; `test_session_identity.py` |
-| Prompt assembly, the working context | `src/afon/brain/context.py` |
+| Session identity across clients (07.F1, 07.R1) | `src/mushegh/brain/server.py`, `dbconn.py`; `test_session_identity.py` |
+| Prompt assembly, the working context | `src/mushegh/brain/context.py` |
 | Lossy trim with gist retained (07.F2) | `context.py`, `memory.py` |
-| Reference resolution (07.F3) | `src/afon/brain/references.py`; `test_reference_resolution.py` |
+| Reference resolution (07.F3) | `src/mushegh/brain/references.py`; `test_reference_resolution.py` |
 | Topic segmentation (07.R2) | `test_reference_resolution.py` [07.R2] |
 | Interruption and resumption, "carry on" (07.R3) | `bench/test_streaming.py` [07.R3] |
 | Correction now, reconcile later (D-23) | `context.py` for the immediate half, the checkpoint job for the durable half |

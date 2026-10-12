@@ -19,7 +19,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-DB = Path(os.path.expanduser("~")) / ".afon" / "afon_tasks.sqlite"
+DB = Path(os.path.expanduser("~")) / ".mushegh" / "mushegh_tasks.sqlite"
 
 
 def main() -> int:

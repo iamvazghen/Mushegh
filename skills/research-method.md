@@ -7,8 +7,10 @@ The ladder (stop at the first rung that answers):
 4. **`browse_web`** — the page needs clicking/JS (login walls, dashboards).
 5. **`work_on_task`** — multi-step research AND a written deliverable (report/comparison):
    run it in the background, tell him you're on it, deliver when done.
-6. **`delegate_to_fleet`** — deep domain work (finance, real estate, crypto security, long
-   research): brief ispir with the goal, the context, and what a good answer looks like.
+6. **`delegate_to_fleet`** — deep domain work: brief the ONE specialist whose domain owns it,
+   by name, with the goal, the context, and what a good answer looks like. There is no team lead
+   any more; eighteen agents own eighty-three domains between them, exclusively, and the choice
+   is yours. `read_skill('the-fleet')`.
 
 Rules:
 - Say which rung you're taking while it runs ("Looking that up" vs "putting the team on it").

@@ -44,28 +44,28 @@ is the first plausible route for a sensitive note to reach a store, which makes 
 — the task tracking the absence of enforcement — a precondition for ingesting the first
 export rather than a nice-to-have.
 
-If this is absent: nothing breaks. Afon stops claiming a capability it has never
+If this is absent: nothing breaks. Mushegh stops claiming a capability it has never
 exercised, and the north-star 07:30 brief loses the "sleep" line in the roadmap's
 acceptance scenario, which is the one place this system's absence is felt.
 
 ## Structure
 
-- `src/afon/brain/vitals.py` — the ingest and the boundary. `read_apple_health(path)`
+- `src/mushegh/brain/vitals.py` — the ingest and the boundary. `read_apple_health(path)`
   parses a real Apple Health export, `Reading` and `Vitals` hold the per-day
   aggregates, `save` / `kept` / `recent(kind, days)` / `spoken` are the storage and
   read-back surface, and `diagnostic_language(text)` is the guard that keeps health
-  talk observational. `python -m afon.brain.vitals` runs its selfcheck.
-- `src/afon/brain/proactive_signals.py` — `wellbeing_signals` is where nudges become
+  talk observational. `python -m mushegh.brain.vitals` runs its selfcheck.
+- `src/mushegh/brain/proactive_signals.py` — `wellbeing_signals` is where nudges become
   counted signals. Break and posture nudges are text-only, capped per day, and charged
   against the D-29 interruption budget; `34.R2` is open, so the cap is declared in the
   charter and not yet in code.
-- `src/afon/brain/coaching.py` — the standing focus fields and `coaching_signals`. Per
+- `src/mushegh/brain/coaching.py` — the standing focus fields and `coaching_signals`. Per
   D-27 this stays a tool and must not grow into a recommender.
-- `src/afon/brain/daily_digest.py` — the 07:30 surface where a sleep figure would
+- `src/mushegh/brain/daily_digest.py` — the 07:30 surface where a sleep figure would
   appear. `34.R1` (sleep feeding S17's adaptive timing) is open and its gate,
   `bench/test_digest_timing.py`, does not exist.
 
-Ownership: the brain process, one JSON vitals store under `AFON_STATE_DIR`. No daemon,
+Ownership: the brain process, one JSON vitals store under `MUSHEGH_STATE_DIR`. No daemon,
 no new security boundary, and by D-42's own test that is an argument against S34
 existing as a separate system rather than for it.
 
@@ -103,9 +103,9 @@ behind it.
 PRINCIPLES §1 three commands, in order:
 
 ```
-python -m afon.brain.vitals
-python -m afon.brain.inventory | grep -iE "vital|health|fit"
-journalctl -u openafon-brain -n 200 | grep -iE "vitals|health|fitness|fit"
+python -m mushegh.brain.vitals
+python -m mushegh.brain.inventory | grep -iE "vital|health|fit"
+journalctl -u openmushegh-brain -n 200 | grep -iE "vitals|health|fitness|fit"
 ```
 
 See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
@@ -123,7 +123,7 @@ See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
    unfiltered health-crisis journaling, and enforced in code rather than by intent
    (`37.R5`).
 6. The raw FIT export stays a raw file and the derived numbers become curated facts
-   (D-21): the file is the evidence, the facts are what Afon is allowed to keep.
+   (D-21): the file is the evidence, the facts are what Mushegh is allowed to keep.
 
 ## Benchmarks
 
@@ -157,7 +157,7 @@ See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
    tolerated nudge reads as accepted. Dismissal rate is the honest one. Last
    measurement: `not yet measured`.
 8. **B4** — D-24, asserted in code. Threshold: 0 rows for any never-store class, checked
-   against `src/afon/brain/inventory.py`'s declared classes at every retention sweep, plus
+   against `src/mushegh/brain/inventory.py`'s declared classes at every retention sweep, plus
    0 unfiltered health-crisis rows in the vitals store. Last measurement:
    `not yet measured`; **nothing in the code enforces the list today**, and `37.R5` is the
    task that tracks that gap (M29 owns the sweep). This benchmark is a precondition for
@@ -174,15 +174,15 @@ plausible. Having a Garmin in the house makes it *more* dangerous, not less: the
 question is answered, so the system looks ready, and the only thing still missing is a
 file on a cable. Three commands:
 
-    python -m afon.brain.vitals
-    python -m afon.brain.inventory | grep -iE "vital|health|fit"
-    journalctl -u openafon-brain -n 200 | grep -iE "vitals|health|fitness|fit"
+    python -m mushegh.brain.vitals
+    python -m mushegh.brain.inventory | grep -iE "vital|health|fit"
+    journalctl -u openmushegh-brain -n 200 | grep -iE "vitals|health|fitness|fit"
 
 **A nudging turn starts.** Only possible once a data source exists. The D-29 counter
 is the check:
 
-    journalctl -u openafon-brain --since "24h" | grep -icE "wellness|nudge|break"
-    python -c "from afon.brain.coaching import coaching_signals; print(len(coaching_signals()))"
+    journalctl -u openmushegh-brain --since "24h" | grep -icE "wellness|nudge|break"
+    python -c "from mushegh.brain.coaching import coaching_signals; print(len(coaching_signals()))"
 
 **Health talk drifts into advice.** `diagnostic_language` is the guard and
 `bench/test_companion_safety.py` is the regression. A failure here is a D-10 Safety >

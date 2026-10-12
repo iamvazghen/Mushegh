@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Afon is one person's system, and that person carries several clients: the laptop first, the
+Mushegh is one person's system, and that person carries several clients: the laptop first, the
 phone second, the room hardware third (D-36). The laptop is the primary interface because
 that is where the deep work and the development happen. **Smart glasses stay parked for the
 voice path**: D-36 holds them until sub-second latency is solved, and owning the hardware does
@@ -34,22 +34,22 @@ arrive, the raw transcript stays where it was recorded. That is D-40 applied to 
 listening hardware, and it is the same answer 12.E1 asks for at a smaller scale.
 
 If it is absent, the owner re-explains the same context at the desk every morning, or the
-phone is the only Afon that exists while the laptop is on.
+phone is the only Mushegh that exists while the laptop is on.
 
 ## Structure
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/edge/device_profile.py` | edge | Classifies the resolved output endpoint (Bluetooth/AirPods/headset → private, Realtek/internal → shared) and decides barge-in from it. Remote clients declare a hint |
-| `src/afon/edge/edge_lite.py` | edge | Android/Termux client: push-to-talk → STT → the same brain WebSocket, registered as `device_id="android"` so existing phone routing applies |
-| `src/afon/edge/brain_bridge.py`, `src/afon/edge/brain_client.py` | edge | The WebSocket client; `src/afon/edge/remote_brain.py` is the alternate brain address |
-| `src/afon/brain/server.py`, `src/afon/brain/protocols.py` | brain | Dispatch, and the shared message definitions both sides compile against |
-| `src/afon/brain/presence.py` | brain | Foreground window and idle samples, polled via `pc_agent`; the roster of rooms and the derived context |
-| `src/afon/brain/coordination.py` | brain | One row per unit of delegated work: claimed before it is worked, only the holder writes the result |
-| `src/afon/brain/hud.py`, `clients/hud-spatial/src/App.tsx` | brain + client | Read-mostly JSON snapshot; optional, and the system is complete without it |
+| `src/mushegh/edge/device_profile.py` | edge | Classifies the resolved output endpoint (Bluetooth/AirPods/headset → private, Realtek/internal → shared) and decides barge-in from it. Remote clients declare a hint |
+| `src/mushegh/edge/edge_lite.py` | edge | Android/Termux client: push-to-talk → STT → the same brain WebSocket, registered as `device_id="android"` so existing phone routing applies |
+| `src/mushegh/edge/brain_bridge.py`, `src/mushegh/edge/brain_client.py` | edge | The WebSocket client; `src/mushegh/edge/remote_brain.py` is the alternate brain address |
+| `src/mushegh/brain/server.py`, `src/mushegh/brain/protocols.py` | brain | Dispatch, and the shared message definitions both sides compile against |
+| `src/mushegh/brain/presence.py` | brain | Foreground window and idle samples, polled via `pc_agent`; the roster of rooms and the derived context |
+| `src/mushegh/brain/coordination.py` | brain | One row per unit of delegated work: claimed before it is worked, only the holder writes the result |
+| `src/mushegh/brain/hud.py`, `clients/hud-spatial/src/App.tsx` | brain + client | Read-mostly JSON snapshot; optional, and the system is complete without it |
 
 The laptop edge is a full Pipecat pipeline — wake word, VAD, barge-in, speaker ID, local
-Whisper, Piper. None of that ports to a phone, and `src/afon/edge/edge_lite.py` is the honest minimum rather
+Whisper, Piper. None of that ports to a phone, and `src/mushegh/edge/edge_lite.py` is the honest minimum rather
 than a degraded copy. The wall panel is a third profile, not a third implementation.
 
 The endpoint list is now concrete ([../HARDWARE.md](../HARDWARE.md) H5): the laptop, three
@@ -95,9 +95,9 @@ case is the one 12.R1 needs.
 ## Failure modes
 
 **Two edges answer.** The owner says the wake phrase in a room with a laptop and a panel, and
-hears Afon twice, in two voices, with different content. The arbitration in 12.F3 is the
+hears Mushegh twice, in two voices, with different content. The arbitration in 12.F3 is the
 answer; until per-device capability advertisement lands, the tiebreak is a property of the
-client, not of the situation. Diagnose: `journalctl -u openafon-edge -n 200 | grep -i
+client, not of the situation. Diagnose: `journalctl -u openmushegh-edge -n 200 | grep -i
 wake`, then the device ids on those lines.
 
 **The link drops mid-turn.** The edge reconnects (12.F2 records this as fixed) but the
@@ -111,7 +111,7 @@ regression. The tempting wrong fix — shipping the transcript so the desk can c
 forbidden by D-40.
 
 **Away from home and the phone path is broken.** There is no fallback body by design (D-39).
-Diagnose: `journalctl -u openafon-brain -n 200 | grep -i telegram`, then `curl` the brain's
+Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i telegram`, then `curl` the brain's
 status endpoint from the phone's network.
 
 ## Open questions
@@ -122,5 +122,5 @@ status endpoint from the phone's network.
 2. The wall panel is a third device profile or a second `edge_lite`? D-42 requires an
    independent daemon or a distinct security boundary for a new system, and a panel is
    probably neither.
-3. Capability advertisement: pushed once at connect, or polled from `src/afon/brain/presence.py` on the same
+3. Capability advertisement: pushed once at connect, or polled from `src/mushegh/brain/presence.py` on the same
    cycle as the activity snapshot?

@@ -2,7 +2,7 @@
 
 Model failover was real; nothing above it was. Losing a host produced whatever each component
 happened to do on its own — a tool that timed out, a socket that reconnected forever, an answer
-that quietly came back without the half of Afon that was gone. None of it was written down, so
+that quietly came back without the half of Mushegh that was gone. None of it was written down, so
 "what works right now" had no answer and there was no moment at which the owner was told.
 
   [matrix]    the three modes exist, each naming what is LOST and what is KEPT in the owner's
@@ -42,7 +42,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.shared import degraded as D
+    from mushegh.shared import degraded as D
 
     print("[matrix] 32.F3 — the three modes the plan names, and a full one")
     check("all three are declared",
@@ -93,26 +93,26 @@ def main() -> None:
     check("...and then goes quiet again", a.update(D.MATRIX[D.FULL]) == "")
 
     print("\n[matrix] one table, read by both hosts")
-    shared = ROOT / "src/afon/shared/degraded.py"
+    shared = ROOT / "src/mushegh/shared/degraded.py"
     check("it lives in shared/, not in either host", shared.is_file())
     src = shared.read_text(encoding="utf-8")
-    check("...and imports neither host", "afon.brain" not in src and "afon.edge" not in src,
+    check("...and imports neither host", "mushegh.brain" not in src and "mushegh.edge" not in src,
           "a shared module that imports a host is not shared")
     check("the reason for one copy is written down", "Two copies" in src)
 
-    brain = (ROOT / "src/afon/brain/health.py").read_text(encoding="utf-8")
-    edge = (ROOT / "src/afon/edge/brain_client.py").read_text(encoding="utf-8")
-    check("the brain reads the shared matrix", "from afon.shared.degraded import" in brain)
-    check("the laptop reads the same one", "from afon.shared.degraded import" in edge)
+    brain = (ROOT / "src/mushegh/brain/health.py").read_text(encoding="utf-8")
+    edge = (ROOT / "src/mushegh/edge/brain_client.py").read_text(encoding="utf-8")
+    check("the brain reads the shared matrix", "from mushegh.shared.degraded import" in brain)
+    check("the laptop reads the same one", "from mushegh.shared.degraded import" in edge)
     check("neither declares its own modes",
           "BRAIN_DOWN =" not in brain and "EDGE_DOWN =" not in edge)
 
     print("\n[announce] the brain announces within one turn, through the proactive tick")
-    proactive = (ROOT / "src/afon/brain/proactive.py").read_text(encoding="utf-8")
+    proactive = (ROOT / "src/mushegh/brain/proactive.py").read_text(encoding="utf-8")
     check("the degraded source is registered", "degraded_signals" in proactive)
     check("...as a source, not a one-off call", "sources.append(degraded_signals)" in proactive)
 
-    from afon.brain import health as H
+    from mushegh.brain import health as H
 
     check("the brain maps its own snapshot onto the matrix", hasattr(H, "mode_from"))
     check("a dead laptop reads as edge-down",

@@ -1,12 +1,12 @@
 # S02 — LLM Integration
 
-> **One line:** The only module that knows a model vendor exists, and the chain that keeps Afon talking when one stops answering.
+> **One line:** The only module that knows a model vendor exists, and the chain that keeps Mushegh talking when one stops answering.
 > **Status:** complete for now · **Registry:** S02 · 3/3 floor, 3/3 raise, 0/1 elite
 > **Milestones:** M16 · **Decisions:** D-17, D-35
 
 ## Purpose
 
-Every call Afon makes to a model goes through `src/afon/brain/llm.py`. It holds the
+Every call Mushegh makes to a model goes through `src/mushegh/brain/llm.py`. It holds the
 provider list, the ordered chain, the cooldown state, the cost accounting, and the
 distinction between a transient failure worth retrying and a permanent one worth
 stopping. The blueprint proposed a LiteLLM proxy router; that was declined because a
@@ -20,12 +20,12 @@ an opt-in for when quality is worth the egress, not a default that fails open.
 
 The second refusal here is the one that matters most. When the primary and the first
 fallback both fail, the failure must be **audible in the voice path**, not silent. A
-muted Afon is indistinguishable from an Afon that is merely thinking, and the owner's
+muted Mushegh is indistinguishable from an Mushegh that is merely thinking, and the owner's
 first response to silence is to speak again, louder, into a room where nothing is
 listening. 02.E1 is that drill and it is still open.
 
-If this is absent, Afon cannot think. The degradation paths in the edge
-(`src/afon/edge/degraded_answers.py`, `src/afon/edge/offline_queue.py`) can answer time
+If this is absent, Mushegh cannot think. The degradation paths in the edge
+(`src/mushegh/edge/degraded_answers.py`, `src/mushegh/edge/offline_queue.py`) can answer time
 and reminders from the edge, and that is the whole of what survives.
 
 ## Structure
@@ -45,14 +45,14 @@ turn request ──> llm.py
 
 | Concern | Where |
 |---|---|
-| Chain, failover, cooldowns | `src/afon/brain/llm.py` |
-| Tool-tier vs thinking-tier routing (02.F2) | `src/afon/brain/llm.py` |
+| Chain, failover, cooldowns | `src/mushegh/brain/llm.py` |
+| Tool-tier vs thinking-tier routing (02.F2) | `src/mushegh/brain/llm.py` |
 | Per-tier cost accounting (02.R1) | `cost.py`, `metrics.py`, surfaced in the HUD |
 | Streaming correctness under failover (02.R3) | `llm.py`; the chain may switch mid-answer, so a duplicated or truncated sentence is the defect to watch |
 | Prompt-cache discipline (02.R2) | `context.py` builds a byte-identical stable prefix; `bench/test_prompt_prefix_stable.py` |
 | Wire markers for a dead chain | `llm.py`; `bench/test_llm_chain_exhausted.py` asserts the harness and the module still agree |
-| Degradation when nothing answers | `src/afon/edge/degraded_answers.py`, `src/afon/edge/offline_queue.py`, `src/afon/edge/reflexes.py` |
-| Local speech (D-17) | `src/afon/edge/tts.py`, `src/afon/edge/stt.py` |
+| Degradation when nothing answers | `src/mushegh/edge/degraded_answers.py`, `src/mushegh/edge/offline_queue.py`, `src/mushegh/edge/reflexes.py` |
+| Local speech (D-17) | `src/mushegh/edge/tts.py`, `src/mushegh/edge/stt.py` |
 
 **Process ownership:** brain. The edge never calls a vendor; it streams to the brain and
 receives text.
@@ -99,7 +99,7 @@ code can be broken on purpose, and only the live drill proves the owner's experi
 **The chain flaps.** A dead-credit key is treated as a transient 429, benched for the
 short cooldown, returns seconds later, and fails every turn in between. The symptom is
 constant latency on every request with no error the owner can name. Diagnose:
-`journalctl -u openafon` for the failover messages and provider names; then the
+`journalctl -u openmushegh` for the failover messages and provider names; then the
 provider-health view the HUD reads, to see whether one provider is being retried while
 the chain's other entries are fine. The distinction is in the error *body*, not the
 HTTP status, and a 404 from a wrong base URL is not a dead key.

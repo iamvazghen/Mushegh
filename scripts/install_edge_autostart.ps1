@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    Ensure Afon's edge (pc_agent + assistant) auto-starts on boot AND self-heals if it ever dies.
+    Ensure Mushegh's edge (pc_agent + assistant) auto-starts on boot AND self-heals if it ever dies.
 
 .DESCRIPTION
-    The edge runs as two Scheduled Tasks (AfonPcAgent = elevated, AfonEdge = limited). This script
+    The edge runs as two Scheduled Tasks (MusheghPcAgent = elevated, MusheghEdge = limited). This script
     guarantees three layers of "always on", because no single one is sufficient:
 
       1. LOGON trigger        -> starts the edge when you log in (i.e. on every boot / restart).
@@ -23,7 +23,7 @@
     (Approve the one UAC prompt.)
 #>
 [CmdletBinding()]
-param([string[]]$Tasks = @('AfonPcAgent', 'AfonEdge'), [int]$WatchdogMinutes = 5)
+param([string[]]$Tasks = @('MusheghPcAgent', 'MusheghEdge'), [int]$WatchdogMinutes = 5)
 
 $ErrorActionPreference = 'Stop'
 

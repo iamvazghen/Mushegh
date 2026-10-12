@@ -26,11 +26,11 @@ DEFAULT = "Will it rain here next Tuesday?"
 
 
 async def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.shared.uncertainty import calibration
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.shared.uncertainty import calibration
 
     prompts = sys.argv[1:] or [DEFAULT]
-    agent = AfonAgent()
+    agent = MusheghAgent()
 
     for prompt in prompts:
         reply = await agent.respond(prompt)

@@ -38,12 +38,12 @@ as a recommended integration. **It is withdrawn.**
 ### 0.3 Graphify is already installed — I recommended something you already run
 
 `Graphify-Labs/graphify` (Apache-2.0, 124,970★ ✅) is **not** an integration to add. It is
-already in Afon and actively maintained:
+already in Mushegh and actively maintained:
 
-- `C:\Afon\graphify-out\graph.json` — 6.3 MB, updated 2026-10-08, with dated snapshots back
+- `C:\Mushegh\graphify-out\graph.json` — 6.3 MB, updated 2026-10-08, with dated snapshots back
   to 2026-07-31
 - `.graphifyignore` — its config, tuned to keep `bench/` out of the graph
-- `scripts/routing_manifest.py` — injects Afon's three routing tables as real graph edges
+- `scripts/routing_manifest.py` — injects Mushegh's three routing tables as real graph edges
   because an AST extractor cannot follow a dict value to its callee
 - `scripts/graph_prune.py`, `scripts/graph_fresh.py`, `bench/test_routing_manifest.py`
 - a `graphify` skill is registered in the session's own skill catalogue
@@ -54,7 +54,7 @@ is what the external tool is currently doing for you.
 
 **The earlier "two repos share this name" warning was a false alarm** — `safishamsi/graphify`
 and `Graphify-Labs/graphify` are the same repo after an org transfer. The *third* Graphify —
-Afon's own internal tooling namespace — is what caused the confusion.
+Mushegh's own internal tooling namespace — is what caused the confusion.
 
 ### 0.4 `AgentMail` has no verified repo
 
@@ -119,24 +119,24 @@ OSS tax engine; build it or keep it internal.**
 
 ---
 
-# PART 1 — JARVIS / AFON
+# PART 1 — JARVIS / MUSHEGH
 
 ## The honest shape of it
 
-Of 160 tools, **roughly 100 are already implemented in Afon's own repo** and recommending an
+Of 160 tools, **roughly 100 are already implemented in Mushegh's own repo** and recommending an
 external project for them would be padding. The genuine gaps are narrower than the utility
 count suggests.
 
 ### S01 Brain/Core — `execute_task` `work_on_task` `plan_task` `get_time` `diagnose` `improve_own_code`
-**INHOUSE.** The turn loop is Afon's own (`agent.py`). No integration.
-⚠️ *A research agent claimed Afon is a Hermes fork and cited `architecture.md:54-58` for
+**INHOUSE.** The turn loop is Mushegh's own (`agent.py`). No integration.
+⚠️ *A research agent claimed Mushegh is a Hermes fork and cited `architecture.md:54-58` for
 "Hermes executor + approvals". I checked: those lines describe the dispatch daemon, and the
 document never mentions Hermes. The claim and every line citation attached to it were
 discarded.*
 
 ### S02 LLM Integration — provider failover, rate-limit benching
 **INTEGRATE** → `BerriAI/litellm` ✅ NOASSERTION · 60,564★
-⚠️ **Blocked on licence.** This is the highest-value row in the table — Afon lost hours to
+⚠️ **Blocked on licence.** This is the highest-value row in the table — Mushegh lost hours to
 groq 404s and a minimax 401 before benching them. But the licence must be read by hand first.
 
 ### S03 Tool Utilization — `run_tests` `lint`
@@ -154,7 +154,7 @@ groq 404s and a minimax 401 before benching them. But the licence must be read b
 
 ### S07 Session & Context
 **INHOUSE** — session state is behavioural. (The "inherited from Hermes" justification was
-fabricated and removed; the verdict stands on Afon's own `session persistence`, not on that.)
+fabricated and removed; the verdict stands on Mushegh's own `session persistence`, not on that.)
 
 ### S08 Voice Enrollment / S09 Face Enrollment
 **INHOUSE** — already modelled in `data_classes.py`.
@@ -175,7 +175,7 @@ Adopt only if the current voiceprint engine has no true speaker ID.
 recommender fits one owner.
 
 ### S16 Task Queue — all six tools
-**INHOUSE.** Afon's own SQLite store.
+**INHOUSE.** Mushegh's own SQLite store.
 
 ### S17 Morning Brief / S21 Personal Time Management
 `day_clashes` → **INTEGRATE** → `googleapis/google-api-python-client` ✅ **Apache-2.0**,
@@ -194,7 +194,7 @@ no query logging. `scrape_url` → crawl4ai. `weather` `compute` `convert` `wiki
 `define_word` `fx_rate` `crypto_price` `stock_price` → **INHOUSE**.
 
 ### S22 System Recoverability
-**INHOUSE.** `.afon/delivery_ledger.json` is the ledger `undo_last` needs.
+**INHOUSE.** `.mushegh/delivery_ledger.json` is the ledger `undo_last` needs.
 
 ### S23 24/7 Reachability
 Telegram → **INTEGRATE** → `python-telegram-bot/python-telegram-bot` ◐ LGPL-3.0 per agent.
@@ -288,7 +288,7 @@ for "I don't know". **This is the highest-value row in the entire matrix**, beca
 instrument the calibration work has been reaching for with a lexical hedge list.
 
 ### S47 Inventory & Resources
-**INHOUSE** — the skill registry is Afon's own substrate.
+**INHOUSE** — the skill registry is Mushegh's own substrate.
 
 ### S48 Collaborative Multi-Agent
 **INHOUSE** for policy; runtime covered by LangGraph (S39). Do not add a second orchestrator.
@@ -410,7 +410,7 @@ OSS counterpart for each would be padding.
 
 **Named candidates:** `morluto/rea` ◐ MIT (verified exists — skill content only, not a runtime) ·
 `DietrichGebert/ponytail` ✅ **MIT, 159,426★** — prompt-only, zero code, cheapest win on the list ·
-**`Graphify-Labs/graphify` ✅ Apache-2.0, 124,970★ — already installed and running in Afon, see
+**`Graphify-Labs/graphify` ✅ Apache-2.0, 124,970★ — already installed and running in Mushegh, see
 §0.3; do not re-integrate** · `danielmiessler/LifeOS` ✅ **MIT, 19,366★**
 — steal the memory-scaffold and hook-dispatch patterns, not the persona layer ·
 `refactoringhq/tolaria` — **AGPL-3.0 and a whole desktop app for a markdown KB: disproportionate,
@@ -465,7 +465,7 @@ All 61 fully-verified repos, sorted by stars. This is the evidence behind every 
 | `anthropics/skills` | 180,140 | NOASSERTION | 2026-10-09 |
 | `DietrichGebert/ponytail` | 159,426 | MIT | 2026-10-08 |
 | `comfyanonymous/comfyui` | 136,609 | GPL-3.0 | 2026-10-09 |
-| `Graphify-Labs/graphify` | 124,970 | Apache-2.0 | 2026-10-09 — **already running in Afon, see §0.3** |
+| `Graphify-Labs/graphify` | 124,970 | Apache-2.0 | 2026-10-09 — **already running in Mushegh, see §0.3** |
 | `microsoft/playwright` | 97,361 | Apache-2.0 | 2026-10-09 |
 | `louislam/uptime-kuma` | 92,266 | MIT | 2026-10-09 |
 | `home-assistant/core` | 91,337 | Apache-2.0 | 2026-10-09 |
@@ -533,7 +533,7 @@ that literally would have been the wrong deliverable**, and here is the measured
 
 | verdict | count | what it means |
 |---|---|---|
-| **INHOUSE / COVERED** | **~293** | Afon, Rubo or the product already does it. A third-party project would be add-before-subtract. |
+| **INHOUSE / COVERED** | **~293** | Mushegh, Rubo or the product already does it. A third-party project would be add-before-subtract. |
 | **INTEGRATE** | **~92** | A genuinely better project exists. These are the rows above, all verified. |
 | **BUILD** | **~64** | No credible OSS exists. Not a failure — a finding. |
 | **IMPOSSIBLE** | **~10** | Proprietary-only or carrier-gated. |

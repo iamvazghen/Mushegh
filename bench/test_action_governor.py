@@ -28,8 +28,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import audit                                  # noqa: E402
-from afon.brain.governor import GOVERNOR, Governor, GovernorRefusal   # noqa: E402
+from mushegh.brain import audit                                  # noqa: E402
+from mushegh.brain.governor import GOVERNOR, Governor, GovernorRefusal   # noqa: E402
 
 passed = failed = 0
 
@@ -149,7 +149,7 @@ def main() -> int:
         check("a corrupt ledger does not raise", _refusal(salvaged) is None)
 
         print("\n[7] the worker honours it deterministically - no model call past a ceiling")
-        from afon.brain import worker as worker_mod
+        from mushegh.brain import worker as worker_mod
 
         spent = Governor(max_calls=1, max_usd=99.0, max_seconds=9999.0, path=ledger)
         spent.reset()
@@ -157,7 +157,7 @@ def main() -> int:
         real, worker_mod.GOVERNOR = worker_mod.GOVERNOR, spent
         try:
             boom = BoomLLM()
-            w = worker_mod.TaskWorker(boom, {}, [], max_steps=4, actor="afon:test")
+            w = worker_mod.TaskWorker(boom, {}, [], max_steps=4, actor="mushegh:test")
             result = asyncio.run(w.run("do some research"))
             check("the worker stopped without calling the model", boom.calls == 0,
                   f"the model was called {boom.calls} time(s)")

@@ -1,7 +1,7 @@
 """47.F1-F3 — one table, one category, and an unknown that stays unknown.
 
   [store]      add, consume and query against a local sqlite table, seeded with the one category
-               Afon can fill in without asking anybody: his own consumables;
+               Mushegh can fill in without asking anybody: his own consumables;
   [history]    every consumption is recorded with its date, because without that depletion is not
                estimable at all — and an estimate that cannot be supported is refused with a
                reason rather than produced anyway;
@@ -39,7 +39,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain import stock as S
+    from mushegh.brain import stock as S
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         db = Path(d) / "stock.sqlite"
@@ -107,7 +107,7 @@ def main() -> None:
         said = S.spoken("oil", path=fresh)
         check("the spoken answer carries it", "days left" in said, said)
 
-        print("\n[store] the category Afon can fill in without asking")
+        print("\n[store] the category Mushegh can fill in without asking")
         seeded = Path(d) / "seed.sqlite"
         backups = Path(d) / "backups"
         backups.mkdir()
@@ -129,8 +129,8 @@ def main() -> None:
               S.history("backup archives", path=seeded))
 
         print("\n[store] the tools")
-        from afon.brain.tools import groups_for_text, tool_handlers
-        from afon.brain.tools.stock import check_stock, update_stock
+        from mushegh.brain.tools import groups_for_text, tool_handlers
+        from mushegh.brain.tools.stock import check_stock, update_stock
 
         check("both tools are registered",
               {"check_stock", "update_stock"} <= set(tool_handlers()))
@@ -157,15 +157,15 @@ def main() -> None:
             S._path = real                                              # type: ignore[assignment]
 
     print("\n[store] the store is declared and opened the one permitted way")
-    from afon.brain.inventory import by_name
+    from mushegh.brain.inventory import by_name
 
-    check("the store is in the data inventory", by_name("afon_stock.sqlite") is not None)
+    check("the store is in the data inventory", by_name("mushegh_stock.sqlite") is not None)
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/stock.py").read_text(encoding="utf-8")
-    check("it goes through dbconn.connect", "from afon.brain.dbconn import connect" in src)
+           / "src/mushegh/brain/stock.py").read_text(encoding="utf-8")
+    check("it goes through dbconn.connect", "from mushegh.brain.dbconn import connect" in src)
     check("...and not sqlite3.connect directly", "sqlite3.connect" not in src)
     hyg = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/maintenance.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/maintenance.py").read_text(encoding="utf-8")
     check("a reading is taken by the job that already runs daily", "seed_self()" in hyg)
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")

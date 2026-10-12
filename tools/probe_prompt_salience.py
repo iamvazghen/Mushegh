@@ -1,6 +1,6 @@
 """Is the calibration rule present-but-ignored, or simply not salient enough?
 
-Established already: the rule IS in the prompt (`personality/afon.md:53`,
+Established already: the rule IS in the prompt (`personality/mushegh.md:53`,
 `operating-rules.md:39-40`, both verified in the assembled system prompt), and the model
 still answers unknowables flatly about two turns in three. So "add an instruction" is
 ruled out.
@@ -30,8 +30,8 @@ for extra in (str(ROOT), str(ROOT / "bench"), str(ROOT / "src")):
     if extra not in sys.path:
         sys.path.insert(0, extra)
 
-from afon.brain import agent as A  # noqa: E402
-from afon.shared.uncertainty import calibration  # noqa: E402
+from mushegh.brain import agent as A  # noqa: E402
+from mushegh.shared.uncertainty import calibration  # noqa: E402
 
 RESTATED = (
     "\n\nBefore you answer, check one thing: is this knowable at all? The future, "
@@ -59,7 +59,7 @@ async def run_condition(label: str, restate: bool) -> tuple[int, int, list[str]]
     detail: list[str] = []
     try:
         for text in prompts():
-            agent = A.AfonAgent()
+            agent = A.MusheghAgent()
             agent._self_improve = False
             reply = await agent.respond(text)
             verdict = calibration(reply, unknowable=True)
@@ -77,6 +77,13 @@ async def run_condition(label: str, restate: bool) -> tuple[int, int, list[str]]
 
 
 async def main() -> int:
+    # 6.3b (2026-10-11): this probe runs REAL turns under both conditions and calls
+    # `behavioral_suite._cleanup`, which forgets facts in the live memory store. Same guard the
+    # suite applies, same override.
+    import behavioral_suite as _bs
+
+    _bs.guard_live_state("--allow-live-state" in sys.argv)
+
     print("Prompt salience A/B on the eleven unknowable prompts")
     print("Both conditions use the live agent and the same scorer the scorecard uses.")
     base_ok, total, _ = await run_condition("as shipped", restate=False)

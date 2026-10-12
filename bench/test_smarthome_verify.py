@@ -1,4 +1,4 @@
-"""28.F2/28.F3 — Afon reports the state he observed, and confirms what isn't only his.
+"""28.F2/28.F3 — Mushegh reports the state he observed, and confirms what isn't only his.
 
 Home Assistant answers 200 to a service call for a device that is unplugged, out of battery, or
 simply not listening, and hands back an empty change list. The old reply was "Done, sir —
@@ -9,7 +9,7 @@ finished. The owner walks into a dark kitchen having been told the light is on.
 What this asserts:
 
   * the reply names the state that came back, not the command that went out;
-  * when nothing changed, Afon goes and READS the device rather than assuming;
+  * when nothing changed, Mushegh goes and READS the device rather than assuming;
   * when the device did not do it, he says so instead of rounding up to done;
   * when he cannot read it back at all, he says he cannot confirm — the one answer that is never
     available is a confident one;
@@ -52,9 +52,9 @@ class _Resp:
 
 
 async def main() -> None:
-    from afon.brain.tools import smarthome as sh
-    from afon.brain.proactive import confirm_required
-    from afon.config import settings
+    from mushegh.brain.tools import smarthome as sh
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.config import settings
 
     settings.ha_url = "http://ha.local:8123"
     settings.ha_token = "test-token"
@@ -170,7 +170,7 @@ async def main() -> None:
     settings.ha_shared_areas = ""
 
     print("\n[9] the two sensitive lists cannot drift apart")
-    from afon.brain.proactive import _HA_SENSITIVE_DOMAINS
+    from mushegh.brain.proactive import _HA_SENSITIVE_DOMAINS
 
     check("the policy layer and the tool agree on what is sensitive",
           _HA_SENSITIVE_DOMAINS == sh.SENSITIVE_DOMAINS,
@@ -178,7 +178,7 @@ async def main() -> None:
 
     print("\n[10] with no token it degrades, it does not guess")
     settings.ha_url = settings.ha_token = None
-    from afon.brain.tools.base import is_not_configured
+    from mushegh.brain.tools.base import is_not_configured
 
     out = await sh.ha_call({"domain": "light", "service": "turn_on", "entity": "light.kitchen"})
     check("an unconfigured Home Assistant says so", is_not_configured(out), out)

@@ -67,12 +67,12 @@ class FakeTask:
 
 
 def main() -> int:  # noqa: PLR0915
-    import afon.brain.executors.briefing as B
-    from afon.brain.executors import SPECS, BriefRefused, Domain, Tier
+    import mushegh.brain.executors.briefing as B
+    from mushegh.brain.executors import SPECS, BriefRefused, Domain, Tier
 
     repo = str(Path(__file__).resolve().parents[1])
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/executors/briefing.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/executors/briefing.py").read_text(encoding="utf-8")
 
     print("[1] the constraint set is code, and covers every delegated domain")
     delegated = {d for s in SPECS for d in s.domains}
@@ -189,7 +189,7 @@ def main() -> int:  # noqa: PLR0915
     check("A TASK WITH NO RECORDED ACCEPTANCE CHECK IS REFUSED, NOT GIVEN A GENERATED ONE",
           _raises(lambda: B.from_task(FakeTask(title="Fix the paging bug"), repo=repo),
                   BriefRefused),
-          "a generated check would be Afon marking his own homework")
+          "a generated check would be Mushegh marking his own homework")
     check("...and the refusal says what to do about it",
           _refuses_saying(B, None, None, None, "add one to the task",
                           lambda: B.from_task(FakeTask(title="Fix the paging bug"), repo=repo)))
@@ -211,7 +211,7 @@ def main() -> int:  # noqa: PLR0915
 
     check("it starts no process", "subprocess" not in src)
     check("it calls no model",
-          "from afon.brain.llm" not in src and "from afon.brain.judgment" not in src
+          "from mushegh.brain.llm" not in src and "from mushegh.brain.judgment" not in src
           and "import llm" not in src,
           "assembly is deterministic - a model writing the constraints could soften them")
     params = set(inspect.signature(B.assemble).parameters)
@@ -238,7 +238,7 @@ def main() -> int:  # noqa: PLR0915
 
 def _refuses_saying(B, domain, task, acceptance, phrase, call=None) -> bool:
     """A refusal is only useful if it says what to change, so assert on the message too."""
-    from afon.brain.executors import BriefRefused
+    from mushegh.brain.executors import BriefRefused
 
     try:
         if call is not None:

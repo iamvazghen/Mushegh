@@ -1,6 +1,6 @@
 # S30 — Persistent Memory
 
-> **One line:** Everything Afon knows, across six stores, answered by one facade — with the Obsidian vault as the human source of truth and SQLite as the runtime cache, and the PostgreSQL migration cancelled rather than finished.
+> **One line:** Everything Mushegh knows, across six stores, answered by one facade — with the Obsidian vault as the human source of truth and SQLite as the runtime cache, and the PostgreSQL migration cancelled rather than finished.
 > **Status:** built — **SQLite is the store by decision** (D-02); the PostgreSQL migration is cancelled and its scaffolding deleted. Vault markdown is the human source of truth (D-22) · **Registry:** S30 · 6/6 floor, 0/4 raise, 0/2 elite
 > **Milestones:** M02, M04, M19, M29, M30, M32 · **Decisions:** D-02, D-21, D-22, D-25, D-26, D-54
 
@@ -20,7 +20,7 @@ yet.
 
 ## Purpose
 
-Memory is what Afon knows on Monday that it did not know on Sunday, and what it can
+Memory is what Mushegh knows on Monday that it did not know on Sunday, and what it can
 still say in 2036 without this framework running: learned facts, a daily journal, the
 vault, semantic similarity, open tasks, and — until M04 removes it — an entity graph.
 
@@ -34,25 +34,25 @@ inferred record, and the loser gets an audit line (D-25, `30.R10`).
 
 This is the most-changed system in the charter and most of the change is subtraction.
 SQLite was correct from day one; the multi-adapter migration was cargo-culting (D-02).
-`src/afon/brain/postgres_client.py`, `src/afon/brain/postgres_vectors.py` and
-`src/afon/brain/store_migration.py` are scaffolding to be **deleted** under M02, not
+`src/mushegh/brain/postgres_client.py`, `src/mushegh/brain/postgres_vectors.py` and
+`src/mushegh/brain/store_migration.py` are scaffolding to be **deleted** under M02, not
 finished. The cross-entity relation layer goes under D-26, which resolves `30.R4`'s 607
 unverified inferred edges by removal rather than by verification nobody will do.
 
-If this is absent: Afon forgets, silently and immediately, and every correction becomes
+If this is absent: Mushegh forgets, silently and immediately, and every correction becomes
 "it will be right next time" — which D-23 exists to forbid.
 
 ## Structure
 
-`src/afon/brain/recall.py` is the facade (30.F2, done). `LAYERS` declares every store
+`src/mushegh/brain/recall.py` is the facade (30.F2, done). `LAYERS` declares every store
 memory is allowed to mean: L1 learned facts, L2 journal, L3 vault, L5 semantic
 similarity over L1, L5b entity graph, L4 open tasks. `LAYER_TIMEOUT_S` gives each its
 own budget — local layers 0.5–1.0 s, network layers 4.0 s — and an unavailable layer is
 skipped, never raised. An answer from four stores beats an exception from five.
 
-- `src/afon/brain/memory.py` — L1 learned notes and L2 journal, one file per fact, each
+- `src/mushegh/brain/memory.py` — L1 learned notes and L2 journal, one file per fact, each
   carrying source, timestamp and confidence (30.F3, done);
-  `src/afon/brain/semantic.py` — L5 similarity over L1, folding into L1 rather than
+  `src/mushegh/brain/semantic.py` — L5 similarity over L1, folding into L1 rather than
   returning separately.
 - The supersession slot (30.R10, D-25) — `remember(text, tags, *, source, confidence,
   subject)`. **`subject` is the supersession key and the caller declares it**: nothing in
@@ -75,22 +75,22 @@ skipped, never raised. An answer from four stores beats an exception from five.
   differing sentence is just a new fact), and the same fact twice on a subject is still a
   dedup, not a supersession — the second call returns the first note's path and writes no
   audit line.
-- `src/afon/brain/graph.py` — L5b, deleted rather than maintained under D-26.
-  `src/afon/brain/world_model.py` is named in the same deletion list, but it is not only
+- `src/mushegh/brain/graph.py` — L5b, deleted rather than maintained under D-26.
+  `src/mushegh/brain/world_model.py` is named in the same deletion list, but it is not only
   a relation layer: it writes `world_model.json`, which `inventory.py` declares
   `KEEP_FOREVER` and describes as "the owner's goals, projects and deadlines".
-- `src/afon/brain/tasks.py` — L4, the open commitments a question about a project means.
-  `src/afon/brain/forget.py` — `everywhere(query)` sweeps every store then re-queries to
+- `src/mushegh/brain/tasks.py` — L4, the open commitments a question about a project means.
+  `src/mushegh/brain/forget.py` — `everywhere(query)` sweeps every store then re-queries to
   confirm the thing is gone; one store's best match is the wrong unit of forgetting.
-- `src/afon/brain/inventory.py` — the declared retention table. Each `Store` carries a
+- `src/mushegh/brain/inventory.py` — the declared retention table. Each `Store` carries a
   name, what it holds, `retention_days`, who may read it, and where it lives. Declared
   today: 30 days for presence, per-turn traces, jobs and `errors.jsonl`; 90 days for the
   audit log and delegated work; `KEEP_FOREVER` for tasks, objectives, world_model and
   the memory directory; `WHILE_CURRENT` (retention 0, never swept) for state that is only
-  true while it is current. `src/afon/brain/maintenance.py` — `sweep_retention
+  true while it is current. `src/mushegh/brain/maintenance.py` — `sweep_retention
   (dry_run=False)` enforces that table, and `compact_learned`, `cap_learned` and
   `rotate_journals(keep_days=35)` bound growth.
-- `src/afon/brain/dbconn.py` — the only DB door. `AFON_STATE_DIR` is the single origin
+- `src/mushegh/brain/dbconn.py` — the only DB door. `MUSHEGH_STATE_DIR` is the single origin
   (30.F1a–c, all done, and still the right idea even though the migration is dead).
 
 Ownership: the brain process, one SQLite file in WAL mode, one markdown vault.
@@ -153,24 +153,24 @@ Ownership: the brain process, one SQLite file in WAL mode, one markdown vault.
 **Recall returns nothing, or something stale.** The facade swallows a failing layer by
 design, so a dead store is silent. Three commands:
 
-    python -m afon.brain.recall
-    journalctl -u openafon-brain -n 200 | grep -iE "recall|embed|jina"
-    python -m afon.brain.inventory | head -40
+    python -m mushegh.brain.recall
+    journalctl -u openmushegh-brain -n 200 | grep -iE "recall|embed|jina"
+    python -m mushegh.brain.inventory | head -40
 
-**Two layers disagree and Afon picks one.** Read the vault file first — it wins (D-22) —
+**Two layers disagree and Mushegh picks one.** Read the vault file first — it wins (D-22) —
 then the audit log for what was written when.
 
 **A retention sweep removed the wrong thing.** The dry run is the diagnosis:
 
-    python -c "from afon.brain.maintenance import sweep_retention; print(sweep_retention(dry_run=True))"
-    python -c "from afon.brain.inventory import undeclared; print(undeclared())"
-    journalctl -u openafon-brain --since "48h" | grep -i maintenance
+    python -c "from mushegh.brain.maintenance import sweep_retention; print(sweep_retention(dry_run=True))"
+    python -c "from mushegh.brain.inventory import undeclared; print(undeclared())"
+    journalctl -u openmushegh-brain --since "48h" | grep -i maintenance
 
 `WHILE_CURRENT` stores exist because an earlier dry run proposed deleting pending
 approvals and live pid files. A store not in `inventory.py` is not swept at all. Memory
 growing without bound means `compact_learned` and `cap_learned` are not running; check
 with `run_maintenance()`. A Postgres import reappearing is cancelled work (D-02):
-`grep -r "postgres" src/afon/` should return nothing after M02, and that is M02's
+`grep -r "postgres" src/mushegh/` should return nothing after M02, and that is M02's
 acceptance condition.
 
 ## Open questions
@@ -180,7 +180,7 @@ acceptance condition.
    a name that resolves to nothing.
 2. Is `world_model.py` part of the relation layer or not? The reconciliation lists it
    for deletion under D-26, and it is the only writer for a `KEEP_FOREVER` store of
-   goals and deadlines — and `src/afon/brain/goal_deviation.py` reads its goals from
+   goals and deadlines — and `src/mushegh/brain/goal_deviation.py` reads its goals from
    `world_model.WORLD`. Deleting it as written destroys data D-22 wants kept and breaks
    a live consumer nothing has reassigned.
 3. Who declares the subject, and what is its vocabulary? *Where* a tombstone lives is

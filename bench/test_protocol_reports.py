@@ -43,8 +43,8 @@ async def _fake_send(args: dict) -> str:
 
 
 async def main() -> None:
-    import afon.brain.protocols as P
-    import afon.brain.tools.telegram as TG
+    import mushegh.brain.protocols as P
+    import mushegh.brain.tools.telegram as TG
 
     TG.send_telegram = _fake_send            # _deliver_report imports it at call time
 
@@ -66,7 +66,7 @@ async def main() -> None:
         print("\n[2] a fresh TEXT report is delivered, with its content inline")
         sent.clear()
         started = time.time()
-        rpt = root / "backups" / "afon-diagnostics-20260801-120000.txt"
+        rpt = root / "backups" / "mushegh-diagnostics-20260801-120000.txt"
         rpt.write_text("disk 41% used\nbrain uptime 6d\nall services active", encoding="utf-8")
         await P._deliver_report("diagnostics", started)
         check("exactly one message sent", len(sent) == 1, str(len(sent)))
@@ -83,7 +83,7 @@ async def main() -> None:
         # at 292 of 3000 writes (~10%) on this machine. The old check called that stale, waited the
         # full 90s and delivered nothing. Forced here rather than left to a 1-in-10 chance.
         sent.clear()
-        rpt2 = root / "backups" / "afon-diagnostics-20260801-120500.txt"
+        rpt2 = root / "backups" / "mushegh-diagnostics-20260801-120500.txt"
         rpt2.write_text("second run", encoding="utf-8")
         await P._deliver_report("diagnostics", rpt2.stat().st_mtime + 0.5)  # start 0.5s AFTER mtime
         check("a report 0.5s 'older' than the run start is still delivered", len(sent) == 1,
@@ -93,7 +93,7 @@ async def main() -> None:
         # The guard that matters: without it, a run that wrote nothing delivers last week's file and
         # looks like it worked.
         sent.clear()
-        old = root / "backups" / "afon-audit-20250101-000000.zip"
+        old = root / "backups" / "mushegh-audit-20250101-000000.zip"
         old.write_bytes(b"PK\x03\x04old")
         os.utime(old, (time.time() - 86400, time.time() - 86400))   # a day old
         P._REPORT_WAIT_S = 3.0                                       # don't wait 90s to prove a negative
@@ -109,7 +109,7 @@ async def main() -> None:
 
         print("\n[4] a fresh ARCHIVE is delivered as a file, without inlining binary")
         sent.clear()
-        fresh = root / "backups" / "afon-checkpoint-20260801-130000.zip"
+        fresh = root / "backups" / "mushegh-checkpoint-20260801-130000.zip"
         fresh.write_bytes(b"PK\x03\x04" + b"x" * 2048)
         await P._deliver_report("checkpoint", time.time() - 5)
         check("archive delivered", len(sent) == 1, str(len(sent)))
@@ -124,7 +124,7 @@ async def main() -> None:
         # tolerance by accident, which is how the flake this file just fixed got in.
         sent.clear()
         day_ago = time.time() - 86400
-        for stale_txt in (root / "backups").glob("afon-diagnostics-*.txt"):
+        for stale_txt in (root / "backups").glob("mushegh-diagnostics-*.txt"):
             os.utime(stale_txt, (day_ago, day_ago))
         await P._deliver_report("diagnostics", time.time())    # no new .txt will appear
         check("a script that produced nothing is reported, not passed over",
@@ -140,7 +140,7 @@ async def main() -> None:
         await P._deliver_report("goodnight", time.time())
         check("a protocol with no declared artifact sends nothing", not sent, str(len(sent)))
         sent.clear()
-        fresh_ping = root / "backups" / "afon-ping-20260801-140000.txt"
+        fresh_ping = root / "backups" / "mushegh-ping-20260801-140000.txt"
         fresh_ping.write_text("Protocol PING — the push REACHED your phone.\n\nHTTP 200\n",
                               encoding="utf-8")
         await P._deliver_report("ping", time.time() - 5)

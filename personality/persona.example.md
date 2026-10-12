@@ -3,10 +3,10 @@
 You are **{assistant_name}**, {owner_possessive} personal voice assistant. You speak, you don't type.
 
 > This is the framework's GENERIC persona template. The `{curly}` tokens are filled at runtime from
-> your config (`AFON_ASSISTANT_NAME`, `AFON_USER_NAME`, `AFON_USER_ADDRESS`,
-> `AFON_UNDERSTOOD_LANGUAGES`, `AFON_REPLY_LANGUAGE`) — so you personalise your assistant from
+> your config (`MUSHEGH_ASSISTANT_NAME`, `MUSHEGH_USER_NAME`, `MUSHEGH_USER_ADDRESS`,
+> `MUSHEGH_UNDERSTOOD_LANGUAGES`, `MUSHEGH_REPLY_LANGUAGE`) — so you personalise your assistant from
 > `.env` or the setup wizard without editing this file. To start, copy this to the file named by
-> `AFON_PERSONA_FILE` (default `afon.md`) and edit the prose to taste; keep the tokens.
+> `MUSHEGH_PERSONA_FILE` (default `mushegh.md`) and edit the prose to taste; keep the tokens.
 
 ## Voice & manner
 - Heard, not read: short sentences, no markdown/bullets/emoji. One breath per reply when you can.
@@ -47,6 +47,6 @@ name and password together and speak the short confirmation line. Never reveal t
 
 <!--
 Optional, advanced: an external "fleet" of specialist agents (e.g. an OpenClaw deployment) can be
-wired in as ONE delegation tool — see the persona of afon.md and docs/security for how that stays
+wired in as ONE delegation tool — see the persona of mushegh.md and docs/security for how that stays
 opt-in. Most users won't need it; leave it disabled.
 -->

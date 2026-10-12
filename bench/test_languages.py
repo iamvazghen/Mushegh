@@ -1,4 +1,4 @@
-"""Afon hears six languages and answers in the one he was spoken to in.
+"""Mushegh hears six languages and answers in the one he was spoken to in.
 
 English, German, French, Spanish, Russian, Ukrainian. Three separate things have to hold, and
 each fails in its own quiet way:
@@ -26,7 +26,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.shared import language as L  # noqa: E402
+from mushegh.shared import language as L  # noqa: E402
 
 PASS = 0
 FAIL = 0
@@ -66,7 +66,7 @@ NO_SIGNAL = ["ok", "hm", "42", "...", "мм"]
 #: list after the first version of this file lumped them in with NO_SIGNAL and called them a
 #: detection bug — they are not: "да" really is Russian. The defect they expose is different and
 #: worse, and section [6] is where it lives: answering "no" to a German question must not switch
-#: Afon into English.
+#: Mushegh into English.
 ONE_WORD_ANSWERS = [("да", "ru"), ("ja", "de"), ("no", "en"), ("oui", "fr"), ("sí", "es")]
 
 
@@ -161,11 +161,11 @@ def main() -> int:
           L.stt_gaps("some-new-provider", six) == [])
 
     print("\n[8] the prompt tells the model which language to answer in")
-    from afon.config import settings
+    from mushegh.config import settings
 
     saved = (settings.reply_language, settings.understood_languages)
     try:
-        from afon.brain import context as C
+        from mushegh.brain import context as C
 
         settings.understood_languages = "English, German, French, Spanish, Russian, Ukrainian"
         settings.reply_language = L.MATCH
@@ -190,13 +190,13 @@ def main() -> int:
     print("\n[9] the live turn carries the language, and keeps it")
     import asyncio
 
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
     saved = (settings.reply_language, settings.understood_languages)
     try:
         settings.understood_languages = "English, German, French, Spanish, Russian, Ukrainian"
         settings.reply_language = L.MATCH
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._self_improve = False
         note = agent._language_note("напомни мне позвонить маме завтра")
         check("a Russian turn is labelled Russian for the model",
@@ -208,7 +208,7 @@ def main() -> int:
         check("a German turn relabels it",
               "German" in (agent._language_note("wie spät ist es") or ""))
 
-        from afon.brain import turn_trace as T
+        from mushegh.brain import turn_trace as T
         with T.turn("wie spät ist es") as tr:
             agent._language_note("wie spät ist es")
             captured = tr.language
@@ -231,7 +231,7 @@ def main() -> int:
                 return _M()
 
         cap = _Capture()
-        agent3 = AfonAgent()
+        agent3 = MusheghAgent()
         agent3._self_improve = False
         agent3._llm = cap
         asyncio.run(agent3.respond("напомни мне позвонить маме завтра"))
@@ -244,7 +244,7 @@ def main() -> int:
               systems[-200:] or "<no system messages>")
 
         settings.reply_language = "English"
-        agent2 = AfonAgent()
+        agent2 = MusheghAgent()
         agent2._self_improve = False
         check("a single-language deployment pays nothing for any of this",
               agent2._language_note("напомни мне позвонить маме") is None,

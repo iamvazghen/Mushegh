@@ -29,14 +29,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.edge.pc_agent import HANDLER_OWNERS, LOCAL_HANDLERS, _HANDLER_SOURCES  # noqa: E402
+from mushegh.edge.pc_agent import HANDLER_OWNERS, LOCAL_HANDLERS, _HANDLER_SOURCES  # noqa: E402
 
 # Tool modules that export LOCAL_HANDLERS but are deliberately NOT routed to the laptop.
 # Empty today. If you add a module here, say why in the comment — an unexplained entry is
 # indistinguishable from the oversight this test exists to catch.
 DELIBERATELY_BRAIN_SIDE: dict[str, str] = {}
 
-TOOLS_DIR = ROOT / "src" / "afon" / "brain" / "tools"
+TOOLS_DIR = ROOT / "src" / "mushegh" / "brain" / "tools"
 
 results: list[tuple[bool, str, str]] = []
 
@@ -107,7 +107,7 @@ def main() -> int:
           f"{len(HANDLER_OWNERS)} owners for {len(LOCAL_HANDLERS)} ops")
 
     # And prove the guard actually fires, rather than trusting that it would.
-    from afon.edge.pc_agent import _merge_handlers
+    from mushegh.edge.pc_agent import _merge_handlers
     try:
         _merge_handlers((("mod_a", {"same_op": lambda: None}),
                          ("mod_b", {"same_op": lambda: None})))

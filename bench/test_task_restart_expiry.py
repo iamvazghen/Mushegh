@@ -35,7 +35,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain.tasks import TaskQueue
+    from mushegh.brain.tasks import TaskQueue
 
     db = Path(tempfile.mkdtemp()) / "tasks.sqlite"
 

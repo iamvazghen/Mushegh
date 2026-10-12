@@ -1,4 +1,4 @@
-# Afon & OpenAfon — Master Plan (2026-06-24 snapshot)
+# Mushegh & OpenMushegh — Master Plan (2026-06-24 snapshot)
 
 > [!warning] **Superseded. Do not plan from this file.**
 > The 2026-06-24 plan is gone. Planning moved to **[`docs/ROADMAP.md`](ROADMAP.md)** (40
@@ -26,7 +26,7 @@
 
 ## The history this snapshot replaced
 
-The 2026-06-24 file itself replaced an earlier set — ROADMAP, FINISH-AND-OPENAFON-ROADMAP,
+The 2026-06-24 file itself replaced an earlier set — ROADMAP, FINISH-AND-OPENMUSHEGH-ROADMAP,
 AUDIT, PHASE-VERIFICATION, BENCHMARKS, TESTING, TASK-QUEUE-PLAN, EXPANSION-PLAN, a
 multi-device plan, and a deleted `next-steps/` set. All of those are gone; their surviving
 content is in the registry and the archive named above.
@@ -43,7 +43,7 @@ Three reasons, in order of how much they cost:
    this file was trying to summarise.
 2. **It predates the fifty-system registry**, so its own sequencing was obsolete before
    this stub was written.
-3. **It predates the 2026-08-12 rename** from `jarvis` to `afon`; paths in it are dead.
+3. **It predates the 2026-08-12 rename** from `jarvis` to `mushegh`; paths in it are dead.
 
 ## Two corrections that outlive the snapshot
 

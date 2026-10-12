@@ -36,7 +36,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain import delivery as d
+    from mushegh.brain import delivery as d
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     d._path = lambda: Path(tmp.name) / "ledger.json"  # type: ignore[assignment]
@@ -98,7 +98,7 @@ def main() -> None:
     check("merely GENERATING the re-raise does not spend it",
           len(asyncio.run(d.reraise_signals())) == 1)
 
-    from afon.brain.proactive import ProactiveEngine
+    from mushegh.brain.proactive import ProactiveEngine
 
     eng = ProactiveEngine.__new__(ProactiveEngine)
     eng._record_delivery(sigs[0], "push")
@@ -109,7 +109,7 @@ def main() -> None:
           d.state_of(sigs[0].key) is None, str(d.state_of(sigs[0].key)))
 
     print("\n[6] the engine records what it sent, with the channel it sent it on")
-    from afon.brain.proactive import Signal
+    from mushegh.brain.proactive import Signal
 
     eng._record_delivery(Signal(key="k-new", kind="health", urgency=0.85, message="vault is gone"),
                          "voice")
@@ -119,13 +119,13 @@ def main() -> None:
     check("and it starts at delivered, never higher", row and row["state"] == d.DELIVERED)
 
     print("\n[7] the source is registered, so the second chance actually ticks")
-    from afon.brain.proactive import default_signal_sources
+    from mushegh.brain.proactive import default_signal_sources
 
     names = {getattr(s, "__name__", "") for s in default_signal_sources()}
     check("reraise_signals is a tick source", "reraise_signals" in names, str(sorted(names)))
 
     print("\n[8] the server reads the KEY before grading resolves the pending slot")
-    src = (Path(__file__).resolve().parents[1] / "src" / "afon" / "brain" / "server.py").read_text(
+    src = (Path(__file__).resolve().parents[1] / "src" / "mushegh" / "brain" / "server.py").read_text(
         encoding="utf-8")
     i_key = src.find("pending_key(now)")
     i_fb = src.find("record_feedback(kind")

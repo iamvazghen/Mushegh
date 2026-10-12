@@ -1,6 +1,6 @@
 """Phase 2 companion — field coaching (skill reviews, level, streak, trend) + the evening offer.
 
-Proves Afon can coach the owner's focus fields (e.g. German): track his level, log 1-10 reviews,
+Proves Mushegh can coach the owner's focus fields (e.g. German): track his level, log 1-10 reviews,
 keep a daily streak + trend, know when a field is due, and OFFER an evening review at his level
 through the proactive engine (kind 'coaching', so Phase 1's context-gate + dismissal-learning apply).
 
@@ -35,13 +35,13 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
     settings.coaching_enabled = True
     settings.coaching_fields = "german,spanish"
 
-    import afon.brain.coaching as coaching_mod
-    from afon.brain.coaching import Coaching, coaching_signals, _in_window
-    import afon.brain.tools.coaching as ct
+    import mushegh.brain.coaching as coaching_mod
+    from mushegh.brain.coaching import Coaching, coaching_signals, _in_window
+    import mushegh.brain.tools.coaching as ct
 
     tz = ZoneInfo(settings.user_tz)
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)

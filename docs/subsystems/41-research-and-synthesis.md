@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Research happens in focused sessions, never as an ambient feed (D-34). Afon never brings
+Research happens in focused sessions, never as an ambient feed (D-34). Mushegh never brings
 something unasked because it seemed interesting. That is a hard architectural boundary,
 not a tone setting: an ambient research surface converts a tool the owner invokes into a
 channel that talks to him, and every other decision in this file assumes the request came
@@ -27,20 +27,20 @@ than an answer that accounts for who is talking.
 
 If it were absent, the owner opens four browser tabs, reads them himself, and writes the
 summary by hand. That is the work the system exists to remove, and it is the one part of
-Afon's job that genuinely scales with his time.
+Mushegh's job that genuinely scales with his time.
 
 ## Structure
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/brain/citations.py` | brain | 41.F2 — what Afon actually read this turn, so a source he names is one he opened |
-| `src/afon/brain/tools/web.py` | brain | 41.F1 — search, scrape and interactive browse, each behind its own key, each degrading instead of failing |
-| `src/afon/brain/references.py` | brain | What "it", "that" and "the second one" refer to — the resolution a research turn needs to stay coherent |
-| `src/afon/brain/docstore.py` | brain | Local document retrieval over a temporary index, and where a synthesis is filed (41.R3) |
-| `src/afon/brain/tasks.py` | brain | Where a research task carries its budget and records that it stopped early (41.F3) |
-| `src/afon/brain/semantic.py`, `src/afon/brain/recall.py` | brain | Retrieval over what is already local, before anything leaves the host |
-| `src/afon/brain/mynews.py` | brain | An unprompted morning headline surface — **the example D-34 forbids**, a breach rather than a live one since 41.R4 closed the path, see below |
-| `src/afon/brain/proactive_signals.py`, `src/afon/brain/delivery.py` | brain | The path any ambient research surface would enter, and the interruption budget it would be charged against |
+| `src/mushegh/brain/citations.py` | brain | 41.F2 — what Mushegh actually read this turn, so a source he names is one he opened |
+| `src/mushegh/brain/tools/web.py` | brain | 41.F1 — search, scrape and interactive browse, each behind its own key, each degrading instead of failing |
+| `src/mushegh/brain/references.py` | brain | What "it", "that" and "the second one" refer to — the resolution a research turn needs to stay coherent |
+| `src/mushegh/brain/docstore.py` | brain | Local document retrieval over a temporary index, and where a synthesis is filed (41.R3) |
+| `src/mushegh/brain/tasks.py` | brain | Where a research task carries its budget and records that it stopped early (41.F3) |
+| `src/mushegh/brain/semantic.py`, `src/mushegh/brain/recall.py` | brain | Retrieval over what is already local, before anything leaves the host |
+| `src/mushegh/brain/mynews.py` | brain | An unprompted morning headline surface — **the example D-34 forbids**, a breach rather than a live one since 41.R4 closed the path, see below |
+| `src/mushegh/brain/proactive_signals.py`, `src/mushegh/brain/delivery.py` | brain | The path any ambient research surface would enter, and the interruption budget it would be charged against |
 
 **Data flow.** A turn requests research, the budget is stated on the task, `web.py`
 resolves sources through its fallback chain, `citations.py` records what was actually
@@ -51,17 +51,17 @@ fetched, and the answer is composed only from those pages. Synthesis is filed in
 weighting) and 41.R2 (contradiction surfacing) are open, so today's synthesis has no way
 to say that a forums answer and a primary source do not carry the same weight.
 
-The second half of this paragraph used to be a live breach. `src/afon/brain/mynews.py`
+The second half of this paragraph used to be a live breach. `src/mushegh/brain/mynews.py`
 is a news-of-interest source that once each morning surfaced top headlines as a
-proactive signal, so Afon mentioned them unprompted — content discovery nobody asked
+proactive signal, so Mushegh mentioned them unprompted — content discovery nobody asked
 for, and D-34 names S41 as a system it applies to. It was not merely present on disk:
-`news_signals` was registered as a source in `src/afon/brain/proactive.py` and fired
+`news_signals` was registered as a source in `src/mushegh/brain/proactive.py` and fired
 while `8 <= now.hour < 10`. That is a S15-shaped feature that survived in a module the
 S15 cancellation never named.
 
 **It is closed now.** `41.R4` — "No unprompted content feed: the ambient morning news
 push is removed, or it fires only as a reply to something the owner asked for (D-34)"
-— removed the registration, and `src/afon/brain/proactive.py` carries a comment at the
+— removed the registration, and `src/mushegh/brain/proactive.py` carries a comment at the
 old seam saying why. The path is closed *at the source*, not filtered downstream, where
 a threshold could be argued with. `bench/test_no_unprompted_feed.py` proves it without
 relying on a grep: `mynews` is absent from the 16 registered signal sources, an AST
@@ -86,7 +86,7 @@ CLI, so the 2 AM check is one command. It extracts real article text instead of
 nav chrome, which is what makes a cited URL resolve to something the owner
 actually read.
 
-**But take `src/afon/brain/mynews.py` out of `src/afon/brain/proactive.py` in the
+**But take `src/mushegh/brain/mynews.py` out of `src/mushegh/brain/proactive.py` in the
 same breath.** An extraction library pointed at a feed nobody asked for is the
 unprompted push with better typography. The deletion is free and is D-34; the
 addition is only correct once the feed is gone.
@@ -114,7 +114,7 @@ deletion. PRINCIPLES §1 three commands, in order:
 ```
 uv run trafilatura --url <the cited url> --output-format json
 uv run python bench/test_citations.py
-journalctl -u openafon-brain -n 200 | grep -iE "proactive|signal"
+journalctl -u openmushegh-brain -n 200 | grep -iE "proactive|signal"
 ```
 
 **Not proposed:** fuzzy relative-date parsers anywhere near it — inferring "next
@@ -156,7 +156,7 @@ retained on purpose) and `proactive.py` (the comment recording the removal). Two
 `.pyc` files also match, which is a build artefact rather than a finding:
 
 ```
-grep -rlniE 'mynews|news_digest|research_digest' src/afon/brain/
+grep -rlniE 'mynews|news_digest|research_digest' src/mushegh/brain/
 ```
 
 Goal 7's threshold is written the other way round from how it used to be. It previously
@@ -177,12 +177,12 @@ record for that turn.
 **Research becomes a feed.** The owner asks for research once and now receives unprompted
 material each morning. That is D-34, and it is the shape of the recommendation system
 S15 was removed for rather than a new feature. Diagnose: the grep in goal 7, then
-`journalctl -u openafon-brain -n 200 | grep -iE 'proactive|signal'`.
+`journalctl -u openmushegh-brain -n 200 | grep -iE 'proactive|signal'`.
 
 **The budget is never stated and the answer stops silently.** A truncated result reads as
 a complete one, and the owner acts on a partial answer. Diagnose: the task row for the
 research turn, via
-`python -c "from afon.config import settings; print(settings.tasks_db_path)"` and a
+`python -c "from mushegh.config import settings; print(settings.tasks_db_path)"` and a
 `select` on that store.
 
 **A subject-matter refusal appears.** A medical or financial question declined because of

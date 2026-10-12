@@ -48,7 +48,7 @@ export function useSnapshot() {
     async function poll() {
       if (document.hidden) { timer = setTimeout(poll, 5000); return; }
       try {
-        const token = (window as Window & { AFON_TOKEN?: string }).AFON_TOKEN;
+        const token = (window as Window & { MUSHEGH_TOKEN?: string }).MUSHEGH_TOKEN;
         const response = await fetch(apiPath('hud.json'), { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(6000)]), headers: token ? { Authorization: `Bearer ${token}` } : {} });
         if (!response.ok) { if (!stopped) setStatus(response.status === 401 ? 'auth' : 'offline'); }
         else {

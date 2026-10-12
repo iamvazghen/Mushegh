@@ -94,8 +94,8 @@ def _client(stream_factory):
 
 
 async def main() -> None:
-    from afon.brain import llm as L
-    from afon.config import settings
+    from mushegh.brain import llm as L
+    from mushegh.config import settings
 
     settings.llm_first_token_timeout_seconds = 0.05   # keep the test fast; the logic is what matters
 

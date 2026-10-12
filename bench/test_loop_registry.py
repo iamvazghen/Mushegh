@@ -33,9 +33,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import loops as L  # noqa: E402
+from mushegh.brain import loops as L  # noqa: E402
 
-BRAIN = ROOT / "src" / "afon" / "brain"
+BRAIN = ROOT / "src" / "mushegh" / "brain"
 
 #: site key -> the declared loop it starts. A site is `file::spawn-target`, keyed on the target
 #: rather than the enclosing function because four different loops start inside `server.serve`.
@@ -67,6 +67,10 @@ ONE_SHOT: dict[str, str] = {
     "protocols.py::_deliver_report": "one report, when a protocol run ends",
     "scheduler.py::_fire": "a reminder the OWNER set — created per request, fires once",
     "server.py::self._broadcast_assistant": "one outbound message to connected clients",
+    # Added 2026-10-10 with the Jev pre-warm: it opens the pooled connection once at boot so the
+    # first arbitration is warm (measured 1165 ms of handshake, then a 233 ms first call instead of
+    # 2002 ms). Starts, finishes, gone — nothing to keep alive, so a one-shot and not a loop.
+    "server.py::_warm_jev": "opens the Jev connection once at boot, then finishes",
     "server.py::self._run_turn": "one turn",
     "server.py::_refresh_now": "one catalogue refresh at start-up; the recurring one is declared",
     "server.py::daily_digest.build_body": "one digest built for one session's first turn",
@@ -150,7 +154,7 @@ def main() -> int:
     check(f"no unclassified spawn site ({len(sites)} sites: "
           f"{len(LOOP_SITES)} loops, {len(ONE_SHOT)} one-shots)",
           not unclassified,
-          "\n      new detached work — declare it in afon.brain.loops or name it in ONE_SHOT:\n      "
+          "\n      new detached work — declare it in mushegh.brain.loops or name it in ONE_SHOT:\n      "
           + "\n      ".join(f"{k}  ({', '.join(sites[k])})" for k in unclassified))
     # The tables must not rot in the other direction either: a key for a site that no longer exists
     # is a classification nobody is checking, and it hides the next real one behind noise.
@@ -240,7 +244,7 @@ def main() -> int:
     check("every declared loop names itself in a tick call", not unticked, str(unticked))
 
     print("\n[7] the HUD serves it — which is what 31.F4 actually asks for")
-    from afon.brain.hud import hud_snapshot
+    from mushegh.brain.hud import hud_snapshot
 
     snap = hud_snapshot(objectives=_Empty(), tasks=_Empty(), approvals=_Empty(),
                         presence=_Empty())
@@ -273,7 +277,7 @@ class _Empty:
 
 
 def _hud_survives_a_broken_section() -> bool:
-    import afon.brain.hud as hud
+    import mushegh.brain.hud as hud
 
     original = hud._loops
     hud._loops = lambda: (_ for _ in ()).throw(RuntimeError("registry exploded"))

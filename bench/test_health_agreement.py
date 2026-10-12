@@ -40,10 +40,10 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import health, hud, reliability  # noqa: E402
-from afon.brain.tools import vault as vault_tool  # noqa: E402
-import afon.brain.context as ctx  # noqa: E402
-import afon.brain.llm as llm_mod  # noqa: E402
+from mushegh.brain import health, hud, reliability  # noqa: E402
+from mushegh.brain.tools import vault as vault_tool  # noqa: E402
+import mushegh.brain.context as ctx  # noqa: E402
+import mushegh.brain.llm as llm_mod  # noqa: E402
 
 
 class _StubMessage:

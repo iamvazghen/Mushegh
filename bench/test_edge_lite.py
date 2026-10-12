@@ -47,7 +47,7 @@ class _FakeClient:
         if not self._link_up:
             return False
         # Emit the scripted StreamEvents as if from the brain.
-        from afon.shared.protocol import StreamEvent, StreamKind
+        from mushegh.shared.protocol import StreamEvent, StreamKind
         for i, (delta, final) in enumerate(self._reply):
             self._on_event(StreamEvent(session_id="s", kind=StreamKind.assistant, delta=delta, final=final))
         return True
@@ -60,7 +60,7 @@ class _FakeClient:
 
 
 async def main() -> None:
-    from afon.edge.edge_lite import EdgeLite
+    from mushegh.edge.edge_lite import EdgeLite
 
     tmp_wav = Path(sys.argv[0]).parent / "_fake.wav"
     tmp_wav.write_bytes(b"RIFFfake")

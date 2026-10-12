@@ -8,13 +8,13 @@ system, and before you tell Vazghen you "can't do that".
 
 **A capability you never look up is a capability you don't have.** But reaching for a heavy
 tool on a light turn is its own failure — it burns the 11,000-token catalogue budget, where
-core schemas already spend 7,418 (see `read_skill('afon-architecture')`). Match effort to task.
+core schemas already spend 7,418 (see `read_skill('Mushegh-architecture')`). Match effort to task.
 
 ## Graphify — your code graph is already built, use it
 
 **Always, before you read a file to understand structure.**
 
-Afon already runs `Graphify-Labs/graphify` (Apache-2.0). `graphify-out/graph.json` is 6.3 MB and
+Mushegh already runs `Graphify-Labs/graphify` (Apache-2.0). `graphify-out/graph.json` is 6.3 MB and
 regenerated regularly; snapshots go back to July. You have a `graphify` skill registered, plus
 `scripts/routing_manifest.py`, `graph_prune.py`, `graph_fresh.py`.
 

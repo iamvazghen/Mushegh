@@ -85,8 +85,8 @@ class _StubLLM:
 
 
 def _agent(llm):
-    from afon.brain.agent import AfonAgent
-    a = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    a = MusheghAgent()
     a._llm = llm
     a._self_improve = False
     return a
@@ -97,8 +97,8 @@ def cost_sections() -> None:
     import os
     import tempfile
 
-    from afon.brain import cost as K
-    from afon.brain import turn_trace as T
+    from mushegh.brain import cost as K
+    from mushegh.brain import turn_trace as T
 
     print("\n[8] 02.R1 — what a turn costs, split by the class of turn that caused it")
     check("the price table is dated, so a stale estimate is visibly stale",
@@ -135,7 +135,7 @@ def cost_sections() -> None:
 
     print("\n[9] 02.R1 — the trace carries what the accounting needs")
     with tempfile.TemporaryDirectory() as td:
-        os.environ["AFON_TRACE_DIR"] = td
+        os.environ["MUSHEGH_TRACE_DIR"] = td
         try:
             with T.turn("hello") as t:
                 t.set_intent("chat")
@@ -162,10 +162,10 @@ def cost_sections() -> None:
                   "a dollar figure that travels without its date gets read as a fact")
             check("...and broken down by class", "by_class" in summary["cost_by_intent"])
         finally:
-            os.environ.pop("AFON_TRACE_DIR", None)
+            os.environ.pop("MUSHEGH_TRACE_DIR", None)
 
     print("\n[10] 02.R1 — /metrics counts the same split")
-    from afon.brain.metrics import METRICS
+    from mushegh.brain.metrics import METRICS
 
     counters = METRICS.snapshot()["counters"]
     check("per-class turn counts are on /metrics",
@@ -179,7 +179,7 @@ def trace_sections() -> None:
     import os
     import tempfile
 
-    from afon.brain import turn_trace as T
+    from mushegh.brain import turn_trace as T
 
     print("\n[4] the row carries what 01.F3 asks for, and 'complete' means all of it")
     # Read against the plan's own words rather than against whatever the module happens to store.
@@ -194,7 +194,7 @@ def trace_sections() -> None:
         check(f"'{phrase}' is a required field ({fieldname})", fieldname in T.REQUIRED)
 
     with tempfile.TemporaryDirectory() as td:
-        os.environ["AFON_TRACE_DIR"] = td
+        os.environ["MUSHEGH_TRACE_DIR"] = td
         try:
             with T.turn("hello") as t:
                 t.set_intent("chat")
@@ -238,7 +238,7 @@ def trace_sections() -> None:
             check("...and a work intent still outranks it, as in _prepare_turn",
                   T.classify(ambiguous=True, work_intent=True) == "act")
             # The vocabulary and the classifier must not drift apart in either direction.
-            from afon.brain.intent_router import INTENT_CLASSES
+            from mushegh.brain.intent_router import INTENT_CLASSES
             check("every class the router can return is a class the trace can record",
                   set(INTENT_CLASSES) <= set(T.INTENTS),
                   str(set(INTENT_CLASSES) - set(T.INTENTS)))
@@ -268,7 +268,7 @@ def trace_sections() -> None:
             # The model stage is recorded by the LLM chain itself (it measures across failovers,
             # so re-timing it from the agent would produce a second, disagreeing number). A stub
             # LLM never reaches that code, so drive the real funnel directly.
-            from afon.brain.llm import LLMClient
+            from mushegh.brain.llm import LLMClient
             shell = LLMClient.__new__(LLMClient)
             shell._unhealthy_until = {}
             with T.turn("timing") as t:
@@ -347,13 +347,13 @@ def trace_sections() -> None:
                   str([r for r in on_disk if not T.is_complete(r)][:1]))
             check("the summary the HUD shows counts incomplete rows rather than hiding them",
                   "incomplete" in T.summary(), str(T.summary()))
-            from afon.brain.hud import hud_snapshot
+            from mushegh.brain.hud import hud_snapshot
             hud = hud_snapshot()
             check("the HUD serves the trace summary",
                   isinstance(hud.get("turns_trace"), dict) and "p50_prefill_tokens" in hud["turns_trace"],
                   str(hud.get("turns_trace")))
         finally:
-            os.environ.pop("AFON_TRACE_DIR", None)
+            os.environ.pop("MUSHEGH_TRACE_DIR", None)
 
     print("\n[8] the tracer cannot break a turn, or measurably slow one")
     check("recording outside a turn is a no-op, not an error",
@@ -362,7 +362,7 @@ def trace_sections() -> None:
         t.note_prompt(None, None)
     check("an empty prompt is priced at zero rather than crashing", True)
 
-    os.environ["AFON_TRACE_DIR"] = str(Path(__file__).resolve() / "not-a-directory")
+    os.environ["MUSHEGH_TRACE_DIR"] = str(Path(__file__).resolve() / "not-a-directory")
     try:
         with T.turn("unwritable"):
             pass
@@ -370,10 +370,10 @@ def trace_sections() -> None:
     except Exception as e:  # noqa: BLE001
         check("a trace that cannot be persisted degrades quietly", False, repr(e))
     finally:
-        os.environ.pop("AFON_TRACE_DIR", None)
+        os.environ.pop("MUSHEGH_TRACE_DIR", None)
 
-    from afon.brain.agent import AfonAgent
-    schemas = AfonAgent()._core_tools
+    from mushegh.brain.agent import MusheghAgent
+    schemas = MusheghAgent()._core_tools
     T.catalogue_tokens(schemas)                       # warm the per-schema cache
     t0 = time.perf_counter()
     for _ in range(1000):
@@ -394,7 +394,7 @@ def _no_raise(fn) -> bool:
 
 
 def main() -> None:
-    from afon.brain.metrics import Metrics
+    from mushegh.brain.metrics import Metrics
 
     print("[1] counters + latency summary + JSON snapshot")
     m = Metrics()
@@ -416,11 +416,11 @@ def main() -> None:
     check("empty metric summarises to zeros", m._summary([]) == {"count": 0, "p50": 0.0, "p95": 0.0, "mean": 0.0})
 
     print("\n[2] the agent tool path feeds the SHARED metrics singleton")
-    from afon.brain.metrics import METRICS
+    from mushegh.brain.metrics import METRICS
     before = METRICS.snapshot()["counters"]
 
-    from afon.brain.agent import AfonAgent
-    agent = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    agent = MusheghAgent()
 
     async def _one_tool() -> None:
         # get_time is a real, no-network tool — exercises _run_one_tool's metric increments.
@@ -440,7 +440,7 @@ def main() -> None:
     print("\n[3] /metrics route is auth-gated in the server")
     import inspect
 
-    from afon.brain import server
+    from mushegh.brain import server
     src = inspect.getsource(server._serve_client_http)
     check("server defines a /metrics route", '"/metrics"' in src)
     check("/metrics checks authorization", "_post_authorized" in src and "/metrics" in src)

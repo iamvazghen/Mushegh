@@ -40,10 +40,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-os.environ.setdefault("AFON_STATE_DIR", tempfile.mkdtemp(prefix="afon-budget-"))
+os.environ.setdefault("MUSHEGH_STATE_DIR", tempfile.mkdtemp(prefix="mushegh-budget-"))
 
-from afon.brain.agent import CATALOGUE_TOKEN_BUDGET, AfonAgent, _UNSURE_NUDGE  # noqa: E402
-from afon.brain.tools import (  # noqa: E402
+from mushegh.brain.agent import CATALOGUE_TOKEN_BUDGET, MusheghAgent, _UNSURE_NUDGE  # noqa: E402
+from mushegh.brain.tools import (  # noqa: E402
     LAZY_GROUP_TRIGGERS,
     core_tool_schemas,
     group_tool_schemas,
@@ -51,7 +51,7 @@ from afon.brain.tools import (  # noqa: E402
     groups_for_text_ranked,
     tool_schemas,
 )
-from afon.brain.turn_trace import catalogue_tokens  # noqa: E402
+from mushegh.brain.turn_trace import catalogue_tokens  # noqa: E402
 
 PASS = 0
 FAIL = 0
@@ -67,12 +67,12 @@ def check(name: str, ok: bool, detail: object = "") -> None:
         print(f"  [FAIL] {name} {detail}")
 
 
-def _agent() -> AfonAgent:
+def _agent() -> MusheghAgent:
     """An agent with the real registry and no network — only `_tools_for_turn` is exercised."""
-    return AfonAgent.__new__(AfonAgent)
+    return MusheghAgent.__new__(MusheghAgent)
 
 
-def _armed(a: AfonAgent, text: str) -> list[dict]:
+def _armed(a: MusheghAgent, text: str) -> list[dict]:
     return a._tools_for_turn(text)
 
 

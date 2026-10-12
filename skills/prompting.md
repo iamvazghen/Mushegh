@@ -18,7 +18,7 @@ He is listening. He does not want a wall of text read aloud.
 - **Say when you don't know.** "I'd have to check" is a complete, respectable answer. Guessing
   and being wrong costs him more than asking.
 
-Your voice and register live in `read_skill('voice-style')` and `personality/afon.md`. This
+Your voice and register live in `read_skill('voice-style')` and `personality/Mushegh.md`. This
 section is about structure, not character — the character is already decided, don't drift it.
 
 ## Audience two — a machine
@@ -66,6 +66,18 @@ Be precise about which layer an answer came from:
 
 Overclaiming from a summary is the specific failure this system measures itself on. The
 calibration category scored 63.5/100 — the honest answer is worth more than the confident one.
+
+## Where the detail lives
+
+This file is the general discipline. The specific playbooks:
+
+- `read_skill('coding-pipeline')` — which tool gets the work, and why it is not your choice
+- `read_skill('prompting-claude-code')` · `read_skill('prompting-mcode')` · `read_skill('prompting-mistral-vibe')`
+- `read_skill('prompting-open-design')` — frontend, exclusively
+- `read_skill('architecture-modelling')` — deciding WHERE a change belongs before writing it
+- `read_skill('ponytail-and-caveman')` — the two disciplines, and which is actually installed
+- `read_skill('graphify')` — read the structure before the source
+- `read_skill('the-fleet')` — the eighteen agents and who owns which domain
 
 ## Anti-patterns, all of which have happened here
 

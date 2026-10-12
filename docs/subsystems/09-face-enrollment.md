@@ -41,7 +41,7 @@ The references live on the machine with the camera.
 
 ```
 camera + light, owner present
-   └──> src/afon/brain/tools/camera.py
+   └──> src/mushegh/brain/tools/camera.py
           _capture_burst()   warmup, min_brightness — the light gate
           _detect_faces()    SCRFD when the extra is present
           capture_verdict()  09.F2: no face / two faces / too dark → reject NOW
@@ -55,7 +55,7 @@ camera + light, owner present
 
 | Concern | Where |
 |---|---|
-| Capture, detection, verdict, enrolment | `src/afon/brain/tools/camera.py` |
+| Capture, detection, verdict, enrolment | `src/mushegh/brain/tools/camera.py` |
 | Legacy LBP references (the current `owner.npy`) | `_lbp_hist`, `_face_signature`, `_owner_refs` in the same module |
 | ArcFace backend (wired, unused for enrolment) | `_arcface`, `_embed_faces`, `_owner_embeddings` |
 | Unusable-capture rejection (09.F2) | `capture_verdict()`; `test_face_recognition.py` extended, ten plants |

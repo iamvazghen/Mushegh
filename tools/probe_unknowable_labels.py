@@ -31,9 +31,12 @@ for extra in (str(ROOT / "bench"), str(ROOT / "src")):
 
 
 async def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.shared.uncertainty import calibration
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.shared.uncertainty import calibration
     import behavioral_suite as bs
+    # 6.3b (2026-10-11): this probe runs REAL turns and forgets facts in the live memory
+    # store, exactly like the suite. Same guard, same override.
+    bs.guard_live_state("--allow-live-state" in sys.argv)
 
     prompts = [s.turns[0].say for s in bs.scenarios() if s.id.startswith("unknowable_")]
 
@@ -41,7 +44,7 @@ async def main() -> int:
     print(f"  {'prompt':<56}{'tools fired':<24}{'verdict'}")
     answered_by_tool = []
     for text in prompts:
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._self_improve = False
         bs._CAPTURE.clear()
         reply = await agent.respond(text)

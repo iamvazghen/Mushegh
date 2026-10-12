@@ -1,6 +1,6 @@
 # External executors — the SDK and open-source survey
 
-Written 2026-10-06, for the owner's direction of the same date: Afon routes work to the
+Written 2026-10-06, for the owner's direction of the same date: Mushegh routes work to the
 executor that is best at it, and owns the voice, the judgement and the typed boundary
 itself. This file sizes each route and names the library that should carry it.
 
@@ -19,7 +19,7 @@ Three doors, in order of preference, and the order is the whole point:
 
 | Door | When | Cost |
 |---|---|---|
-| **MCP server** | The capability already ships one | A config line. `src/afon/brain/mcp_client.py` already turns any stdio MCP server into namespaced Afon tools — `mcp__<server>__<tool>` — with the same schema and handler shape as every native tool |
+| **MCP server** | The capability already ships one | A config line. `src/mushegh/brain/mcp_client.py` already turns any stdio MCP server into namespaced Mushegh tools — `mcp__<server>__<tool>` — with the same schema and handler shape as every native tool |
 | **Subprocess adapter** | It ships a non-interactive CLI with machine-readable output | One adapter file implementing the M41 contract |
 | **In-repo implementation** | Neither exists, or the external one fails a charter requirement | The full cost, and it needs a reason written down |
 
@@ -61,7 +61,7 @@ headless fetch ends up answering as though he had been watching his screen.
 
 **So the spike question is one sentence**, and it is M49: can that MCP server drive the
 browser the owner is looking at, with his profile? Yes → a config line buys most of M48 and
-all of `05.R1`. No → we keep `src/afon/brain/tools/browser.py` and the `pc_agent` forwarding,
+all of `05.R1`. No → we keep `src/mushegh/brain/tools/browser.py` and the `pc_agent` forwarding,
 and port only the decision loop.
 
 **Their stated limits, so we inherit them knowingly:** no shadow roots, iframes, canvas, file
@@ -82,7 +82,7 @@ stdin/stdout JSON message stream, with CLI permission prompts replaced by an exp
 mode — already the shape [D-80](DECISIONS.md) requires. The argument for it was that hand-rolling
 `subprocess` would mean reimplementing the stream protocol and the permission handling badly.
 
-**What changed:** `src/afon/brain/executors/__init__.py` has that shape *and the three invariants
+**What changed:** `src/mushegh/brain/executors/__init__.py` has that shape *and the three invariants
 the SDK does not carry*. `claude -p --output-format stream-json` in argv form, `stdin=DEVNULL` so
 there is nothing to hand a shell, an environment allowlist **built from nothing** so a secret added
 next year is still withheld, and a parser whose verdict can fail a run the exit code passed. Adding
@@ -92,7 +92,7 @@ three CLIs; a second adapter shape for one of them is the integration sprawl
 [D-01](DECISIONS.md) exists to refuse.
 
 **What M43 actually owed was the landing path**, and that is what got built:
-`src/afon/brain/executors/landing.py`, gated by `bench/test_coding_delegation.py`.
+`src/mushegh/brain/executors/landing.py`, gated by `bench/test_coding_delegation.py`.
 
 | Executor | Non-interactive entry | Machine-readable output |
 |---|---|---|
@@ -107,22 +107,22 @@ should use it rather than parsing prose.
 
 **What does not change.** [D-08](DECISIONS.md) still governs what happens to the diff: a
 dedicated branch, a green suite, zero schema migrations, the owner's explicit approval. The
-executor produces a diff; Afon never applies one on its own authority.
+executor produces a diff; Mushegh never applies one on its own authority.
 
-**Where it lands, corrected.** This section used to say `src/afon/brain/code_improve.py` is where
-the result lands. That module is the *in-house* loop — Afon editing his own source with his own
+**Where it lands, corrected.** This section used to say `src/mushegh/brain/code_improve.py` is where
+the result lands. That module is the *in-house* loop — Mushegh editing his own source with his own
 tools — and it was the wrong home for an external executor's diff, because it has no isolation: it
 branches the owner's checkout and lets the worker write into it. A coding CLI edits files in its
 working directory and hands back no patch, so the proposal would be in the owner's tree before the
 first condition had been tested. The external path is therefore
-**`src/afon/brain/executors/landing.py`**, which gives each brief its own `git worktree` and leaves
+**`src/mushegh/brain/executors/landing.py`**, which gives each brief its own `git worktree` and leaves
 the owner's checkout untouched on every refusal — see [D-90](DECISIONS.md).
 
 ---
 
 ## 4. The fleet — the transport decision is already written down
 
-`src/afon/brain/fleet.py` contains the answer in its own docstring. Connecting to the
+`src/mushegh/brain/fleet.py` contains the answer in its own docstring. Connecting to the
 OpenClaw gateway as an operator requires either an Origin allowlist with ECDSA device
 identity, or presenting as a built-in client id — and the module says plainly that
 *presenting as a built-in client to pass the allowlist is exactly what a sanctioned path
@@ -144,7 +144,7 @@ over them by fixed, reproducible rules. As an executor it is the same shape as t
 ingest and personal ledgers on blast-radius grounds, and
 [subsystems/40-financial-and-asset.md](subsystems/40-financial-and-asset.md) draws the line
 precisely: *the direction of the write*. A ledger file the owner types himself is data he
-already had; an ingested feed is his financial history arriving unasked. Afon may read that
+already had; an ingested feed is his financial history arriving unasked. Mushegh may read that
 file and writes nothing into it.
 
 Research delegated to Rubo sits entirely on the readable side of that line, which is why
@@ -157,7 +157,7 @@ is a different decision and is not taken here.
 
 The SDK arrived on 2026-10-06: `bookroom-sdk` v1.0.0, with a `SKILL.md` in its root. It is wired as
 one tool, `book`, with four actions — `check`, `outline`, `preflight`, `guide` — in
-`src/afon/brain/tools/bookroom.py`, gated by `bench/test_bookroom_tool.py`.
+`src/mushegh/brain/tools/bookroom.py`, gated by `bench/test_bookroom_tool.py`.
 
 **It did not enter through the executor contract, and that is the useful finding.** Section 1's
 three doors are ordered by cost, and this went through the third — not because the others failed to
@@ -165,7 +165,7 @@ exist, but because the second was *actively worse*:
 
 | Door | Why not |
 |---|---|
-| MCP server | The SDK ships an HTTP **facade** (`python -m bookroom_sdk serve`) for other-language clients, which is close. But the facade exists so TypeScript can reach Python without holding the keys; Afon's brain already *is* Python, so the facade would add a daemon, a token and a port to avoid a problem we do not have |
+| MCP server | The SDK ships an HTTP **facade** (`python -m bookroom_sdk serve`) for other-language clients, which is close. But the facade exists so TypeScript can reach Python without holding the keys; Mushegh's brain already *is* Python, so the facade would add a daemon, a token and a port to avoid a problem we do not have |
 | Subprocess executor | The `bookroom` CLI has **no `preflight` subcommand**, and `guide` does not preflight on its way in. The one call the SDK says to always make before spending is unreachable from the CLI. A subprocess would also marshal `GEMINI_API_KEY` into a child |
 | In-process | The SDK's own first rule: Python holds the keys in the process, and that is the reference implementation |
 
@@ -204,7 +204,7 @@ endpoint rather than hardcoded.
 **The two other doors are still closed, and for the same reasons.** A reader
 reaching for `pip install` on a *hosted* deployment will still not find a
 published package, and the CLI still has no `preflight` subcommand; the
-`book` tool in `src/afon/brain/tools/bookroom.py` is therefore still correct to
+`book` tool in `src/mushegh/brain/tools/bookroom.py` is therefore still correct to
 call the SDK in-process. What changed is that the third door no longer requires
 a second repository.
 
@@ -223,10 +223,10 @@ speak Wyoming.
 | Layer | Library | Note |
 |---|---|---|
 | Voice satellites (H5) | `aioesphomeapi` | The ESPHome protocol client. Replaces the retired satellite path |
-| STT / TTS / wake services | the Wyoming protocol | Already our stack in a different dress: openWakeWord, Whisper and Piper are what `src/afon/edge/` runs locally |
+| STT / TTS / wake services | the Wyoming protocol | Already our stack in a different dress: openWakeWord, Whisper and Piper are what `src/mushegh/edge/` runs locally |
 | Home Assistant (H2–H4) | its REST and WebSocket API | No SDK needed. One token un-darkens S28 and delivers M20, the desk lamp — the cheapest real win in [ROADMAP.md](ROADMAP.md) |
 | Zigbee (H2) | `zigpy`, through the ZBT-1 | HARDWARE.md §9 conflict 1: **one** coordinator owns the mesh. Green's radio stays unused |
-| Matter (H4) | `python-matter-server` | The smart lock is read-only to Afon ([D-65](DECISIONS.md)), and `bench/test_blast_radius_refusal.py` already enforces the HA path |
+| Matter (H4) | `python-matter-server` | The smart lock is read-only to Mushegh ([D-65](DECISIONS.md)), and `bench/test_blast_radius_refusal.py` already enforces the HA path |
 | Wearable (H5) | a FIT file parser | Garmin FIT export, no vendor cloud — the shape [D-57](DECISIONS.md) wants. Un-defers `34.R4` |
 | Local vision (H6) | Frigate with a Coral TPU | Frames never leave the house ([D-66](DECISIONS.md)); `bench/test_no_frame_egress.py` already asserts the seam cannot carry one |
 
@@ -246,7 +246,7 @@ it is small.
   unchanged: the turn loop is measured and gated, and replacing a working system from a
   document rather than a measurement is the inversion this project refuses. M41's contract
   is one Pydantic protocol and one dispatch function.
-- **A second MCP client library.** `src/afon/brain/mcp_client.py` is ~200 lines of
+- **A second MCP client library.** `src/mushegh/brain/mcp_client.py` is ~200 lines of
   newline-delimited JSON-RPC over a child process and already does `initialize`,
   `tools/list` and `tools/call`. Adding the official SDK would add a dependency to replace
   working code.

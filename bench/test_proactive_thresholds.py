@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 THRESH = settings.proactive_relevance_threshold
 _ok = _fail = 0
@@ -40,8 +40,8 @@ def clears(sigs, label):
 
 
 # --- wellbeing: force a long unbroken session -----------------------------------------------
-import afon.brain.presence as presence_mod  # noqa: E402
-import afon.brain.proactive_signals as ps  # noqa: E402
+import mushegh.brain.presence as presence_mod  # noqa: E402
+import mushegh.brain.proactive_signals as ps  # noqa: E402
 
 
 class _FakePresence:
@@ -65,7 +65,7 @@ import asyncio as _aio  # noqa: E402 — presence_signals is async since 43.F2
 clears(_aio.run(presence_mod.presence_signals()), "presence (welcome back)")
 
 # --- memory_resurface: force one salient, un-resurfaced note --------------------------------
-import afon.brain.memory as memory_mod  # noqa: E402
+import mushegh.brain.memory as memory_mod  # noqa: E402
 import tempfile  # noqa: E402
 
 ps._RESURFACED_PATH = Path(tempfile.gettempdir()) / "test_resurfaced.json"
@@ -81,7 +81,7 @@ clears(ps.pattern_suggestion(), "pattern_suggestion")
 
 # --- anticipation: stub the LLM to return one useful line -----------------------------------
 import asyncio  # noqa: E402
-from afon.brain.anticipation import make_anticipation_source  # noqa: E402
+from mushegh.brain.anticipation import make_anticipation_source  # noqa: E402
 
 
 class _FakeLLM:
@@ -102,7 +102,7 @@ clears(asyncio.run(src()), "anticipation (LLM-reasoned)")
 import json  # noqa: E402
 from zoneinfo import ZoneInfo  # noqa: E402
 
-import afon.brain.tools.routines as routines_mod  # noqa: E402
+import mushegh.brain.tools.routines as routines_mod  # noqa: E402
 
 ps._ROUTINES_PATH = Path(tempfile.gettempdir()) / "test_routines.json"
 ps._ROUTINES_PATH.write_text(json.dumps([
@@ -137,7 +137,7 @@ check(ps.routine_planning_signal(morning) == [], "planning prompt silent once to
 # Found by the coverage check below on its first run: this kind is registered as a tick source and
 # perfectly reachable, but no fixture had ever driven it — which is the state five companion
 # capabilities were in before anyone noticed.
-import afon.brain.tools.calendar as cal_mod  # noqa: E402
+import mushegh.brain.tools.calendar as cal_mod  # noqa: E402
 
 
 async def _one_imminent_event(url, params=None, **kw):
@@ -173,7 +173,7 @@ check(THRESH <= 0.66, f"threshold {THRESH} is not above the companion sources' c
 # a sentence in the gate is the failure this file exists to prevent, one level up.
 import ast  # noqa: E402
 
-_BRAIN = Path(__file__).resolve().parents[1] / "src" / "afon" / "brain"
+_BRAIN = Path(__file__).resolve().parents[1] / "src" / "mushegh" / "brain"
 DECLARED = set()
 for _py in list(_BRAIN.glob("*.py")) + list((_BRAIN / "tools").glob("*.py")):
     try:

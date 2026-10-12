@@ -63,7 +63,7 @@ class Book:
 
 
 def main() -> None:
-    from afon.brain.chaining import RECIPIENT_OF, needs_resolving, resolve_recipient
+    from mushegh.brain.chaining import RECIPIENT_OF, needs_resolving, resolve_recipient
 
     anna = C("Anna Keller", "anna@example.com", "@anna_k", "+491234567")
     book = Book([anna])
@@ -120,7 +120,7 @@ def main() -> None:
           q == "" and out["to"] == "Anna", f"{out} {q}")
 
     print("\n[5] the turn order: resolve, THEN ask the owner to confirm")
-    src = (BENCH / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+    src = (BENCH / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     i_chain = src.index("args, chain_q = self._resolve_chain(name, args)")
     i_confirm = src.index("if confirm_required(name, args) and not self._confirm_granted:")
     check("the recipient is resolved before the confirm gate reads the call", i_chain < i_confirm,
@@ -134,7 +134,7 @@ def main() -> None:
     check("a held chain stops the call rather than sending it",
           '"blocked": True' in held, held[-160:])
     check("the model is told to ask, not to state", "_CHAIN_ASK" in src)
-    from afon.brain import agent as A
+    from mushegh.brain import agent as A
     check("...and explicitly not to say it has sent anything",
           "do not say" in A._CHAIN_ASK.lower() and "sent" in A._CHAIN_ASK)
     check("...and not to pick the likeliest recipient", "likeliest" in A._CHAIN_ASK)

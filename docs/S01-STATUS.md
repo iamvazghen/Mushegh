@@ -116,7 +116,7 @@ The 59.1 is the Vercel gateway running out of credit mid-run. **That is not a qu
 regression**, and reading it as one would be the wrong lesson.
 
 **One reachable provider is a primary, not a fallback.** With only MiniMax answering, any
-category score is a measurement of MiniMax rather than of Afon.
+category score is a measurement of MiniMax rather than of Mushegh.
 
 ### This invalidated an earlier recommendation of mine
 
@@ -141,7 +141,7 @@ gate — a red suite caused by a billing state is a fact about the account, not 
 | Jina returns 402 on every URL, so `scrape_url` is capped | **owner** |
 | What counts as a calibration *outcome*, before `brain/calibration.py` can be wired | **owner** |
 | Fleet category — explicitly reserved, not touched | **owner** |
-| 7 `behavioral-suite-temp` rows in the real Notion board, 307 rows in `afon_tasks.sqlite` | **owner** |
+| 7 `behavioral-suite-temp` rows in the real Notion board, 307 rows in `mushegh_tasks.sqlite` | **owner** |
 | Infisical workspace, and reading its NOASSERTION licence | **owner** |
 | REA MCP registration — the installer refuses without Ghidra/IDA | **owner** |
 | Ratify `test_missing_arg` strengthening; scorer bands; `clause_completion` repair | **owner** |
@@ -156,11 +156,11 @@ Green, gated, and separate from the provider question:
 - **Skills suite** — 26 playbooks including `integration-utilization`, `prompting`,
   `sessions-and-context`, `secrets-and-access`, `owner-model`. Gated by `test_skill_suite`
   (123/123) for truncation and phantom tool names, and published on the docs site.
-- **`afon/shared/secrets.py`** — environment wins → Infisical → `age` floor, wired before
+- **`mushegh/shared/secrets.py`** — environment wins → Infisical → `age` floor, wired before
   `Settings()`. Graceful degradation **proven live**: an unreachable endpoint logs a class name,
   boots in 3.56 s, raises nothing, and the report object has no field that can hold a value.
   Gate 52/52.
-- **`afon/brain/calibration.py`** — ECE, Brier, reliability bins and a *signed* overconfidence
+- **`mushegh/brain/calibration.py`** — ECE, Brier, reliability bins and a *signed* overconfidence
   index. Returns `None`, never `0.0`, when there is nothing to measure. Gate 49/49. **Not
   wired** — it needs the outcome definition.
 - **`tools/verify_repos.py` / `check_repo_exists.py`** — 105 candidate repos proposed by five

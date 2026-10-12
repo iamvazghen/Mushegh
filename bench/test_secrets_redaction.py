@@ -37,7 +37,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.shared import secrets as S  # noqa: E402
+from mushegh.shared import secrets as S  # noqa: E402
 
 passed = failed = 0
 
@@ -72,11 +72,11 @@ class FakeBackend:
 
 def main() -> None:  # noqa: C901 - a linear gate reads better than a helper layer here
     print("=== 1. name classification: what counts as a secret ===")
-    for name in ("AFON_TAVILY_API_KEY", "OPENAI_API_KEY", "BOT_TOKEN",
-                 "DB_PASSWORD", "MY_SECRET", "AFON_JINA_API_KEY", "HF_TOKEN"):
+    for name in ("MUSHEGH_TAVILY_API_KEY", "OPENAI_API_KEY", "BOT_TOKEN",
+                 "DB_PASSWORD", "MY_SECRET", "MUSHEGH_JINA_API_KEY", "HF_TOKEN"):
         check(f"{name} is classified as a secret", S.is_secret_name(name))
-    for name in ("AFON_USER_TZ", "AFON_USER_NAME", "AFON_PERSONA_FILE",
-                 "AFON_REPLY_LANGUAGE", "AFON_VAULT_PATH"):
+    for name in ("MUSHEGH_USER_TZ", "MUSHEGH_USER_NAME", "MUSHEGH_PERSONA_FILE",
+                 "MUSHEGH_REPLY_LANGUAGE", "MUSHEGH_VAULT_PATH"):
         check(f"{name} is NOT treated as a secret", not S.is_secret_name(name))
 
     print("\n=== 2. redaction returns a mask, not the value ===")
@@ -98,12 +98,12 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
     print("\n=== 3. the report cannot carry a secret ===")
     env: dict[str, str] = {}
     report = S.hydrate_environment(
-        [FakeBackend("fake", {"AFON_TAVILY_API_KEY": FAKE, "AFON_USER_TZ": "UTC"})], env=env
+        [FakeBackend("fake", {"MUSHEGH_TAVILY_API_KEY": FAKE, "MUSHEGH_USER_TZ": "UTC"})], env=env
     )
-    check("the secret reached the environment", env.get("AFON_TAVILY_API_KEY") == FAKE)
-    check("the non-secret was NOT pulled in", "AFON_USER_TZ" not in env)
+    check("the secret reached the environment", env.get("MUSHEGH_TAVILY_API_KEY") == FAKE)
+    check("the non-secret was NOT pulled in", "MUSHEGH_USER_TZ" not in env)
     check("report counted exactly 1", report.loaded == 1, repr(report.loaded))
-    check("report names only the secret", report.names == ["AFON_TAVILY_API_KEY"], repr(report.names))
+    check("report names only the secret", report.names == ["MUSHEGH_TAVILY_API_KEY"], repr(report.names))
 
     blob = repr(report)
     check("report repr does not contain the value", FAKE not in blob, blob)
@@ -115,10 +115,10 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
           bool(report.source) and report.loaded > 0, repr(report))
 
     print("\n=== 4. environment always wins ===")
-    env2: dict[str, str] = {"AFON_TAVILY_API_KEY": "already-set-by-operator"}
-    rep2 = S.hydrate_environment([FakeBackend("fake", {"AFON_TAVILY_API_KEY": FAKE})], env=env2)
+    env2: dict[str, str] = {"MUSHEGH_TAVILY_API_KEY": "already-set-by-operator"}
+    rep2 = S.hydrate_environment([FakeBackend("fake", {"MUSHEGH_TAVILY_API_KEY": FAKE})], env=env2)
     check("existing env value was not overwritten",
-          env2["AFON_TAVILY_API_KEY"] == "already-set-by-operator", env2["AFON_TAVILY_API_KEY"])
+          env2["MUSHEGH_TAVILY_API_KEY"] == "already-set-by-operator", env2["MUSHEGH_TAVILY_API_KEY"])
     check("the override was counted as skipped", rep2.skipped_present == 1, repr(rep2.skipped_present))
     check("nothing was loaded over the top", rep2.loaded == 0, repr(rep2.loaded))
     # "nothing added" must not read as "nothing configured" — that is the opposite of the truth
@@ -129,17 +129,17 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
     print("\n=== 5. a backend that explodes does not take the boot with it ===")
     env3: dict[str, str] = {}
     rep3 = S.hydrate_environment(
-        [FakeBackend("boom", boom=True), FakeBackend("good", {"AFON_GOOD_KEY": FAKE2})], env=env3
+        [FakeBackend("boom", boom=True), FakeBackend("good", {"MUSHEGH_GOOD_KEY": FAKE2})], env=env3
     )
     check("hydration returned instead of raising", isinstance(rep3, S.SecretReport))
     check("the healthy backend still contributed", rep3.loaded == 1, repr(rep3.loaded))
     check("the failing backend did not poison the report", rep3.source == "good", rep3.source)
-    check("the value landed correctly", env3.get("AFON_GOOD_KEY") == FAKE2)
+    check("the value landed correctly", env3.get("MUSHEGH_GOOD_KEY") == FAKE2)
 
     print("\n=== 6. empty and malformed backends are not crashes ===")
     env4: dict[str, str] = {}
     rep4 = S.hydrate_environment(
-        [FakeBackend("empty", {}), FakeBackend("blanks", {"AFON_X_KEY": "", "AFON_Y_KEY": None})],
+        [FakeBackend("empty", {}), FakeBackend("blanks", {"MUSHEGH_X_KEY": "", "MUSHEGH_Y_KEY": None})],
         env=env4,
     )
     check("blank values load nothing", rep4.loaded == 0, repr(rep4.loaded))
@@ -148,11 +148,11 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
     print("\n=== 7. the age floor reads a decrypted file when present ===")
     with tempfile.TemporaryDirectory() as tmp:
         f = Path(tmp) / "secrets.json"
-        f.write_text(json.dumps({"AFON_AGE_KEY": FAKE, "AFON_USER_NAME": "Sir"}), encoding="utf-8")
+        f.write_text(json.dumps({"MUSHEGH_AGE_KEY": FAKE, "MUSHEGH_USER_NAME": "Sir"}), encoding="utf-8")
         env5: dict[str, str] = {}
         rep5 = S.hydrate_environment([S.AgeBackend(path=f)], env=env5)
-        check("age file supplied the secret", env5.get("AFON_AGE_KEY") == FAKE)
-        check("age file skipped the non-secret", "AFON_USER_NAME" not in env5, repr(env5))
+        check("age file supplied the secret", env5.get("MUSHEGH_AGE_KEY") == FAKE)
+        check("age file skipped the non-secret", "MUSHEGH_USER_NAME" not in env5, repr(env5))
         check("age backend reported", rep5.source == "age", rep5.source)
 
         bad = Path(tmp) / "bad.json"
@@ -172,12 +172,12 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
         check("a missing age file is not an error", rep8.loaded == 0 and not rep8.failed)
 
     print("\n=== 8. status is presence-only ===")
-    old = os.environ.get("AFON_STATUS_PROBE_KEY")
-    os.environ["AFON_STATUS_PROBE_KEY"] = FAKE
+    old = os.environ.get("MUSHEGH_STATUS_PROBE_KEY")
+    os.environ["MUSHEGH_STATUS_PROBE_KEY"] = FAKE
     try:
-        status = S.secret_status(["AFON_STATUS_PROBE_KEY", "AFON_ABSENT_KEY"])
-        check("a set key reports configured", status["AFON_STATUS_PROBE_KEY"] == "configured", str(status))
-        check("an unset key reports missing", status["AFON_ABSENT_KEY"] == "missing", str(status))
+        status = S.secret_status(["MUSHEGH_STATUS_PROBE_KEY", "MUSHEGH_ABSENT_KEY"])
+        check("a set key reports configured", status["MUSHEGH_STATUS_PROBE_KEY"] == "configured", str(status))
+        check("an unset key reports missing", status["MUSHEGH_ABSENT_KEY"] == "missing", str(status))
         # Positive control: the helper must distinguish the two, not return one constant.
         check("status distinguishes the two states (not a constant)",
               len(set(status.values())) == 2, str(status))
@@ -185,9 +185,9 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
         check("status output does not contain the value", FAKE not in rendered, rendered)
     finally:
         if old is None:
-            os.environ.pop("AFON_STATUS_PROBE_KEY", None)
+            os.environ.pop("MUSHEGH_STATUS_PROBE_KEY", None)
         else:
-            os.environ["AFON_STATUS_PROBE_KEY"] = old
+            os.environ["MUSHEGH_STATUS_PROBE_KEY"] = old
 
     print("\n=== 9. infisical backend is inert without configuration ===")
     # Constructed with EXPLICIT config, never by reading the environment: 36.F5 requires config.py
@@ -208,7 +208,7 @@ def main() -> None:  # noqa: C901 - a linear gate reads better than a helper lay
     print("\n=== 10. this module reads no credential out of the environment ===")
     import ast
 
-    src = (ROOT / "src" / "afon" / "shared" / "secrets.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "shared" / "secrets.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     offending: list[str] = []
     for node in ast.walk(tree):

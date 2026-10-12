@@ -24,10 +24,10 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain.proactive import confirm_required
-    from afon.brain.tools import groups_for_text, tool_handlers, tool_names
-    from afon.brain.tools import fitness, maps, phone, wolfram
-    from afon.config import settings
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.brain.tools import groups_for_text, tool_handlers, tool_names
+    from mushegh.brain.tools import fitness, maps, phone, wolfram
+    from mushegh.config import settings
 
     # Force the unconfigured state regardless of a real .env.
     settings.twilio_account_sid = None
@@ -47,11 +47,11 @@ def main() -> None:
 
     print("\n[2] graceful degradation without keys")
     def degrades(out: str) -> bool:
-        from afon.brain.tools.base import is_not_configured
+        from mushegh.brain.tools.base import is_not_configured
         return is_not_configured(out)
     check("place_call degrades", degrades(asyncio.run(phone.place_call({"to": "+491", "message": "x"}))))
     # travel_time never degrades: with no Google key it must DELEGATE to the keyless OSRM engine.
-    import afon.brain.tools.utility as util
+    import mushegh.brain.tools.utility as util
 
     async def _fake_osrm(args):
         return "osrm-fallback"
@@ -87,9 +87,9 @@ def main() -> None:
     from datetime import datetime, timedelta
     from pathlib import Path as P
 
-    import afon.brain.tools.reminders as rem
-    import afon.brain.tools.routines as routines_mod
-    import afon.brain.proactive_signals as ps
+    import mushegh.brain.tools.reminders as rem
+    import mushegh.brain.tools.routines as routines_mod
+    import mushegh.brain.proactive_signals as ps
 
     ps._ROUTINES_PATH = P(tempfile.gettempdir()) / "test_routines_plan.json"
     ps._ROUTINES_PATH.write_text(json.dumps([
@@ -137,7 +137,7 @@ def main() -> None:
     import tempfile
     from pathlib import Path as _Path
 
-    from afon.brain import vitals as V
+    from mushegh.brain import vitals as V
 
     sample = '<?xml version="1.0" encoding="UTF-8"?>\n<HealthData locale="en_GB">\n <Record type="HKQuantityTypeIdentifierStepCount" unit="count" startDate="2026-09-11 08:00:00 +0200" value="1200"/>\n <Record type="HKQuantityTypeIdentifierStepCount" unit="count" startDate="2026-09-11 18:00:00 +0200" value="3400"/>\n <Record type="HKQuantityTypeIdentifierRestingHeartRate" unit="count/min" startDate="2026-09-11 07:00:00 +0200" value="58"/>\n <Record type="HKCategoryTypeIdentifierSleepAnalysis" startDate="2026-09-11 00:30:00 +0200" value="HKCategoryValueSleepAnalysisAsleepCore"/>\n <Record type="HKQuantityTypeIdentifierStepCount" unit="count" startDate="not a date" value="99"/>\n</HealthData>\n'
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
@@ -172,14 +172,14 @@ def main() -> None:
               "no steps on file" in V.recent("steps", path=_Path(d) / "empty.json"))
 
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/vitals.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/vitals.py").read_text(encoding="utf-8")
     check("the parser streams rather than loading the file whole", "iterparse" in src,
           "a real export is hundreds of megabytes")
     check("...and releases each element as it goes", "elem.clear()" in src)
     check("the reason is written down where the next reader will see it",
           "takes the brain down on the owner's actual file" in src)
 
-    from afon.brain.tools import tool_handlers as _handlers
+    from mushegh.brain.tools import tool_handlers as _handlers
 
     check("the import tool is registered", "import_health" in _handlers())
     check("the trend tool is registered", "vitals_trend" in _handlers())

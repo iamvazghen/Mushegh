@@ -29,33 +29,33 @@ the first accusation he cannot answer is the first one that lands.
 
 ## Structure
 
-- `src/afon/brain/turn_trace.py` — one row per turn, emitted from a `finally` so a turn that
+- `src/mushegh/brain/turn_trace.py` — one row per turn, emitted from a `finally` so a turn that
   refuses early, takes the fast path or raises still leaves evidence. The row carries intent
   class, tools considered, tools fired, prefill tokens and wall-clock per stage, plus
   `sources` and `confidence` for the explainability half (45.F3). Rows go to
   `turns-YYYY-MM-DD.jsonl` under `trace_dir()`, pruned on a `KEEP_DAYS` horizon.
-- `src/afon/brain/tools/diagnose.py` — `_why_last()` reads the last turn row and answers
+- `src/mushegh/brain/tools/diagnose.py` — `_why_last()` reads the last turn row and answers
   "why did you say that" from it: the tools that fired, the sites actually retrieved,
   whether the reply was hedged or put flat, and the time it took. A tool-free answer says so
   plainly, which is the most useful thing the owner can know when he doubts one (45.F3).
   `diagnose` also takes `turn=<id>` for a specific turn.
-- `src/afon/brain/audit.py` — `record` / `recent`, one JSON line per action, `_redact`
+- `src/mushegh/brain/audit.py` — `record` / `recent`, one JSON line per action, `_redact`
   scrubbing secret values before the write. Attribution and correlation come from the
   actor and correlation id the action carried. The trail is **append-only and
   best-effort, not tamper-evident**: no hash chain and no signature, and every write is
   wrapped so a failure is dropped rather than raised. Nothing a reader can run today
   proves a line was not edited out of it (`45.R10`).
-- `src/afon/brain/review.py` — 45.F4, a **projection** over the audit log, exactly like
+- `src/mushegh/brain/review.py` — 45.F4, a **projection** over the audit log, exactly like
   `hud.py`: no new datastore, no new process. Unattended is defined by exclusion — any actor
   that is not the owner — so a new autonomous driver cannot be silently missed.
-- `src/afon/brain/proactive_report.py` — what an unprompted batch did, why, and where to look
+- `src/mushegh/brain/proactive_report.py` — what an unprompted batch did, why, and where to look
   (45.F1). One bounded LLM call writes the prose from the real actions; a deterministic
   fallback keeps the report honest and never-silent if the model is unavailable.
-- `src/afon/brain/citations.py` — the per-turn ledger of what was actually retrieved, so a
-  source Afon names is one he opened. Deliberately not re-fetched: a 200 from a page he never
+- `src/mushegh/brain/citations.py` — the per-turn ledger of what was actually retrieved, so a
+  source Mushegh names is one he opened. Deliberately not re-fetched: a 200 from a page he never
   read is not evidence he read it.
-- `src/afon/brain/memory.py` and `src/afon/brain/recall.py` — the stores an explanation is
-  made of. `src/afon/brain/forget.py` sweeps every store and then **re-queries**, because the
+- `src/mushegh/brain/memory.py` and `src/mushegh/brain/recall.py` — the stores an explanation is
+  made of. `src/mushegh/brain/forget.py` sweeps every store and then **re-queries**, because the
   only evidence a thing is forgotten is asking for it again and getting nothing back.
 - The supersession trail (30.R10, D-25) — `learned/supersessions.jsonl`, one JSON line per
   supersession carrying both texts, the subject, the reason, both filenames and the old
@@ -134,15 +134,15 @@ action; the review surface reads both.
 **An explanation that is a story.** The check is whether the named tools appear in the turn
 row, not whether the sentence is plausible:
 
-    python -c "from afon.brain.turn_trace import last; r=last(); print(r.get('tools_fired'), r.get('sources'), r.get('confidence'))"
-    journalctl -u openafon-brain --since "1h" | grep -iE "why|last_turn|diagnose"
+    python -c "from mushegh.brain.turn_trace import last; r=last(); print(r.get('tools_fired'), r.get('sources'), r.get('confidence'))"
+    journalctl -u openmushegh-brain --since "1h" | grep -iE "why|last_turn|diagnose"
 
 **A secret reached the audit log.** `_redact` runs before the write, so a raw value means the
 redaction list missed a key:
 
-    python -c "from afon.shared.paths import audit_dir; print(audit_dir())"
-    grep -rlE "(token|key|secret)=" "$(python -c "from afon.shared.paths import audit_dir; print(audit_dir())")" | head
-    python -c "from afon.brain.audit import recent; print(recent(3))"
+    python -c "from mushegh.shared.paths import audit_dir; print(audit_dir())"
+    grep -rlE "(token|key|secret)=" "$(python -c "from mushegh.shared.paths import audit_dir; print(audit_dir())")" | head
+    python -c "from mushegh.brain.audit import recent; print(recent(3))"
 
 **A memory vanished with no trace.** That is the D-25 failure, and it is invisible by
 construction — which is why the check looks for the tombstone rather than the absence. The
@@ -150,23 +150,23 @@ writer is `30.R10`'s, so the first command asks whether it is still in the tree;
 is empty when nothing has superseded anything yet, which on a fresh install is exactly what
 it should be:
 
-    grep -rln "superseded_by" src/afon/          # the tombstone writer, if it is still there
-    python -c "from afon.brain.memory import MemoryStore; print(MemoryStore().supersessions()[-3:])"
-    python -c "from afon.brain.recall import LAYERS; print(list(LAYERS))"
-    journalctl -u openafon-brain --since "7d" | grep -iE "supersed|correct"
+    grep -rln "superseded_by" src/mushegh/          # the tombstone writer, if it is still there
+    python -c "from mushegh.brain.memory import MemoryStore; print(MemoryStore().supersessions()[-3:])"
+    python -c "from mushegh.brain.recall import LAYERS; print(list(LAYERS))"
+    journalctl -u openmushegh-brain --since "7d" | grep -iE "supersed|correct"
 
 **An unattended action is missing from the review.** Unattended is defined by exclusion, so a
 driver that runs without recording its actor is invisible by construction:
 
-    python -c "from afon.brain.review import unattended_runs; print(len(unattended_runs(1)))"
-    journalctl -u openafon-brain --since "24h" | grep -c "actor="
+    python -c "from mushegh.brain.review import unattended_runs; print(len(unattended_runs(1)))"
+    journalctl -u openmushegh-brain --since "24h" | grep -c "actor="
 
 **A turn row is incomplete, so the explanation is confidently wrong.** `REQUIRED` in
 `turn_trace` is the contract, and the completeness count is the diagnosis:
 
-    python -c "from afon.brain.turn_trace import summary; print(summary(50))"
-    ls -la "$AFON_STATE_DIR"/traces/
-    journalctl -u openafon-brain --since "24h" | grep -i "turn_trace"
+    python -c "from mushegh.brain.turn_trace import summary; print(summary(50))"
+    ls -la "$MUSHEGH_STATE_DIR"/traces/
+    journalctl -u openmushegh-brain --since "24h" | grep -i "turn_trace"
 
 ## Open questions
 

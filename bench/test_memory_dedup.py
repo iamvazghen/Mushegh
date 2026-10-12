@@ -4,12 +4,12 @@
 with its layer and source. What it did not do — and what 30.R1's "with dedup" asks for — was
 deduplicate. It appended a hit per layer independently, so:
 
-  1. a fact Afon had learned **and** the owner had also written into the vault came back **twice**,
+  1. a fact Mushegh had learned **and** the owner had also written into the vault came back **twice**,
      as two equal-ranked rows from "different" sources;
   2. that consumed the `limit`, so a genuinely cross-layer result was crowded out by repeats of one
      fact;
   3. and — the reason this is a charter task and not tidying — **if the two layers DISAGREE**, the
-     store returned both as equals. Afon learns a new value; the owner's hand-edited vault note
+     store returned both as equals. Mushegh learns a new value; the owner's hand-edited vault note
      still carries the old one; the two come back as two "different" layers with equal standing.
      30.R2's tombstone cannot catch that, because it is keyed on `subject` and only works WITHIN L1.
      So "two versions, not a silent overwrite" was reachable through a door the supersession rule
@@ -65,7 +65,7 @@ def h(layer: str, text: str, score: float = 1.0) -> dict:
 
 
 def main() -> int:
-    from afon.brain.memory import _dedupe_across_layers as _dedupe, _dedupe_key
+    from mushegh.brain.memory import _dedupe_across_layers as _dedupe, _dedupe_key
 
     print("\n[1] the same fact from two layers is ONE hit")
     out = _dedupe([h("L1", "The garage remote is under the stairs"),
@@ -117,8 +117,8 @@ def main() -> int:
           len(_dedupe([h("L1", ""), h("L3", "")], priority=PRIORITY)) == 2)
 
     print("\n[7] end to end: fused_recall on a real store, with the vault stubbed")
-    with tempfile.TemporaryDirectory(prefix="afon-dedup-") as td:
-        from afon.brain import memory as mem
+    with tempfile.TemporaryDirectory(prefix="mushegh-dedup-") as td:
+        from mushegh.brain import memory as mem
 
         store = mem.MemoryStore(base_dir=Path(td) / "memory")
         store.remember("The garage remote is under the stairs", source="owner")

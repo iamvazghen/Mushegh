@@ -63,8 +63,8 @@ CONVO = [
 
 
 async def main() -> None:
-    from afon.brain.background_review import _parse_facts, _parse_relations, review_and_learn
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.background_review import _parse_facts, _parse_relations, review_and_learn
+    from mushegh.brain.memory import MemoryStore
 
     print("[1] the reviewer extracts facts AND relations in one call, and keeps the facts")
     obj = ('{"facts": ["the owner has a rabbit farm in Armavir.", '
@@ -114,7 +114,7 @@ async def main() -> None:
                   '{"facts":[],"relations":[["a","p","b"],["c","q","d"]]}')) == 2)
 
     print("\n[5] Fix #3 — L5 semantic defaults ON (graceful)")
-    from afon.config import settings
+    from mushegh.config import settings
     check("memory_semantic_enabled defaults True", settings.memory_semantic_enabled is True)
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         store = MemoryStore(base_dir=Path(d))

@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 # Never charge the real autonomy ledger from a test (see governor._state_path).
 os.environ.setdefault(
-    "AFON_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "afon-test-governor.json")
+    "MUSHEGH_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "mushegh-test-governor.json")
 )
 
 PAGE = ROOT / "clients/hud/index.html"
@@ -51,7 +51,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 class _Obj:
-    text, project, updated = "ship it", "afon", "2026-09-20"
+    text, project, updated = "ship it", "mushegh", "2026-09-20"
     progress: list = []
     deferred: list = []
 
@@ -86,7 +86,7 @@ class _Tasks(_Src):
 
 
 def main() -> int:
-    from afon.brain.hud import hud_snapshot
+    from mushegh.brain.hud import hud_snapshot
 
     page = PAGE.read_text(encoding="utf-8")
     src = _Src()
@@ -131,7 +131,7 @@ def main() -> int:
             check(f"budget.{field}={val!r} parses with the page's own regex",
                   bool(py.match(val)), "the bar would render as nothing")
     # The page styles two outcome spellings specially; they must be spellings review.py can produce.
-    from afon.brain.review import _OUTCOMES
+    from mushegh.brain.review import _OUTCOMES
 
     produced = set(_OUTCOMES.values())
     for styled in ("refused", "awaiting approval"):

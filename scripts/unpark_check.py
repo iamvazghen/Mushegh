@@ -1,6 +1,6 @@
 """Unpark checklist — parking is one command, so leaving the park must not be (SYSTEMS.md 23.F4).
 
-`~/.afon/MAINTENANCE` is a file, and `rm` takes no view on whether the thing it unblocks is ready.
+`~/.mushegh/MAINTENANCE` is a file, and `rm` takes no view on whether the thing it unblocks is ready.
 That asymmetry is the risk: parking was a deliberate decision made with reasons, and unparking is
 currently a keystroke that forgets all of them. This is the checklist that stands in between.
 
@@ -150,10 +150,10 @@ def main() -> int:
 
     sys.path.insert(0, str(ROOT / "src"))
     try:
-        lock = import_module("afon.shared.maintenance").LOCK
+        lock = import_module("mushegh.shared.maintenance").LOCK
         parked = lock.exists()
     except Exception:  # noqa: BLE001
-        lock, parked = Path.home() / ".afon" / "MAINTENANCE", None
+        lock, parked = Path.home() / ".mushegh" / "MAINTENANCE", None
 
     print()
     if blockers:

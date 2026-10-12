@@ -26,7 +26,7 @@ COMBO = "check my email and remember to call mum"
 
 
 def main() -> int:
-    from afon.brain import agent as A
+    from mushegh.brain import agent as A
 
     original_step = A._Completion.step
     calls: list[str] = []
@@ -87,7 +87,7 @@ def main() -> int:
                         return _M(tool_calls=[_TC(name)])
             return _M(content="Done.")
 
-    agent = A.AfonAgent()
+    agent = A.MusheghAgent()
     agent._llm = FakeLLM()
     agent._self_improve = False
 
@@ -114,7 +114,7 @@ def main() -> int:
     print(f"prompt : {COMBO!r}")
     print(f"model fired : {fired}      <- what the gate measures")
     print(f"actually ran: {executed}      <- what it claims to assert")
-    from afon.brain.intent_router import clause_tools as _plan
+    from mushegh.brain.intent_router import clause_tools as _plan
 
     plan = _plan(COMBO)
     print(f"plan        : {plan}")

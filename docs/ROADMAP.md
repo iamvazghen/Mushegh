@@ -30,7 +30,7 @@ milestone exists to make this unremarkable:
 > 09:00–12:30 — deep work; quick spoken thoughts and tasks route into the daily note
 > **without interrupting**.
 > 13:00 — a brief spoken check-in on the afternoon.
-> 14:00–17:30 — development; Afon runs tests and local scripts on request.
+> 14:00–17:30 — development; Mushegh runs tests and local scripts on request.
 > 18:00 — a concise markdown wrap-up log; equipment powered down.
 > Evening — zero unprompted interruptions unless something is genuinely unsafe.
 
@@ -47,10 +47,10 @@ rather than adding it, and the first five are decisions the owner has already ma
 | ID | Milestone | Systems | Done when | h |
 |---|---|---|---|---|
 | M01 | Re-sign the S49 drop; resolve the three open floor tasks that contradict it | S49 | Registry shows a decision record and no open fabrication tasks (D-47, D-48) | 1 |
-| M02 | Cancel the Postgres migration and delete the scaffolding | S30 | `postgres_client.py`, `postgres_vectors.py`, `store_migration.py` gone; no `postgres` import remains under `src/afon/`; 30.F1/R5–R9 cancelled (D-02) | 3 |
+| M02 | Cancel the Postgres migration and delete the scaffolding | S30 | `postgres_client.py`, `postgres_vectors.py`, `store_migration.py` gone; no `postgres` import remains under `src/mushegh/`; 30.F1/R5–R9 cancelled (D-02) | 3 |
 | M03 | Delete the recommendation engine | S15 | No handler proposes unprompted content; a test asserts it stays deleted (D-27) | 2 |
 | M04 | Delete the graph relation layer | S24, S30 | Edge indexing gone; 607 inferred edges dropped; recall latency holds or improves; markdown still wins every disagreement (D-26, D-22) | 6 |
-| M05 | Remove ML forecasting | S46 | `forecast.py` deleted or honestly renamed; no time-series model in `src/afon/` (D-28) | 2 |
+| M05 | Remove ML forecasting | S46 | `forecast.py` deleted or honestly renamed; no time-series model in `src/mushegh/` (D-28) | 2 |
 | M06 | Cancel inventory; narrow finance to market alerts | S47, S40 | No transaction ingest path exists anywhere; a watched-symbol alert still works (D-12) | 2 |
 | M07 | Settle every dark system: wire, complete, or delete | S20, S28, S34, S35, S49, S50 | Each of the six ends in one of the three fates, on the record (D-46) | 10 |
 | M08 | Make this file the planning surface | all | The registry is history, not the to-do list; ~40 milestones are the plan (D-45) | 4 |
@@ -134,10 +134,10 @@ controls. Each milestone closes a specific way that promise can be broken.
 | M36 | Recovery: config rollback and the remote kill | S22, S04 | B2: kill the edge mid-edit — SIGTERM, SIGKILL at 3 s, uncommitted work in a stash, nothing lost (D-41) | 5 |
 | M37 | Liveness from outside the host | S23 | B2: `uptime_watch.py` proves up-ness independently; "up" is not self-reported | 2 |
 | M38 | Focus-mode suppression, local-only | S27, S13 | B1: derived state never leaves the host; the audit log shows no broadcast of it (D-61) | 3 |
-| M39 | The handover package | S22, S18, all | B2: a clean machine reaches a working voice loop from the setup script alone, plus an edge audio tuning guide. **This is the milestone that makes OpenAfon adoptable by anyone but the owner** (D-55) | 8 |
+| M39 | The handover package | S22, S18, all | B2: a clean machine reaches a working voice loop from the setup script alone, plus an edge audio tuning guide. **This is the milestone that makes OpenMushegh adoptable by anyone but the owner** (D-55) | 8 |
 | M40 | v1.0 | all | B3: 30 consecutive days with voice capture, task/calendar sync, Home Assistant actuation and vault memory running — **zero panics** (D-53) | elapsed |
 
-**M39 is the one that changes who this is for.** Until it exists, OpenAfon is a
+**M39 is the one that changes who this is for.** Until it exists, OpenMushegh is a
 personal system that happens to be open source — which the owner is fine with, and has
 said so (D-57). M39 is what makes the "open-source framework" claim honest.
 

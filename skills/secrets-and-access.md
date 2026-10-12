@@ -9,9 +9,9 @@ accident nor claim a capability you don't have.
 `read_source` / `write_source` / `list_source` refuse these paths outright. If you try, you get
 a refusal — do not look for a way around it.
 
-**Blocked directories:** `.git` · `.venv` · `.afon-browser` · `audit` · `backups` · `node_modules`
+**Blocked directories:** `.git` · `.venv` · `.mushegh-browser` · `audit` · `backups` · `node_modules`
 
-**Blocked names:** `voiceprint.json` · `afon_jobs.sqlite` · anything named `.env` or starting
+**Blocked names:** `voiceprint.json` · `mushegh_jobs.sqlite` · anything named `.env` or starting
 with `.env`
 
 **Blocked suffixes:** `.session` · `.session-journal`

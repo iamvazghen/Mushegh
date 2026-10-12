@@ -1,13 +1,13 @@
 # S14 — Proactivity Engine
 
-> **One line:** the part of Afon that speaks unasked, kept inside a hard budget and graded on
+> **One line:** the part of Mushegh that speaks unasked, kept inside a hard budget and graded on
 > how often it is waved off.
 > **Status:** complete for now · **Registry:** S14 · 3/3 floor, 2/6 raise, 0/1 elite
 > **Milestones:** M23 · **Decisions:** D-29, D-30, D-31, D-34, D-18, D-50, D-72, D-73
 
 ## Purpose
 
-Everything else in Afon waits to be addressed. This is the one module that decides, on its
+Everything else in Mushegh waits to be addressed. This is the one module that decides, on its
 own, whether to speak first — and the discipline is entirely in what it is measured on.
 
 The objective was wrong as originally written. 14.R1 asks "did the intervention help?", and
@@ -17,7 +17,7 @@ the engine can score well by being tolerated. The charter replaces it — optimi
 held to, and they are the numbers a nagging system fails.
 
 Three rules sit underneath. A refusal is a negative calibration sample: log it, halt the
-action immediately, and never argue back (D-31). Afon never brings the owner something unasked
+action immediately, and never argue back (D-31). Mushegh never brings the owner something unasked
 because it seemed interesting (D-34). And unprompted speech has a hard scope — physical
 safety and hard calendar count-downs only, with zero unprompted speech for recommendations,
 summaries or banter (D-18).
@@ -30,14 +30,14 @@ would close D-30 is 14.R1, one of them.
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/proactive.py` | The engine: a background tick, a pure decision core (budget, quiet hours, relevance threshold, repeat suppression, day rollover), injectable clock and signal sources |
-| `src/afon/brain/proactive_signals.py` | Signal sources: `anticipatory_prep`, `pattern_suggestion`, `weekly_digest` |
-| `src/afon/brain/interventions.py` | The single deliberate interruption: media playing **and** a named calendar event inside the lead window. Off by default (`interventions_enabled`) |
-| `src/afon/brain/proactive_report.py` | What, why, and the brief reasoning for anything done unprompted; one bounded LLM call with a deterministic fallback |
-| `src/afon/brain/delivery.py` | The downstream half — records what happened after the message left |
-| `src/afon/brain/loops.py` | Every recurring loop declared statically with a period, a budget and a kill switch |
-| `src/afon/brain/governor.py` | The ceiling on autonomous action: calls, spend and wall-clock across all runs |
-| `src/afon/brain/presence.py`, `src/afon/brain/modes.py` | Whether now is a sensible moment |
+| `src/mushegh/brain/proactive.py` | The engine: a background tick, a pure decision core (budget, quiet hours, relevance threshold, repeat suppression, day rollover), injectable clock and signal sources |
+| `src/mushegh/brain/proactive_signals.py` | Signal sources: `anticipatory_prep`, `pattern_suggestion`, `weekly_digest` |
+| `src/mushegh/brain/interventions.py` | The single deliberate interruption: media playing **and** a named calendar event inside the lead window. Off by default (`interventions_enabled`) |
+| `src/mushegh/brain/proactive_report.py` | What, why, and the brief reasoning for anything done unprompted; one bounded LLM call with a deterministic fallback |
+| `src/mushegh/brain/delivery.py` | The downstream half — records what happened after the message left |
+| `src/mushegh/brain/loops.py` | Every recurring loop declared statically with a period, a budget and a kill switch |
+| `src/mushegh/brain/governor.py` | The ceiling on autonomous action: calls, spend and wall-clock across all runs |
+| `src/mushegh/brain/presence.py`, `src/mushegh/brain/modes.py` | Whether now is a sensible moment |
 
 The engine is one process on the brain. Two channels: a listening edge gets a spoken
 interjection, otherwise it falls back to an ntfy push. It is fail-quiet throughout — a broken
@@ -84,11 +84,11 @@ already requires that outage behaviour not move.
 |---|---|---|---|---|
 | 1 | B2 | seven-day run of the live engine; read the per-kind stats block | dismissal rate and daily interruption count recorded for 7 days; 0 kinds whose `shown` count is high and whose `held_*` counts are all zero | not yet measured (14.R1 open) |
 | 2 | B1 | `uv run python bench/test_proactive_windows.py` | ≤3 audio interruptions per local day; exactly 0 inside a focus block | registry records 13.F1 done, whose gate is these two scripts; 14.F1's gate is `test_phase10_proactive.py` + `test_proactive_learning.py`; run not reproduced here — not yet measured |
-| 3 | B4 | `src/afon/brain/proactive.py` refusal path | a refusal sets the halt before any emit; 0 argument turns recorded; the sample is written as negative | structural, holds today |
+| 3 | B4 | `src/mushegh/brain/proactive.py` refusal path | a refusal sets the halt before any emit; 0 argument turns recorded; the sample is written as negative | structural, holds today |
 | 4 | B1 | `uv run python bench/test_proactive_thresholds.py` | 19/19 signal kinds reachable; per the registry note, eight fired in that run and eleven were handed off | recorded in the registry gate note as 19/19; run not reproduced here — not yet measured in this doc |
 | 5 | B1 | `uv run python bench/test_proactive_report.py` | every autonomous act yields a report; 0 silent autonomous actions | registry records 14.F2 done; run not reproduced here — not yet measured |
-| 6 | B4 | grep the tick loop for sources that fire with no trigger | 0 signals whose trigger is "interesting"; 0 recommendations, summaries or banter in the unprompted set | holds by inspection of `src/afon/brain/proactive_signals.py` today |
-| 7 | B1 | `DECLARED` in `src/afon/brain/loops.py` | every listed loop has a period, a budget and a kill switch; 0 undeclared recurring loops | not yet measured |
+| 6 | B4 | grep the tick loop for sources that fire with no trigger | 0 signals whose trigger is "interesting"; 0 recommendations, summaries or banter in the unprompted set | holds by inspection of `src/mushegh/brain/proactive_signals.py` today |
+| 7 | B1 | `DECLARED` in `src/mushegh/brain/loops.py` | every listed loop has a period, a budget and a kill switch; 0 undeclared recurring loops | not yet measured |
 
 Also written: `uv run python bench/test_phase10_proactive.py` and `uv run python
 bench/test_proactive_learning.py`, the latter covering the feedback loop that goal 1 needs.
@@ -97,10 +97,10 @@ case in `bench/test_proactive_suppression.py` (14.R3, blocked on S27 context).
 
 ## Failure modes
 
-**It speaks when uninvited.** This is the first symptom of a bad Afon in D-50, and it is the
+**It speaks when uninvited.** This is the first symptom of a bad Mushegh in D-50, and it is the
 one the owner notices inside a week. Cause is almost always a budget or quiet-hours path that
-bypassed the engine — a `src/afon/brain/scheduler.py` reminder, not the tick. Diagnose: `journalctl -u
-openafon-brain -n 300 | grep -i "proactive\["` and check every line's channel, then the
+bypassed the engine — a `src/mushegh/brain/scheduler.py` reminder, not the tick. Diagnose: `journalctl -u
+openmushegh-brain -n 300 | grep -i "proactive\["` and check every line's channel, then the
 per-kind hold reasons.
 
 **It goes quiet after refusals.** The penalty mechanism working as designed: repeated
@@ -110,9 +110,9 @@ bounds it; the owner can also zero a penalty. Diagnose: the per-kind `penalty` a
 fields in the persisted engine state under `state_dir()`.
 
 **The tick never ran.** A loop that never started leaves no entry, so the surface reads clean
-precisely when it should read alarming — the reason `src/afon/brain/loops.py` keeps a *static* declaration
+precisely when it should read alarming — the reason `src/mushegh/brain/loops.py` keeps a *static* declaration
 next to the live registry. Diagnose: compare `DECLARED` against the running jobs in
-`journalctl -u openafon-brain`.
+`journalctl -u openmushegh-brain`.
 
 **A signal source dies quietly.** Broken sources are skipped, which is correct, and the
 effect is a kind that stops generating. Goal 4 exists to catch exactly this. Diagnose: the
@@ -126,7 +126,7 @@ precisely this; a regression reintroduces the duplicate-morning-messages bug fro
 1. 14.R1 wants outcome feedback, but the only ground truth is a reaction classifier over the
    next turn. Is dismissal count a sufficient objective, or does it need a positive signal
    that is not "he acted on it"?
-2. `pattern_suggestion` in `src/afon/brain/proactive_signals.py` proposes a one-tap action from a learned
+2. `pattern_suggestion` in `src/mushegh/brain/proactive_signals.py` proposes a one-tap action from a learned
    pattern. Is that a notification (S13's budget) or the recommendation system D-27 removed?
 3. 14.R2 wants a learned timing model. Given a seven-day half-life on the penalty, is timing
    worth a second learning loop, or should effort go to the focus-state suppression in 14.R3?

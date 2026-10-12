@@ -23,14 +23,14 @@ it survives three questions, in this order:
    bathrooms permanently off-limits to ambient hardware. This is a *placement* constraint
    and it is decided before anything is unboxed.
 3. **Read, or actuate?** Reads are cheap and reversible. Actuation is where D-13 lives. A
-   device that both reads and acts is split in this plan: Afon keeps the read, and the
+   device that both reads and acts is split in this plan: Mushegh keeps the read, and the
    physical act stays with the owner (D-14).
 
 ## 2. Topology — where each box lives
 
 ```
                      ┌──────── the always-on core (UPS-backed) ────────┐
-  modem ─ router ─ switch ─┬─ VPS ............... Afon brain, SQLite, vault
+  modem ─ router ─ switch ─┬─ VPS ............... Mushegh brain, SQLite, vault
                            ├─ Proxmox (Mini-PC) Frigate + Coral, Whisper, Piper
                            └─ NAS (RAID 1) ..... video retention, snapshots
                      └───────────────────────────────────────────────┘
@@ -71,13 +71,13 @@ numbers are H-phases in [§7](#7-the-order-and-why-that-order).**
 | Shelly Dimmer/Relay ×4 | behind switches | S28, S04 | manual wall switch must still work | H3 |
 | Aqara contact sensors ×5 | doors, windows | S43, S27 | read-only, no mic | H2 |
 | Aqara smoke/CO ×2 | kitchen, hallway | S35 | life safety — D-18 may pierce quiet hours | H2 |
-| Aqara water leak ×3 | sink, bath, washer | S35, S28 | valve cut-off is the owner's, not Afon's | H2 |
+| Aqara water leak ×3 | sink, bath, washer | S35, S28 | valve cut-off is the owner's, not Mushegh's | H2 |
 | AirGradient ONE | living room | S27, S33 | read-only, local REST | H3 |
 | Aqara FP2 mmWave ×3 | office, living, hallway | S43, S27 | presence in **two** rooms (D-37) | H3 |
 | Aqara TRV / Tado valves | occupied rooms | S28 | heating, not presence | H4 |
 | Aqara roller blinds ×2 | living, office | S28 | light and temperature | H4 |
 | Levoit Core 300 | living room | S28 | on a Shelly plug; air-quality automation | H4 |
-| Aqara U200 smart lock | front door | S28 | **read-only to Afon** — D-13 | H4 |
+| Aqara U200 smart lock | front door | S28 | **read-only to Mushegh** — D-13 | H4 |
 | NFC tags ×10 | on walls, by the door | S28, S10 | the D-14 physical act | H4 |
 | Valetudo vacuum | stored, dock | S42 | never scheduled during a focus block | H4 |
 | HA Voice Preview ×3 | office, living, hallway | S18, S12 | one mic per non-private room | H5 |
@@ -99,7 +99,7 @@ Nothing smart happens until the core is honest about what it is running.
 1. **Confirm the UPS is carrying only the core**, and that nothing house-side is on it. A
    UPS that also fed the Shelly plugs would report a clean shutdown while the lights die
    during a cut. The UPS is the one device in this house permitted to cut power, and it does
-   that on its own battery logic, never on Afon's instruction (D-13).
+   that on its own battery logic, never on Mushegh's instruction (D-13).
 2. **Expose one UPS status signal to the brain** — on battery, on line, estimated runtime —
    as a read. Not an actuator. S31 records it as a vital; S22 records the recovery drill.
 3. **Mount the NAS, and prove the backup round-trip before anything is written to it.** A
@@ -123,7 +123,7 @@ vitals; a restore drill has been run once; the Proxmox core reservation is writt
 ### H2 — Home Assistant Green, the coordinator, and the sensors that only read
 
 **Home Assistant Green is the automation brain.** It holds state, the entity registry, and
-the one token the house needs. Afon talks to it over the tailnet with the single HA token
+the one token the house needs. Mushegh talks to it over the tailnet with the single HA token
 (D-62, credential 1 of the inventory) — the credential the docs have been calling
 `28.F1` and that has never been installed. S28 stops being dark here.
 
@@ -145,7 +145,7 @@ radio is to discover late.
    straight to S35, and S35 is half-built with no emergency list, so **this is the moment
    to write the list down** (see §8).
 3. **Water leak ×3** — read and report. The shut-off valve is a physical act, and D-13
-   keeps it that way: Afon says "the basin under the kitchen sink is wet", and the owner
+   keeps it that way: Mushegh says "the basin under the kitchen sink is wet", and the owner
    turns the valve. A `Shelly Plug` on the washing machine may cut *that appliance*; it may
    not touch the plumbing.
 
@@ -153,14 +153,14 @@ radio is to discover late.
 anything, and each one makes the next integration easier to test. Actuators come after the
 reads are trustworthy.
 
-### H3 — Presence, air, and the sensors that change how Afon speaks
+### H3 — Presence, air, and the sensors that change how Mushegh speaks
 
 **The Aqara FP2 mmWave sensors are the most valuable thing on this list**, and here is why:
-presence in this codebase does not currently exist. `src/afon/brain/presence.py` is a
+presence in this codebase does not currently exist. `src/mushegh/brain/presence.py` is a
 **laptop activity poller** — it asks the edge what app is in the foreground and how long you
 have been idle. It knows "you are in VS Code", and it knows nothing about which room you are
 in. Room presence is the thing that makes [S43](subsystems/43-presence-and-continuity.md)
-real rather than a title, and it is what lets Afon stop talking to an empty room.
+real rather than a title, and it is what lets Mushegh stop talking to an empty room.
 
 **Three sensors, two rooms, per D-37.** Office and living room cover the practical value.
 The third goes in the **hallway**, not a bedroom — a bedroom is air-gapped under D-38, and a
@@ -173,7 +173,7 @@ leaves the house, and it is the input the purifier automates on in H4.
 
 ### H4 — Actuators, in ascending order of consequence
 
-| Device | What Afon may do | Confirmation | Why |
+| Device | What Mushegh may do | Confirmation | Why |
 |---|---|---|---|
 | Shelly Dimmer/Relay ×4 | turn lights on and off, scenes | **none** (D-07) | his own lamp; a voice home must not nag |
 | Shelly Plug Gen3 ×4 | switch an appliance; cut an appliance on a safety signal | none for the listed silent-ok set; confirm for anything else | appliance circuits only |
@@ -187,9 +187,9 @@ leaves the house, and it is the input the purifier automates on in H4.
 the new hardware meet.** A Matter-over-Thread lock on the front door is the single device
 whose wrongful actuation changes the physical security of the house. So:
 
-- Afon **reads** lock state and may say "the front door is unlocked". That is a read, and it
+- Mushegh **reads** lock state and may say "the front door is unlocked". That is a read, and it
   is useful.
-- Afon **never actuates** the lock. Not with a confirmation, not with a code, not with a
+- Mushegh **never actuates** the lock. Not with a confirmation, not with a code, not with a
   scheduled routine. This is the same rule `28.R4` just enforced against Home Assistant, and
   it applies identically to a lock that is local instead of cloud.
 
@@ -217,8 +217,8 @@ reconsideration, not as a firmware flag. If a fourth satellite is ever wanted, t
 to ask first is which room, and the answer has to survive the bedroom rule.
 
 **This is where D-19 stops being an abstraction.** The wake phrase today is **seven** phrases
-(`afon`, `alfred`, `robbin`, `assist`, `time to work`, `wake up`, `six-one-nine`) in
-`src/afon/config.py`, detected locally by openWakeWord — good, that part is D-19 compliant
+(`mushegh`, `alfred`, `robbin`, `assist`, `time to work`, `wake up`, `six-one-nine`) in
+`src/mushegh/config.py`, detected locally by openWakeWord — good, that part is D-19 compliant
 and stays. But D-19 also says *one* wake phrase, because "multiple wake phrases multiply
 false-positive wakeups on constrained edge hardware". One always-listening mic multiplied by
 seven phrases is already a lot; **three satellites make it three times worse**, and a
@@ -228,7 +228,7 @@ So H5 carries a real decision, and it is the owner's: **one phrase on the satell
 the phrase that answers to a name rather than a command.** "Time to work" and "six-one-nine"
 are shortcuts for a single-user laptop, where a misfire costs nothing because the owner
 pressed the button. On an always-listening satellite it costs a wake-up. That is a change to
-`AFON_WAKE_WORDS`, one line, and it should be a conscious one.
+`MUSHEGH_WAKE_WORDS`, one line, and it should be a conscious one.
 
 **The glasses are a camera, not a voice client.** D-36 parks smart glasses for voice until
 sub-second latency is solved, and the hardware does not change that condition — the
@@ -255,7 +255,7 @@ and they are gated on a decision rather than on a purchase.
 
 **The good news is the hardware does the right thing by default.** Frigate plus the Coral
 detector is entirely local, which is what D-61 requires of derived state. The bad news is
-that `src/afon/config.py`'s **vision model chain is cloud-only** — MiniMax, Gemini and Groq,
+that `src/mushegh/config.py`'s **vision model chain is cloud-only** — MiniMax, Gemini and Groq,
 all remote. So the moment a frame goes to a vision model, the local property is gone.
 
 **Therefore the rule for H6, and it is not negotiable by convenience:**
@@ -264,7 +264,7 @@ all remote. So the moment a frame goes to a vision model, the local property is 
 > vision model, to a logger, or to a crash report.
 
 **The codebase already contains both patterns, which is why this is a rule and not a hope.**
-`src/afon/brain/tools/camera.py` holds two tools doing opposite things:
+`src/mushegh/brain/tools/camera.py` holds two tools doing opposite things:
 
 - **`look_around`** grabs a webcam frame and hands it to a vision model through
   `LLMClient.see` — the frame leaves the machine.
@@ -315,7 +315,7 @@ That is the trigger, half of it at least.
 recommendation is to **keep it dropped**, for a reason the hardware itself supplies: the
 second half of the trigger is *"wanting a slicer it can call"*, and nothing in this inventory
 suggests the owner wants that. A printer in a workshop is a tool for making brackets. A
-printer Afon can drive is a safety surface with a heated bed and moving axes, in a house
+printer Mushegh can drive is a safety surface with a heated bed and moving axes, in a house
 where D-13 already refuses door locks. The charter's instinct was right, and the new
 hardware confirms it rather than overturning it.
 
@@ -342,7 +342,7 @@ The table that matters. Every row is a real conflict, not a hypothetical one.
 | 2 | **3 mmWave sensors vs D-37's two rooms** | Office + living for presence, hallway for transitions. No bedroom, ever (D-38) | resolved in this plan |
 | 3 | **3 mic satellites vs D-38's air-gapped rooms** | Office, living, hallway. A bedroom satellite is a D-38 violation, not a config choice | resolved in this plan |
 | 4 | **7 wake phrases vs D-19's one phrase**, now ×3 satellites | Cut to one answering phrase on the satellites. Multiplies false wakes 3× | **open — needs your nod** |
-| 5 | **A Matter smart lock vs D-13's door-lock refusal** | Afon reads lock state, never actuates. The same rule `28.R4` now enforces against HA | resolved — enforced in code today for HA |
+| 5 | **A Matter smart lock vs D-13's door-lock refusal** | Mushegh reads lock state, never actuates. The same rule `28.R4` now enforces against HA | resolved — enforced in code today for HA |
 | 6 | **Shelly "hard-cutoff relays" vs D-13's main breakers** | Appliance circuits only. Never the core circuit, never anything UPS-backed | **open — needs your nod on which circuits** |
 | 7 | **3 cameras + doorbell vs D-51's one-person model** | Entry, garden, outbuilding. Rooms a guest would be in get presence, not video | **open — needs your nod** |
 | 8 | **Cloud vision chain vs D-61's local-only state** | Coral/Frigate detect locally; frames never leave the house. The `see()` path must not become the detector's channel | **open — needs your nod** |

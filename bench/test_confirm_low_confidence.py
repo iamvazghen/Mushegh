@@ -8,7 +8,7 @@ this answers "does it know what it was asked", and those are different questions
 frictionless **by design** — capture-by-voice is the whole point — so it is exactly the kind of call
 classification lets through and confidence should not.
 
-Section [4] is the gate: a real pass through `AfonAgent._execute_calls` with a tool that is NOT in
+Section [4] is the gate: a real pass through `MusheghAgent._execute_calls` with a tool that is NOT in
 the confirm tier, and the call is held.
 
 The two things that stop it becoming noise are checked as hard as the escalation itself: it must
@@ -32,17 +32,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 os.environ.setdefault(
-    "AFON_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "afon-test-governor.json")
+    "MUSHEGH_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "mushegh-test-governor.json")
 )
 
-from afon.brain import agent as agent_mod                              # noqa: E402
-from afon.brain import audit                                           # noqa: E402
+from mushegh.brain import agent as agent_mod                              # noqa: E402
+from mushegh.brain import audit                                           # noqa: E402
 # The daily audit file is named by the OWNER's calendar day, not UTC's — see audit._owner_day,
 # pinned by six assertions in test_audit_integrity.py. This gate derived the name from UTC and
 # so failed on its own between 00:00 and 02:00 local, asserting the old behaviour.
-from afon.brain.audit import _owner_day                                # noqa: E402
-from afon.brain.proactive import CONFIRM_TIER, is_write, low_confidence  # noqa: E402
-from afon.shared import errors as _err                                 # noqa: E402
+from mushegh.brain.audit import _owner_day                                # noqa: E402
+from mushegh.brain.proactive import CONFIRM_TIER, is_write, low_confidence  # noqa: E402
+from mushegh.shared import errors as _err                                 # noqa: E402
 
 passed = failed = 0
 
@@ -105,7 +105,7 @@ def main() -> int:
             ran.clear()
             agent_mod.settings.escalate_on_low_confidence = enabled
             agent_mod.settings.face_second_factor = False
-            a = agent_mod.AfonAgent()
+            a = agent_mod.MusheghAgent()
             a._registry = {tool: handler}
             a._confirm_granted = granted
             _err._turn.set("t-lowconf")
@@ -148,7 +148,7 @@ def main() -> int:
         agent_mod.settings.escalate_on_low_confidence = True
 
         print("\n[6] the hold reads correctly on the review surface")
-        from afon.brain.review import outcome_of
+        from mushegh.brain.review import outcome_of
 
         check("a low-confidence hold reads as awaiting the owner, not as a failure",
               outcome_of({"decision": "defer", "ok": False}) == "awaiting approval")

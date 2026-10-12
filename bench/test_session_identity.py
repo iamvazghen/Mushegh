@@ -29,12 +29,12 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.shared import session as SESS  # noqa: E402
+from mushegh.shared import session as SESS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
 #: Entry points that open a link to the brain. Each must derive its id, not carry one.
-EDGE_CLIENTS = ("src/afon/edge/remote_brain.py", "src/afon/edge/edge_lite.py")
+EDGE_CLIENTS = ("src/mushegh/edge/remote_brain.py", "src/mushegh/edge/edge_lite.py")
 
 #: The constants that used to be hardcoded. Their return would be the regression.
 LEGACY_IDS = ("laptop-1", "laptop-edge", "android-1")
@@ -55,7 +55,7 @@ def check(ok: bool, label: str, detail: str = "") -> None:
 def main() -> None:
     # Recorded before anything runs and asserted at the end. This is the check that would have
     # caught the original mistake, so it is a check and not a comment.
-    real_session = Path.home() / ".afon" / "afon_session.json"
+    real_session = Path.home() / ".mushegh" / "mushegh_session.json"
     real_before = real_session.stat().st_mtime if real_session.exists() else None
 
     print("[1] one conversation identity, and it survives")
@@ -108,7 +108,7 @@ def main() -> None:
         for legacy in LEGACY_IDS:
             check(f'"{legacy}"' not in body, f"{rel} no longer hardcodes `{legacy}`")
 
-    agent_src = (ROOT / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+    agent_src = (ROOT / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     reset = agent_src.split("def reset_session(", 1)
     check(len(reset) == 2 and "rotate" in reset[1][:1500],
           "the conversation id turns over inside reset_session, where the boundary already is")
@@ -119,9 +119,9 @@ def main() -> None:
     check("self._history[:-max_msgs]" in trim,
           "the dropped slice is captured before the window is reassigned")
 
-    from afon.config import settings  # noqa: E402
+    from mushegh.config import settings  # noqa: E402
 
-    # HERMETIC OR NOT AT ALL, AND BEFORE THE CONSTRUCTOR RUNS. `AfonAgent.__init__` calls
+    # HERMETIC OR NOT AT ALL, AND BEFORE THE CONSTRUCTOR RUNS. `MusheghAgent.__init__` calls
     # `_load_session()`, which reads the restart-durable snapshot from the real state directory and
     # UNLINKS it when it is older than the idle-reset window. Patching the path on the instance is
     # too late — construction has already touched the owner's real working memory, which is exactly
@@ -131,7 +131,7 @@ def main() -> None:
     _saved_persist = settings.session_persist_path
     settings.session_persist_path = str(Path(tmpdir) / "session.json")
 
-    from afon.brain.agent import AfonAgent  # noqa: E402
+    from mushegh.brain.agent import MusheghAgent  # noqa: E402
 
     def _hermetic(a, tmp: Path):
         a._session_path = lambda: tmp          # type: ignore[assignment]
@@ -139,7 +139,7 @@ def main() -> None:
         a._dropped = []
         return a
 
-    agent = _hermetic(AfonAgent(max_history_turns=2), Path(tmpdir) / "s1.json")
+    agent = _hermetic(MusheghAgent(max_history_turns=2), Path(tmpdir) / "s1.json")
     journalled: list[list[dict]] = []
 
     async def _fake_journal(history):
@@ -180,7 +180,7 @@ def main() -> None:
           str([m["content"] for b in journalled for m in b])[:200])
 
     print("\n[6] a reset flushes what the trim has not summarised yet")
-    agent2 = _hermetic(AfonAgent(max_history_turns=2), Path(tmpdir) / "s2.json")
+    agent2 = _hermetic(MusheghAgent(max_history_turns=2), Path(tmpdir) / "s2.json")
     got: list[list[dict]] = []
 
     async def _fake_journal2(history):
@@ -216,11 +216,11 @@ def main() -> None:
     import tempfile as _tf
     from datetime import datetime as _dt
 
-    from afon.brain.memory import MemoryStore as _MS
+    from mushegh.brain.memory import MemoryStore as _MS
 
     with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _td:
         st = _MS(Path(_td))
-        st.journal_append("The owner asked about the flat viewing and Afon booked it.",
+        st.journal_append("The owner asked about the flat viewing and Mushegh booked it.",
                           _dt(2026, 9, 10, 9, 0))
         st.journal_append("Discussed the Ausbildung application deadline.", _dt(2026, 9, 11, 9, 0))
         st.journal_append("Fixed the boiler timer.", _dt(2026, 9, 12, 9, 0))
@@ -255,7 +255,7 @@ def main() -> None:
     print("\n[07.R1] the tool asks the store the question the owner actually asked")
     import asyncio as _aio
 
-    from afon.brain.tools import memory as _mem
+    from mushegh.brain.tools import memory as _mem
 
     _real = _mem.STORE
     with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _td2:
@@ -289,7 +289,7 @@ def main() -> None:
         finally:
             _mem.STORE = _real
 
-    from afon.brain.tools import schemas_by_name as _by_name
+    from mushegh.brain.tools import schemas_by_name as _by_name
     _sch = _by_name(["read_journal"])[0]["function"]
     check({"date", "about"} <= set(_sch["parameters"]["properties"]),
           "the schema advertises the date and topic it now honours",

@@ -1,6 +1,6 @@
 """Audio watchdog: trips on a dead mic / vanished output device, stays quiet on a live stream.
 
-Guards the recurring "I say hey afon and nothing comes" bug: a device change (AirPods connect/
+Guards the recurring "I say hey mushegh and nothing comes" bug: a device change (AirPods connect/
 disconnect) stales the mic/speaker streams; the watchdog must detect that and trigger a fresh restart.
 """
 import asyncio
@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.edge.audio_watchdog import (  # noqa: E402
+from mushegh.edge.audio_watchdog import (  # noqa: E402
     AudioLivenessProbe, output_device_present, watch_audio_liveness,
 )
 
@@ -27,7 +27,7 @@ def check(cond, label):
 
 
 async def _run():
-    # A) a DEAD mic (gap past silence_limit) MUST trip a restart so Afon recovers from deafness.
+    # A) a DEAD mic (gap past silence_limit) MUST trip a restart so Mushegh recovers from deafness.
     # auto_route=False: this tests the MIC path only — otherwise real headphones on the dev machine
     # (AirPods connected) make route_should_change want to re-route, which is a different trip reason.
     dead = asyncio.Event()
@@ -65,7 +65,7 @@ async def _run():
     # suspended, so every audio stream and cloud socket we hold is stale. Windows gives no usable
     # resume event here (S0 standby emits none; Kernel-Power 507 fires ~8x/day for maintenance wakes),
     # so this in-process check is the detector. Regression guard for a full day spent silently deaf.
-    import afon.edge.audio_watchdog as _m
+    import mushegh.edge.audio_watchdog as _m
 
     dead4 = asyncio.Event()
     live3 = AudioLivenessProbe()
@@ -109,14 +109,14 @@ async def _run():
 asyncio.run(_run())
 print("\n[+] output preference: re-route on a real device CHANGE, not on a rewrite")
 # The watchdog restarts the whole edge when the saved output preference changes — mic stream,
-# Deepgram socket and ElevenLabs websocket all rebuilt, several seconds during which Afon is deaf
+# Deepgram socket and ElevenLabs websocket all rebuilt, several seconds during which Mushegh is deaf
 # and mute. It compared the file's MTIME, so a rewrite with the identical device cost a full
 # teardown; 27 such restarts are in the shipped edge log. It compares the VALUE now.
 import json as _json  # noqa: E402
 import os as _os  # noqa: E402
 
-from afon.edge.audio_devices import PREF_PATH as _PREF  # noqa: E402
-from afon.edge.audio_watchdog import _pref_value  # noqa: E402
+from mushegh.edge.audio_devices import PREF_PATH as _PREF  # noqa: E402
+from mushegh.edge.audio_watchdog import _pref_value  # noqa: E402
 
 _saved = _PREF.read_text(encoding="utf-8") if _PREF.exists() else None
 try:

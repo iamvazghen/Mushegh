@@ -46,7 +46,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def discover_kinds() -> list[str]:
     """Every kind the source actually constructs, plus the dataclass default."""
     found = {"note"}   # Signal.kind's default — a generator that omits kind still produces one
-    for py in (ROOT / "src" / "afon" / "brain").rglob("*.py"):
+    for py in (ROOT / "src" / "mushegh" / "brain").rglob("*.py"):
         # `[a-z_-]`, not `[a-z_]`: kinds like "calendar-prep" are hyphenated, and the narrower
         # pattern dropped them from the sweep silently — a discovery bug that looks identical to
         # "that kind doesn't exist", which is the whole failure mode this file guards against.
@@ -66,7 +66,7 @@ class Clock:
 def main() -> None:
     import asyncio
 
-    from afon.brain.proactive import ProactiveEngine, Signal, in_quiet_hours
+    from mushegh.brain.proactive import ProactiveEngine, Signal, in_quiet_hours
 
     kinds = discover_kinds()
     print(f"[1] kinds discovered from source: {kinds}")
@@ -144,7 +144,7 @@ def main() -> None:
     offenders: list[str] = []
     key_re = re.compile(r'key\s*=\s*f?"[^"]*\{[^}]*\b(now|_utc_now\(\)|datetime\.now\(\)?[^}]*)'
                         r'[^}]*\}[^"]*"')
-    for py in (ROOT / "src" / "afon" / "brain").rglob("*.py"):
+    for py in (ROOT / "src" / "mushegh" / "brain").rglob("*.py"):
         for m in key_re.finditer(py.read_text(encoding="utf-8")):
             # A DATE stamp is legitimate — it scopes a signal to "once today" (news, digests).
             # A full timestamp is not: it scopes it to "once ever", which is never.

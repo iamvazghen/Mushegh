@@ -46,7 +46,7 @@ def _owner_day_start(hour: int) -> float:
     from the machine's day lands outside the window whenever the two zones straddle midnight —
     routinely, since the brain runs UTC on a VPS and the owner does not.
     """
-    from afon.brain.presence import _tz
+    from mushegh.brain.presence import _tz
 
     from datetime import datetime as _d
 
@@ -55,13 +55,13 @@ def _owner_day_start(hour: int) -> float:
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
     settings.presence_poll_seconds = 60      # each active sample = 60s of screen time
     settings.presence_idle_threshold_seconds = 90
     settings.presence_retention_days = 30
 
-    from afon.brain.presence import Presence
-    import afon.brain.tools.activity as act
+    from mushegh.brain.presence import Presence
+    import mushegh.brain.tools.activity as act
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     p = Presence(db_path=Path(tmp.name) / "presence.sqlite")
@@ -88,7 +88,7 @@ async def main() -> None:
     for i in range(3):
         p.record("chrome", "YouTube - something", 2.0, ts=base + i * 60)   # active browsing
     for i in range(3, 5):
-        p.record("Code", "server.py - Afon", 4.0, ts=base + i * 60)        # active coding
+        p.record("Code", "server.py - Mushegh", 4.0, ts=base + i * 60)        # active coding
     p.record("chrome", "idle tab", 300.0, ts=base + 5 * 60)                # away -> not counted
     data = p.screen_time(0)
     check("chrome credited 3×60s", data["apps"].get("chrome") == 180, str(data["apps"]))
@@ -116,7 +116,7 @@ async def main() -> None:
     # runs: land it before the day's block and its credit becomes the gap to the rest of the day,
     # land it after and it is the final sample credited one typical interval. Pinning the exact
     # number made this check a clock reading rather than a category test.
-    from afon.brain.presence import _category
+    from mushegh.brain.presence import _category
 
     check("vlc maps to the media category", _category("vlc") == "media", _category("vlc"))
     check("...and the ingested sample reaches today's screen time",
@@ -148,7 +148,7 @@ async def main() -> None:
     print("\n[7] proactive engine persists budget + suppression across a restart")
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
-    from afon.brain.proactive import ProactiveEngine, Signal
+    from mushegh.brain.proactive import ProactiveEngine, Signal
     tz = ZoneInfo(settings.user_tz)
     t0 = datetime(2026, 7, 13, 12, 0, tzinfo=tz)
     state_file = str(Path(tmp.name) / "proactive_state.json")

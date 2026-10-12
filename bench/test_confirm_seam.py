@@ -4,7 +4,7 @@ Jev p=0.74, conf 0.70: *the first seam to instrument, because it is the safety g
 consumer of `31.F5`'s correlation id, which is how you prove that task actually works rather than
 merely passes its own test.
 
-`AfonAgent._execute_calls` has **six** exits, and the code states its own invariant in pass 3:
+`MusheghAgent._execute_calls` has **six** exits, and the code states its own invariant in pass 3:
 *"blocked calls were already audited in pass 1"*. The gate is that the invariant is true:
 
   1. the recipient could not be resolved to one target  → defer
@@ -32,19 +32,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from afon.brain.audit import _owner_day  # noqa: E402
+from mushegh.brain.audit import _owner_day  # noqa: E402
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 os.environ.setdefault(
-    "AFON_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "afon-test-governor.json")
+    "MUSHEGH_GOVERNOR_LEDGER", str(Path(tempfile.gettempdir()) / "mushegh-test-governor.json")
 )
 
-from afon.brain import agent as agent_mod          # noqa: E402
-from afon.brain import audit                       # noqa: E402
-from afon.shared import errors as _err             # noqa: E402
+from mushegh.brain import agent as agent_mod          # noqa: E402
+from mushegh.brain import audit                       # noqa: E402
+from mushegh.shared import errors as _err             # noqa: E402
 
 passed = failed = 0
 
@@ -68,7 +68,7 @@ class Harness:
 
     def __init__(self, audit_dir: Path) -> None:
         self._dir = audit_dir
-        self.agent = agent_mod.AfonAgent()
+        self.agent = agent_mod.MusheghAgent()
         self.agent._registry = {
             "weather": self._ok,
             "send_email": self._ok,
@@ -102,7 +102,7 @@ def main() -> int:
         audit_dir.mkdir()
         audit._audit_dir = lambda: audit_dir
 
-        from afon.brain import proactive
+        from mushegh.brain import proactive
 
         real_required, real_grade = proactive.confirm_required, proactive.grade
         gated = {"send_email", "delete_file"}
@@ -110,7 +110,7 @@ def main() -> int:
         h = Harness(audit_dir)
 
         try:
-            # `_execute_calls` imports these by name from afon.brain.proactive at call time, so
+            # `_execute_calls` imports these by name from mushegh.brain.proactive at call time, so
             # patching the module attribute is enough and no import order matters.
             proactive.confirm_required = lambda n, a: n in gated
             proactive.draft_preview = lambda n, a: ""
@@ -223,7 +223,7 @@ def main() -> int:
                   lines and lines[0].get("turn_id") == "", str(lines and lines[0].get("turn_id")))
 
             print("\n[9] the rules used here are the ones review.py groups by")
-            from afon.brain.review import outcome_of
+            from mushegh.brain.review import outcome_of
 
             check("a deny reads as 'refused'",
                   outcome_of({"decision": "deny", "ok": False}) == "refused")

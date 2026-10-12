@@ -138,11 +138,11 @@ def main() -> int:
                 f"find {trees} -type f ! -path '*__pycache__*' ! -path '*/node_modules/*' "
                 "! -name '*.pyc' -print0 "
                 "| xargs -0 sha256sum\n"
-                "echo 'd41d8cd98f00b204e9800998ecf8427e  src/afon/brain/tools/mynews.py'\n",
+                "echo 'd41d8cd98f00b204e9800998ecf8427e  src/mushegh/brain/tools/mynews.py'\n",
                 encoding="utf-8", newline="\n")
             os.chmod(tmp / "ssh", 0o755)
             drift = tmp / "drift.tsv"
-            env = {**os.environ, "AFON_VPS": "stub@example.invalid", "DRIFT_OUT": str(drift)}
+            env = {**os.environ, "MUSHEGH_VPS": "stub@example.invalid", "DRIFT_OUT": str(drift)}
             # Put the stub first INSIDE MSYS. Passing a Windows PATH through subprocess leaves the
             # conversion up to the launcher and can accidentally resolve the real OpenSSH binary.
             r = subprocess.run(
@@ -161,7 +161,7 @@ def main() -> int:
                   "no MISSING or DIFFERS rows — empty lists must not emit blank entries",
                   str([r for r in rows if r[0] in ("MISSING", "DIFFERS")]))
             stale_path = next((v for k, v in rows if k == "STALE"), "")
-            check(stale_path == "src/afon/brain/tools/mynews.py",
+            check(stale_path == "src/mushegh/brain/tools/mynews.py",
                   "the stale path survives the hash/path splitting intact", stale_path)
             count = next((v for k, v in rows if k == "REMOTE_FILES"), "")
             check(count.isdigit() and int(count) > 1,

@@ -19,8 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.judgment import _http_transport  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain.judgment import _http_transport  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 PAYLOAD = {
     "model": settings.jev_model,
@@ -29,8 +29,8 @@ PAYLOAD = {
         "route": {
             "type": "choice",
             "instructions": "Pick the group that should answer this turn.",
-            "criteria": {"group_1": "afon.brain.tools.calendar",
-                         "group_2": "afon.brain.tasks"},
+            "criteria": {"group_1": "mushegh.brain.tools.calendar",
+                         "group_2": "mushegh.brain.tasks"},
         }
     },
 }

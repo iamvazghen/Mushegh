@@ -3,17 +3,17 @@
 The substrate for continuity existed: a vault, backups, checkpoints, an audit trail. What did not
 exist was the property they are supposed to deliver. A backup is a tar of this program's private
 layout — sqlite whose schema lives in the code, a `learned` tree whose meaning is a docstring, a
-JSONL whose fields are named in a dataclass. Restoring it needs Afon, which is the opposite of
+JSONL whose fields are named in a dataclass. Restoring it needs Mushegh, which is the opposite of
 preservation.
 
-The load-bearing check here is [3]. It shells out to a **fresh interpreter with `afon` removed from
+The load-bearing check here is [3]. It shells out to a **fresh interpreter with `mushegh` removed from
 the path** and has it read the export end to end. Asserting readability from inside a process that
 has already imported the package proves nothing at all: every helper it would reach for is exactly
 the thing that is supposed to be unnecessary.
 
   [written]     memory, journal, documents, state and an audit SUMMARY, each as markdown or JSON;
   [honest]      a store that was not there is named in the manifest as absent, not omitted;
-  [no codebase] a fresh process with no access to `afon` reads the manifest, verifies every hash,
+  [no codebase] a fresh process with no access to `mushegh` reads the manifest, verifies every hash,
                 and finds the facts in plain text;
   [damaged]     a tampered file fails verification rather than passing quietly.
 
@@ -82,7 +82,7 @@ def _seed(state: Path) -> None:
     docs = state / "documents"
     docs.mkdir(parents=True)
     (docs / "index.jsonl").write_text(
-        json.dumps({"title": "Feed order", "kind": "note", "where": "the vault at Afon/Feed.md",
+        json.dumps({"title": "Feed order", "kind": "note", "where": "the vault at Mushegh/Feed.md",
                     "ref": "x", "at": 1789000000.0, "verified": True}) + "\n"
         + json.dumps({"title": "Half-written brief", "kind": "brief", "where": "Notion",
                       "ref": "p-1", "at": 1789000001.0, "verified": False}) + "\n",
@@ -95,7 +95,7 @@ def _seed(state: Path) -> None:
 
 
 def main() -> None:
-    from afon.protocols import portable as P
+    from mushegh.protocols import portable as P
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         state = Path(d) / "state"
@@ -119,7 +119,7 @@ def main() -> None:
         check("the journal keeps its days apart", "## 2026-09-12" in
               (dest / "memory" / "journal.md").read_text(encoding="utf-8"))
         docs = (dest / "documents.md").read_text(encoding="utf-8")
-        check("documents carry where they went", "the vault at Afon/Feed.md" in docs)
+        check("documents carry where they went", "the vault at Mushegh/Feed.md" in docs)
         check("...and an unconfirmed one still says so", "never confirmed" in docs, docs[-200:])
 
         print("\n[written] the audit is summarised, not copied")
@@ -149,7 +149,7 @@ def main() -> None:
               sorted({p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()}))
         check("the format is stamped", manifest["format"] == P.FORMAT, manifest["format"])
 
-        print("\n[no codebase] a fresh process with no `afon` on its path reads the whole thing")
+        print("\n[no codebase] a fresh process with no `mushegh` on its path reads the whole thing")
         # The load-bearing check. `-I` isolates the interpreter and the cwd is elsewhere, so the
         # reader cannot reach this repo even by accident.
         proc = subprocess.run([sys.executable, "-I", "-c", READER, str(dest)],
@@ -178,17 +178,17 @@ def main() -> None:
         print("\n[damaged] the drill exports into an EMPTY directory, never in place")
         # Verifying the live directory would pass on last run's files, which is the failure a drill
         # is for. So the drill makes its own and throws it away.
-        src = (ROOT / "src/afon/protocols/portable.py").read_text(encoding="utf-8")
+        src = (ROOT / "src/mushegh/protocols/portable.py").read_text(encoding="utf-8")
         body = src.split("def run_export_drill", 1)[1]
         check("the drill uses a throwaway directory", "mkdtemp" in body)
         check("...and cleans it up", "rmtree" in body)
         check("...and files its verdict", "record_to" in body and "write_text" in body)
 
         print("\n[damaged] it is on a schedule, not a command someone remembers")
-        sched = (ROOT / "src/afon/brain/scheduler.py").read_text(encoding="utf-8")
+        sched = (ROOT / "src/mushegh/brain/scheduler.py").read_text(encoding="utf-8")
         check("a job exists", "_fire_portable_drill" in sched)
         check("...and is registered daily", "schedule_portable_drill" in sched)
-        server = (ROOT / "src/afon/brain/server.py").read_text(encoding="utf-8")
+        server = (ROOT / "src/mushegh/brain/server.py").read_text(encoding="utf-8")
         check("...and the brain actually starts it", "schedule_portable_drill()" in server)
         drill_body = sched.split("async def _fire_portable_drill", 1)[1].split("\nasync def ")[0]
         check("it speaks up only on failure", drill_body.count("_emit_proactive") == 1,

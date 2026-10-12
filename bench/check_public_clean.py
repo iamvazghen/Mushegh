@@ -1,7 +1,7 @@
 """Public-surface cleanliness guard — no private data leaks into tracked files (Phase 5.1 / 5.5),
 and every secret has exactly one home (SYSTEMS.md 36.F5).
 
-Before OpenAfon can be public, no real secret, private host, or personal email may sit in a TRACKED
+Before OpenMushegh can be public, no real secret, private host, or personal email may sit in a TRACKED
 file. This greps every git-tracked file (so gitignored personal overlays — .env, real memory/*.md,
 contacts.md, voiceprint — are correctly ignored) for:
 
@@ -55,7 +55,7 @@ CHECKS: list[tuple[str, re.Pattern, set[str]]] = [
 
 # Checks applied ONLY to the product runtime surface — the installed assistant's own code and the
 # shipped persona/memory TEMPLATES. Tests (bench/) and planning docs (docs/) legitimately reference the
-# original owner as fixtures or project history, so they are out of scope. A stranger's installed Afon
+# original owner as fixtures or project history, so they are out of scope. A stranger's installed Mushegh
 # must never name the original owner or hardcode his timezone in what it runs or speaks.
 SCOPED_CHECKS: list[tuple[str, re.Pattern, set[str]]] = [
     ("owner name in runtime/template", re.compile(r"\bVazghen\b"), set()),
@@ -105,18 +105,18 @@ def tracked_files() -> list[str]:
 SECRET_WORDS = {"password", "passwd", "secret", "token", "key", "credential", "credentials"}
 
 #: The single module allowed to read a credential from the process environment.
-CONFIG_MODULE = "src/afon/config.py"
+CONFIG_MODULE = "src/mushegh/config.py"
 
 #: Where a fallback secret would actually ship. `bench/` and `scripts/` are developer tooling that
 #: never runs on the owner's behalf — a fixture password there is a fixture, and treating it as a
 #: leak is how a guard earns the allowlist entry that later hides a real one.
 SHIPPED_PREFIXES = ("src/", "deploy/")
 
-#: Programs that legitimately read their own environment because they do not import `afon.config`.
-#: `afon_ticker.py` says so in its own docstring — it is a single self-contained file deployed to
+#: Programs that legitimately read their own environment because they do not import `mushegh.config`.
+#: `mushegh_ticker.py` says so in its own docstring — it is a single self-contained file deployed to
 #: the VPS without the repo, so the environment IS its one home, not a second one. Anything added
 #: here needs that same argument; "it was easier" is not it.
-SEPARATE_PROGRAMS = {"deploy/vps/afon_ticker.py"}
+SEPARATE_PROGRAMS = {"deploy/vps/mushegh_ticker.py"}
 
 
 def _is_secret_name(name: str) -> bool:
@@ -214,15 +214,43 @@ def stray_secret_readers(rel_paths: list[str]) -> list[str]:
     return out
 
 
-def env_overlay_untracked(files: list[str]) -> list[str]:
-    """`.env` must be ignored and untracked — it is the personal overlay every other check assumes."""
+#: Owner-private files: personal overlays the owner fills in and the repo must never publish.
+#:
+#: This is a DECLARED list, not a pattern, and that is the whole point. A content scan cannot cover
+#: this class — a filled contact book is names, phone numbers and handles, and none of the CHECKS
+#: above match a phone number. `contacts.json` sat in the repo unignored for exactly this long:
+#: `contacts.md` was protected, its JSON twin was not, and nothing in this file noticed, because
+#: there was no rule that could notice. The only check that protects a personal overlay is asking
+#: whether it is ignored.
+#:
+#: Missing entries are skipped — a fresh clone has no personal data yet, and that is not a failure.
+PERSONAL_OVERLAYS: tuple[str, ...] = (
+    ".env",                       # credentials; the overlay every other check assumes
+    "contacts.md",
+    "contacts.json",
+    "locations.json",
+    "emergency.md",
+    "memory/about-you.md",
+    "memory/projects.md",
+    "memory/environment.md",
+    "memory/openclaw-fleet.md",
+)
+
+
+def personal_overlays_untracked(files: list[str]) -> list[str]:
+    """Every declared personal overlay must be ignored AND untracked."""
     out: list[str] = []
     tracked = {f.replace("\\", "/") for f in files}
-    if ".env" in tracked:
-        out.append("  .env is TRACKED — the personal overlay is in the repo")
-    r = subprocess.run(["git", "check-ignore", "-q", ".env"], cwd=ROOT, capture_output=True)
-    if r.returncode != 0:
-        out.append("  .env is not gitignored — one `git add -A` away from being committed")
+    for rel in PERSONAL_OVERLAYS:
+        if not (ROOT / rel).exists():
+            continue  # not this install; there is nothing here to publish
+        if rel in tracked:
+            out.append(f"  {rel}  [personal data]  TRACKED — this belongs to the owner, "
+                       f"not to the repo")
+        r = subprocess.run(["git", "check-ignore", "-q", rel], cwd=ROOT, capture_output=True)
+        if r.returncode != 0:
+            out.append(f"  {rel}  [personal data]  not gitignored — one `git add -A` away from "
+                       f"being published")
     return out
 
 
@@ -268,7 +296,7 @@ def main() -> int:
 
     # 36.F5 — structural, not pattern-based: these catch the secrets that look like ordinary words.
     scannable = [f for f in files if Path(f).name != self_name]
-    one_home = secret_defaults(scannable) + stray_secret_readers(scannable) + env_overlay_untracked(files)
+    one_home = secret_defaults(scannable) + stray_secret_readers(scannable) + personal_overlays_untracked(files)
 
     print(f"Scanned {len(files)} tracked files for private data.")
     print(f"Checked {sum(1 for f in scannable if f.endswith('.py'))} Python files for a second "

@@ -1,4 +1,4 @@
-# Purpose — what Afon is for, and what it must never become
+# Purpose — what Mushegh is for, and what it must never become
 
 **Status:** authoritative for intent. Written 2026-10-09.
 **Scope:** this file is the entry point. It does not restate the charter.
@@ -23,7 +23,7 @@ Read this file, then `ARCHITECTURE.md`, then only the subsystem you are touching
 
 ## The one-paragraph version
 
-Afon is one person's always-listening companion: a single Python brain on an always-on
+Mushegh is one person's always-listening companion: a single Python brain on an always-on
 host, holding all state in one SQLite database, talking to voice clients over a
 WireGuard tailnet. It is **voice-first, self-hosted in state, cloud-only in inference,
 and single-owner by design.** It exists so that its owner can think out loud and have
@@ -33,7 +33,7 @@ voice-first, self-hosted, single-owner, always-on.
 
 ---
 
-## What Afon is for
+## What Mushegh is for
 
 1. **To be present without being asked.** Most of the value is proactive: noticing,
    reminding, preparing, surfacing. A companion that only answers questions is a worse
@@ -46,7 +46,7 @@ voice-first, self-hosted, single-owner, always-on.
 4. **To be the owner's, including when the network is gone.** State is local. Inference
    is not, and that trade-off is deliberate and documented — not an aspiration to fix.
 
-## What Afon must never become
+## What Mushegh must never become
 
 These are not preferences. Each is enforced by a decision in the charter, and a change
 that violates one is rejected on sight.
@@ -61,7 +61,7 @@ that violates one is rejected on sight.
   ability to say "don't keep that" is load-bearing for a companion. Secrets, biometrics
   and vault contents stay on the owner's machines and never enter a public repo (D-57);
   a financial position is never stored (D-83).
-- **Not a product.** `OpenAfon` is an open-source framework others may build on; **Afon**
+- **Not a product.** `Mushegh` is an open-source framework others may build on; **Mushegh**
   is this owner's instance. Features do not get added to serve a hypothetical user.
 - **Not a model's project.** AI evaluations are advisory input; de-scoping requires the
   owner's sign-off (D-47). No decision in `DECISIONS.md` was made by a model.
@@ -97,7 +97,7 @@ disagree, say so explicitly rather than quietly believing either.
 
 ### 3. Every credential has exactly one home
 
-For Afon that home is `src/afon/config.py` (36.F5). Not a second `.env`, not a constant,
+For Mushegh that home is `src/mushegh/config.py` (36.F5). Not a second `.env`, not a constant,
 not a default argument. An executor child's environment is an **allowlist built from
 nothing** — never the parent's environment minus a denylist, because a denylist of
 secrets is never complete.
@@ -117,13 +117,13 @@ Telegram messages in one incident. Budgets live in the database, not in a proces
 
 ---
 
-## Boundaries: Afon, the fleet, and Jev
+## Boundaries: Mushegh, the fleet, and Jev
 
 ```
     owner
       │  speaks
       ▼
-    Afon  ◄── this repository: voice, memory, identity, proactivity, consent
+    Mushegh  ◄── this repository: voice, memory, identity, proactivity, consent
       │
       ├─ tools ──────────────► direct, self-served actions (the common case)
       │
@@ -132,17 +132,17 @@ Telegram messages in one incident. Budgets live in the database, not in a proces
                                  → broker + human approval is the only path to an effect
 ```
 
-**Afon is the coordinator and the voice. The fleet is the staff.** Two rules at the seam:
+**Mushegh is the coordinator and the voice. The fleet is the staff.** Two rules at the seam:
 
-1. **Delegation is a tool call, never a change of identity.** Afon consults; it does not
-   become a specialist, and a specialist never speaks as Afon. This is in
-   `src/afon/brain/agent.py` by design — see also `src/afon/brain/fleet.py`.
-2. **Afon holds no fleet credentials.** It submits a job under its coordinator identity.
+1. **Delegation is a tool call, never a change of identity.** Mushegh consults; it does not
+   become a specialist, and a specialist never speaks as Mushegh. This is in
+   `src/mushegh/brain/agent.py` by design — see also `src/mushegh/brain/fleet.py`.
+2. **Mushegh holds no fleet credentials.** It submits a job under its coordinator identity.
    The fleet holds its own resource-scoped grants.
 
 ### ⚠ Known stale: the delegation path targets a deleted system
 
-`src/afon/brain/fleet.py` (437 lines) delegates to the OpenClaw router
+`src/mushegh/brain/fleet.py` (437 lines) delegates to the OpenClaw router
 `settings.openclaw_router_agent` (default **`ispir`**) over
 `settings.openclaw_gateway_url`, with an `openclaw agent --agent ispir … --json` CLI
 fallback over SSH. **All of that was deleted on 2026-10-08:** the gateway, the eight
@@ -154,11 +154,11 @@ alarming a reader:
 | Setting | Default | Effect |
 |---|---|---|
 | `openclaw_gateway_url` | `""` | the tool reports the bridge is not configured |
-| `fleet_authorized` | `False` | consulting needs a per-session OK or `AFON_FLEET_AUTHORIZED` |
+| `fleet_authorized` | `False` | consulting needs a per-session OK or `MUSHEGH_FLEET_AUTHORIZED` |
 | `openclaw_delegation_enabled` | `True` | the `delegate_to_fleet` tool is still advertised |
 
 So the open-source default is fine. **The risk is deployment-local:** if this owner's
-`.env` sets `openclaw_gateway_url` (and especially `AFON_FLEET_AUTHORIZED=true`), that
+`.env` sets `openclaw_gateway_url` (and especially `MUSHEGH_FLEET_AUTHORIZED=true`), that
 URL now points at nothing, and `delegate_to_fleet` will fail at call time while
 `agent.py` still offers to "consult the OpenClaw fleet" — the fabrication failure
 doctrine 4 exists to prevent. The `.env` was deliberately not read when writing this
@@ -175,13 +175,13 @@ unavailable sentinel. Do not leave it advertising the old path.
 
 The stale fleet memory docs were moved off the VPS to
 `~/backups/stale-fleet-memory/` on 2026-10-09 for this reason — a memory file telling
-Afon it has eight specialists on call is actively harmful, not merely out of date.
+Mushegh it has eight specialists on call is actively harmful, not merely out of date.
 
 ### Where Jev fits
 
 [`jev-governor`](https://github.com/iamvazghen/jev-governor) is the installable
 decision layer: a calibrated System One model chooses the next action, and the generative
-model is constrained to that choice **and verified against it**. Afon's own evaluation of
+model is constrained to that choice **and verified against it**. Mushegh's own evaluation of
 Jev as a *runtime engine* was recorded as declined
 ([`docs/JEV-REPORT.md`](docs/JEV-REPORT.md)); it is a governor, not a brain. The two
 roles are separate and both can be true.

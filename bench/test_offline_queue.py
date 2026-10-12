@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.edge import offline_queue as q  # noqa: E402
+from mushegh.edge import offline_queue as q  # noqa: E402
 
 PASS = FAIL = 0
 
@@ -152,7 +152,7 @@ def main() -> int:
         check("...and a new promise can still be taken on", q.enqueue("after corruption", path=p))
 
     print("\n[8] the standby's dead ends now promise instead of apologising")
-    src = (ROOT / "src/afon/edge/remote_brain.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/edge/remote_brain.py").read_text(encoding="utf-8")
     check("remote_brain uses the queue at all", "offline_queue" in src)
     check("...on the path where the standby produced nothing",
           "_promise" in src and "if not spoke" in src)
@@ -161,7 +161,7 @@ def main() -> int:
     check("the old 'couldn't answer locally either' dead end is gone",
           "couldn't answer locally either" not in src)
     check("the queue is drained when the link comes back, not on the next thing he says",
-          "on_connected" in (ROOT / "src/afon/edge/brain_client.py").read_text(encoding="utf-8"))
+          "on_connected" in (ROOT / "src/mushegh/edge/brain_client.py").read_text(encoding="utf-8"))
     check("the queue file is a declared store, so 37.R4 covers it", _declared())
 
     print(f"\n=== {PASS}/{PASS + FAIL} checks passed ===")
@@ -169,7 +169,7 @@ def main() -> int:
 
 
 def _declared() -> bool:
-    from afon.brain import data_classes as dc
+    from mushegh.brain import data_classes as dc
 
     store = dc.classify("offline_queue.jsonl")
     return store is not None and not store.leaves_host

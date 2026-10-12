@@ -23,7 +23,7 @@ export function Diagnostics({ data, history, reduced, refresh }: { data: Snapsho
   async function loadReview() {
     setLoading(true); setReviewError('');
     try {
-      const token = (window as Window & { AFON_TOKEN?: string }).AFON_TOKEN;
+      const token = (window as Window & { MUSHEGH_TOKEN?: string }).MUSHEGH_TOKEN;
       const r = await fetch(apiPath('review.json'), { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(6000), cache: 'no-store' });
       if (!r.ok) throw new Error();
       setReview(await r.json());
@@ -53,7 +53,7 @@ export function Security({ data }: { data: Snapshot | null }) {
   const unattended = data.unattended as Record<string, unknown>;
   const unhealthy = data.health.filter(item => item.ok === false).length;
   return <div className="canvas-scroll"><div className="metrics-grid"><div className="metric"><span>Unhealthy checks</span><strong>{unhealthy}</strong></div><div className="metric"><span>Flaky tools</span><strong>{data.reliability.length}</strong></div><div className="metric"><span>Needs attention</span><strong>{typeof unattended.needs_attention === 'number' ? unattended.needs_attention : '—'}</strong></div><div className="metric"><span>Network feed</span><strong>—</strong></div></div>
-    <p className="source-caveat">This is real operational evidence from Afon. It is not a firewall or threat feed.</p>
+    <p className="source-caveat">This is real operational evidence from Mushegh. It is not a firewall or threat feed.</p>
     <Records title="Component health" value={data.health}/><Records title="Tool reliability" value={data.reliability}/><Records title="Unattended review headline" value={data.unattended}/>
   </div>;
 }

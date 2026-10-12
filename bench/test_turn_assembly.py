@@ -15,7 +15,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.edge.turn_assembly import (  # noqa: E402
+from mushegh.edge.turn_assembly import (  # noqa: E402
     TurnAssembler,
     hold_ms_for,
     looks_complete,

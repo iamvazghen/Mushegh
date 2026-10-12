@@ -1,8 +1,8 @@
-"""J4.6/J4.7 — a skill doc that names a tool Afon cannot call fails SILENTLY, mid-conversation.
+"""J4.6/J4.7 — a skill doc that names a tool Mushegh cannot call fails SILENTLY, mid-conversation.
 
 `skills/*.md` and `personality/*.md` are instructions to the model. They are prose, so nothing
 compiles them and no test read them: a tool renamed in `brain/tools/` left the doc still telling
-Afon to call the old name, and the only symptom is Afon trying, failing, and improvising — during a
+Mushegh to call the old name, and the only symptom is Mushegh trying, failing, and improvising — during a
 conversation, with no error anyone sees afterwards.
 
 Writing this found one: `skills/research-method.md` rung 3 offered "**`scrape_url` / `read_page`**"
@@ -12,7 +12,7 @@ and `read_page` has never been a tool. The real page-readers are `scrape_url` an
 Two checks, because one is not enough:
 
   * every backticked identifier must NAME SOMETHING — a tool, a tool argument or enum value, or an
-    identifier that exists in `src/afon`. That is what caught `read_page`.
+    identifier that exists in `src/mushegh`. That is what caught `read_page`.
   * anything close to a tool name but not a tool is flagged even when it resolves somewhere else,
     because a renamed tool usually lingers in a comment and would otherwise resolve there.
 
@@ -40,14 +40,50 @@ EXTERNAL = {
     "choco": "Chocolatey package manager, likewise",
     # Added 2026-10-09 with skills/integration-utilization.md and secrets-and-access.md. Each is
     # named there as an EXTERNAL capability the playbook tells the model about, not as something
-    # the Afon registry can call. The distinction matters: the failure this test exists to catch
+    # the Mushegh registry can call. The distinction matters: the failure this test exists to catch
     # is a doc telling the model to call something it has no handle on.
-    "graphify": "external CLI already running against this repo (graphify-out/); named as a capability, not an Afon tool",
-    "ghidra": "external disassembler; named as REA's analysis engine, which Afon does not and will not call",
+    "graphify": "external CLI already running against this repo (graphify-out/); named as a capability, not an Mushegh tool",
+    "ghidra": "external disassembler; named as REA's analysis engine, which Mushegh does not and will not call",
     "decompiler": "capability noun inside the REA description, not a command",
     "mcp": "protocol noun (Model Context Protocol), not a tool name",
-    "maybe_correct": "afon/shared/uncertainty.py function named to locate the clarification path; internal, not callable",
-    "maybe_ask": "afon/shared/uncertainty.py function, same reason",
+    "maybe_correct": "mushegh/shared/uncertainty.py function named to locate the clarification path; internal, not callable",
+    "maybe_ask": "mushegh/shared/uncertainty.py function, same reason",
+    # Added 2026-10-11 with skills/prompting-open-design.md. These twenty-two are the Open
+    # Design MCP server's real tools, read off its own `tools/list` on this host -- not
+    # invented, and not native Mushegh tools either. Mushegh reaches them NAMESPACED as
+    # `mcp__open-design__<tool>` through mcp_client.py, so the bare name resolves nowhere in
+    # `src/mushegh` by design. They are listed individually rather than by a prefix rule,
+    # because a prefix rule would also swallow the next doc that invents one.
+    "list_projects": "Open Design MCP tool, reached as mcp__open-design__list_projects",
+    "get_project": "Open Design MCP tool, reached as mcp__open-design__get_project",
+    "get_active_context": "Open Design MCP tool, reached as mcp__open-design__get_active_context",
+    "list_files": "Open Design MCP tool, reached as mcp__open-design__list_files",
+    # NOT list_skills: it is a real Mushegh tool as well as an Open Design one, so it
+    # resolves natively and allowlisting it would switch off a check that works.
+    "list_plugins": "Open Design MCP tool, reached as mcp__open-design__list_plugins",
+    "list_agents": "Open Design MCP tool, reached as mcp__open-design__list_agents",
+    "get_artifact": "Open Design MCP tool, reached as mcp__open-design__get_artifact",
+    "get_file": "Open Design MCP tool, reached as mcp__open-design__get_file",
+    "search_files": "Open Design MCP tool, reached as mcp__open-design__search_files",
+    "start_run": "Open Design MCP tool, reached as mcp__open-design__start_run",
+    "get_run": "Open Design MCP tool, reached as mcp__open-design__get_run",
+    "cancel_run": "Open Design MCP tool, reached as mcp__open-design__cancel_run",
+    "create_project": "Open Design MCP tool, reached as mcp__open-design__create_project",
+    "create_artifact": "Open Design MCP tool, reached as mcp__open-design__create_artifact",
+    "write_file": "Open Design MCP tool, reached as mcp__open-design__write_file",
+    # NOT delete_file either: it is a `file_op` enum value in pc-control.md, so it
+    # resolves natively. prompting-open-design.md writes the Open Design one namespaced.
+    "delete_project": "Open Design MCP tool, reached as mcp__open-design__delete_project",
+    "collect_brief": "Open Design MCP tool, reached as mcp__open-design__collect_brief",
+    "confirm_brief": "Open Design MCP tool, reached as mcp__open-design__confirm_brief",
+    "start_vela_login": "Open Design MCP tool, reached as mcp__open-design__start_vela_login",
+    "get_vela_login_status": "Open Design MCP tool, reached as mcp__open-design__get_vela_login_status",
+    # graphify subcommands, named in skills/graphify.md. `graphify` itself is already above.
+    "affected": "graphify subcommand (reverse traversal: what breaks if I change this)",
+    # mcode's own flag vocabulary, named in skills/prompting-mcode.md so the model uses the
+    # real values rather than guessing at them.
+    "tui": "one of mcode's --prompt-mode values (tui|coding|work); the skill says to use `coding`",
+    "tests_run": "a field in an example --output-schema in prompting-mcode.md, not an identifier",
 }
 
 passed = failed = 0
@@ -68,11 +104,11 @@ def docs() -> list[Path]:
 
 
 def main() -> None:
-    from afon.brain.tools import tool_schemas
+    from mushegh.brain.tools import tool_schemas
 
     schemas = tool_schemas()
     tools = {s["function"]["name"] for s in schemas}
-    agent_src = (ROOT / "src" / "afon" / "brain" / "agent.py").read_text(encoding="utf-8")
+    agent_src = (ROOT / "src" / "mushegh" / "brain" / "agent.py").read_text(encoding="utf-8")
     builtins_in_agent = set(re.findall(r'"name":\s*"([a-z_]+)"', agent_src))
     callable_names = tools | builtins_in_agent
 
@@ -88,7 +124,7 @@ def main() -> None:
     # identifier that appears in the source at all.
     known = set(callable_names)
     known |= set(re.findall(r'"([a-z][a-z0-9_]{2,40})"', json.dumps(schemas)))
-    for p in (ROOT / "src" / "afon").rglob("*.py"):
+    for p in (ROOT / "src" / "mushegh").rglob("*.py"):
         text = p.read_text(encoding="utf-8", errors="replace")
         known |= set(re.findall(r"\b([a-z_][a-z0-9_]{2,40})\b", text))
         known.add(p.stem)
@@ -133,19 +169,19 @@ def main() -> None:
 
     print("\n[5] the persona TEMPLATE carries every section the shipped persona has (J3.4)")
     # The graph showed communities 211 and 228 both titled "{assistant_name} — Persona" with
-    # different section sets, which on disk is personality/afon.md against persona.example.md. The
+    # different section sets, which on disk is personality/mushegh.md against persona.example.md. The
     # template was missing "Proactive companion" and "Protocols" — so a stranger who copies it, as
     # its own header tells them to, gets a strictly reactive assistant with no protocol handling and
     # nothing anywhere saying that is what they chose. Extra sections in the template are fine (it
     # explains itself); missing ones are the drift.
     def _sections(path: Path) -> set[str]:
-        # Strip HTML comments first: afon.md's header COMMENT lists section names as guidance, and
+        # Strip HTML comments first: mushegh.md's header COMMENT lists section names as guidance, and
         # counting those would make the file pass by talking about sections it does not have.
         body = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
         return {ln.lstrip("# ").split("(")[0].strip().lower()
                 for ln in body.splitlines() if ln.startswith("## ")}
 
-    shipped = _sections(ROOT / "personality" / "afon.md")
+    shipped = _sections(ROOT / "personality" / "mushegh.md")
     template = _sections(ROOT / "personality" / "persona.example.md")
     missing = sorted(shipped - template)
     check(not missing, f"persona.example.md covers all {len(shipped)} shipped sections",
@@ -159,11 +195,11 @@ def main() -> None:
     # by a rulebook the owner had never seen. Two copies do not stay equal; they stay unequal
     # quietly, which is worse than one copy being wrong.
     persona_body = re.sub(r"<!--.*?-->", "",
-                          (ROOT / "personality" / "afon.md").read_text(encoding="utf-8"), flags=re.S)
+                          (ROOT / "personality" / "mushegh.md").read_text(encoding="utf-8"), flags=re.S)
     rules_body = re.sub(r"<!--.*?-->", "",
                         (ROOT / "personality" / "operating-rules.md").read_text(encoding="utf-8"),
                         flags=re.S)
-    context_src = (ROOT / "src" / "afon" / "brain" / "context.py").read_text(encoding="utf-8")
+    context_src = (ROOT / "src" / "mushegh" / "brain" / "context.py").read_text(encoding="utf-8")
     voice_skill = (ROOT / "skills" / "voice-style.md").read_text(encoding="utf-8")
 
     check(persona_body.count("— Persona") == 1,
@@ -200,7 +236,7 @@ def main() -> None:
           "trimming the duplication took the useful half with it")
 
     # Whatever is actually assembled must contain one persona and one set of rules.
-    from afon.brain.context import build_system_prompt
+    from mushegh.brain.context import build_system_prompt
 
     prompt = build_system_prompt()
     check(prompt.count("— Persona") == 1,

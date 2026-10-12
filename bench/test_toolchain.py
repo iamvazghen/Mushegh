@@ -97,11 +97,11 @@ def install(shell: FakeShell, module) -> None:
 
 
 async def main() -> int:
-    from afon.brain import toolchain as T
+    from mushegh.brain import toolchain as T
 
-    # Keep the real ledger out of this: the module writes known-good versions to ~/.afon.
+    # Keep the real ledger out of this: the module writes known-good versions to ~/.mushegh.
     import tempfile
-    tmp = tempfile.mkdtemp(prefix="afon-toolchain-")
+    tmp = tempfile.mkdtemp(prefix="mushegh-toolchain-")
     T.ledger_path = lambda: Path(tmp) / "toolchain.json"  # type: ignore[assignment]
 
     original_run = T._run
@@ -213,21 +213,21 @@ async def main() -> int:
     check("a broken run leads with trouble", line.lower().startswith("trouble"), line)
 
     print("\n[8] no credential reaches a child that does not need it")
-    os.environ["AFON_FAKE_TOOLCHAIN_SECRET"] = "sk-must-not-leak"
+    os.environ["MUSHEGH_FAKE_TOOLCHAIN_SECRET"] = "sk-must-not-leak"
     os.environ["ANTHROPIC_API_KEY"] = "for-claude-only"
     os.environ["OPENAI_API_KEY"] = "for-codex-only"
     claude_env = T._child_env(next(s for s in T.TOOLS if s.name == "claude-code"))
     codex_env = T._child_env(next(s for s in T.TOOLS if s.name == "codex"))
     check("an unrelated secret reaches nobody",
-          "AFON_FAKE_TOOLCHAIN_SECRET" not in claude_env
-          and "AFON_FAKE_TOOLCHAIN_SECRET" not in codex_env)
-    check("no AFON_* setting reaches a child", not any(k.startswith("AFON_") for k in codex_env))
+          "MUSHEGH_FAKE_TOOLCHAIN_SECRET" not in claude_env
+          and "MUSHEGH_FAKE_TOOLCHAIN_SECRET" not in codex_env)
+    check("no MUSHEGH_* setting reaches a child", not any(k.startswith("MUSHEGH_") for k in codex_env))
     check("each tool gets its own key", claude_env.get("ANTHROPIC_API_KEY") == "for-claude-only"
           and codex_env.get("OPENAI_API_KEY") == "for-codex-only")
     check("...and not each other's", "OPENAI_API_KEY" not in claude_env
           and "ANTHROPIC_API_KEY" not in codex_env)
     check("npm can still resolve its global prefix", "PATH" in claude_env)
-    for key in ("AFON_FAKE_TOOLCHAIN_SECRET", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
+    for key in ("MUSHEGH_FAKE_TOOLCHAIN_SECRET", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
         os.environ.pop(key, None)
 
     print("\n[9] the ping is a real acceptance test, not a version read")
@@ -280,7 +280,7 @@ async def main() -> int:
             FakeJudge.seen = request
             return FakeVerdict()
 
-    import afon.brain.judgment as J
+    import mushegh.brain.judgment as J
     real_service = J.JudgmentService
     J.JudgmentService = lambda *a, **k: FakeJudge()  # type: ignore[assignment]
     try:
@@ -326,7 +326,7 @@ async def main() -> int:
         T._run = original_run
 
     print("\n[13] the jobs are scheduled, and the whole thing can be switched off")
-    import afon.brain._scheduled_jobs as JOBS
+    import mushegh.brain._scheduled_jobs as JOBS
     check("the 24h target exists", callable(getattr(JOBS, "_fire_toolchain_update", None)))
     check("the 168h target exists", callable(getattr(JOBS, "_fire_toolchain_review", None)))
     server_src = (Path(T.__file__).parent / "server.py").read_text(encoding="utf-8")
@@ -336,7 +336,7 @@ async def main() -> int:
           server_src.count("jitter=") >= 2)
     check("an unattended host mutation is behind a setting",
           "toolchain_autoupdate_enabled" in server_src)
-    from afon.config import settings
+    from mushegh.config import settings
     check("...and the setting exists", isinstance(settings.toolchain_autoupdate_enabled, bool))
 
     print(f"\n=== {passed + failed} checks: {passed} passed, {failed} failed ===")

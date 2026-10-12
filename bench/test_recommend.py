@@ -56,7 +56,7 @@ class T:
 
 
 def main() -> None:
-    from afon.brain import recommend as R
+    from mushegh.brain import recommend as R
 
     now = time.time()
     plain = [T("a", "tidy the garage"), T("b", "read the manual")]
@@ -143,8 +143,8 @@ def main() -> None:
         check("a torn line does not lose the log", len(R.rows(led)) == 2, R.rows(led))
 
     print("\n[logged] the tool logs before it speaks, and declines out loud")
-    from afon.brain.tools import groups_for_text, tool_handlers
-    from afon.brain.tools.day_shape import recommend_next
+    from mushegh.brain.tools import groups_for_text, tool_handlers
+    from mushegh.brain.tools.day_shape import recommend_next
 
     check("the tool is registered", "recommend_next" in tool_handlers())
     for phrase in ("what should I do next", "where do I start", "what should I work on",
@@ -154,7 +154,7 @@ def main() -> None:
     check("an ordinary turn does not load it", "dayshape" not in groups_for_text("what's the time"))
 
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/tools/day_shape.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/tools/day_shape.py").read_text(encoding="utf-8")
     body = src.split("async def recommend_next", 1)[1].split("SCHEMAS = [")[0]
     check("it logs the recommendation", "recommend.log(out)" in body)
     check("...only when there was one to log", "isinstance(out, recommend.Recommendation)" in body)
@@ -167,12 +167,12 @@ def main() -> None:
           isinstance(said, str) and said.strip() != "", said)
 
     print("\n[logged] the log is declared, and no ranker was smuggled in")
-    from afon.brain.inventory import by_name
+    from mushegh.brain.inventory import by_name
 
     check("the decisions log is in the data inventory",
           by_name("recommendations.jsonl") is not None)
     rsrc = (Path(__file__).resolve().parents[1]
-            / "src/afon/brain/recommend.py").read_text(encoding="utf-8")
+            / "src/mushegh/brain/recommend.py").read_text(encoding="utf-8")
     check("no model is called to rank", "llm" not in rsrc.lower().split('"""')[2])
     check("the declined options are recorded, with why",
           "random number generator" in rsrc and "log first" in rsrc.lower())

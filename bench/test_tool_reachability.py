@@ -89,10 +89,10 @@ EXEMPT: dict[str, str] = {
 
 
 def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.brain.intent_router import _CLAUSE_ONLY_ROUTES, _ROUTES
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.intent_router import _CLAUSE_ONLY_ROUTES, _ROUTES
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     core = sorted(t["function"]["name"] for t in (agent._core_tools or []))
 
     routed: set[str] = set()
@@ -130,7 +130,7 @@ def main() -> int:
         ok = False
 
     print("\n[3] the two defects that motivated this gate stay closed")
-    from afon.brain.intent_router import forced_tools
+    from mushegh.brain.intent_router import forced_tools
     plan = forced_tools("Plan my day for me — deep work at 9am, admin at 4pm.")
     mode_off = forced_tools("You can drop focus mode now.")
     mode_on = forced_tools("Put yourself in focus mode for thirty minutes.")
@@ -141,7 +141,7 @@ def main() -> int:
         print("    FAIL  day planning is unrouted again")
         ok = False
     if "routine" not in mode_off:
-        print("    FAIL  leaving a mode is unrouted again - Afon can claim a mode changed")
+        print("    FAIL  leaving a mode is unrouted again - Mushegh can claim a mode changed")
         print("          without it changing")
         ok = False
     if "routine" not in mode_on:

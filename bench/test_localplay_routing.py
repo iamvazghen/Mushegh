@@ -30,7 +30,7 @@ def _tmpfile(data: bytes, suffix: str = ".mp3") -> Path:
     p.write_bytes(data)
     return p
 
-ROOT_SRC = Path(__file__).resolve().parents[1] / "src" / "afon"
+ROOT_SRC = Path(__file__).resolve().parents[1] / "src" / "mushegh"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 passed = failed = 0
@@ -47,9 +47,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    import afon.brain.tools.localplay as lp
-    from afon.brain.pc_link import PC_LINK
-    from afon.brain.tools import tool_names
+    import mushegh.brain.tools.localplay as lp
+    from mushegh.brain.pc_link import PC_LINK
+    from mushegh.brain.tools import tool_names
 
     print("[1] all three primitives go to the laptop when one is linked")
     seen: list[tuple[str, dict]] = []
@@ -81,7 +81,7 @@ def main() -> None:
         # voicechat = Telegram music room). Each stop path used to answer only for its own, so
         # asking to stop the music while a track streamed into the voice chat got "nothing was
         # playing out loud, sir" AND left it playing — a confident wrong answer plus the failure.
-        from afon.brain.tools import voicechat as vc
+        from mushegh.brain.tools import voicechat as vc
 
         async def _idle_forward(op, args, timeout=None):
             seen.append((op, args))
@@ -157,7 +157,7 @@ def main() -> None:
     check("empty payload refused at the executor", bad["ok"] is False, str(bad))
 
     print("\n[5] pc_agent wires the audio ops up")
-    import afon.edge.pc_agent as agent
+    import mushegh.edge.pc_agent as agent
     for op in ("audio_play", "audio_stop", "audio_now"):
         check(f"pc_agent executes '{op}'", op in agent.LOCAL_HANDLERS, str(sorted(agent.LOCAL_HANDLERS)))
     check("executor never re-dispatches (would loop brain->laptop->brain)",
@@ -173,8 +173,8 @@ def main() -> None:
     # did not, so with a track streaming into the room "what's playing?" answered "Nothing is
     # playing out loud right now, sir." A confident wrong answer about something the owner can
     # hear, caused by two tools each holding half the state.
-    from afon.brain import playback
-    import afon.brain.tools.voicechat as vc
+    from mushegh.brain import playback
+    import mushegh.brain.tools.voicechat as vc
 
     real_desk, real_room = lp.desktop_now_playing, vc.room_is_playing
 
@@ -236,7 +236,7 @@ def main() -> None:
         lp.desktop_now_playing, vc.room_is_playing = real_desk, real_room
 
     check("both tools read the same owner, rather than one route each",
-          "from afon.brain.playback import" in (ROOT_SRC / "brain/tools/localplay.py")
+          "from mushegh.brain.playback import" in (ROOT_SRC / "brain/tools/localplay.py")
           .read_text(encoding="utf-8"))
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")

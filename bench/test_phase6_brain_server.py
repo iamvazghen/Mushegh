@@ -55,7 +55,7 @@ class FakeWS:
 
 
 class StubAgent:
-    """Stand-in for AfonAgent: records the prompt, fires a tool filler, returns a reply."""
+    """Stand-in for MusheghAgent: records the prompt, fires a tool filler, returns a reply."""
 
     def __init__(self, reply: str = "Hello sir. All set.", delay: float = 0.0) -> None:
         self.reply = reply
@@ -87,13 +87,13 @@ class StubAgent:
 
 
 async def run() -> None:
-    from afon.brain.server import BrainServer, chunk_for_tts, parse_client_message
-    from afon.shared.protocol import Barge, Hello, Utterance
+    from mushegh.brain.server import BrainServer, chunk_for_tts, parse_client_message
+    from mushegh.shared.protocol import Barge, Hello, Utterance
 
     # Isolate from real daily-digest state: on the FIRST edge turn of a day the server appends a
     # "By the way, sir — …" catch-up as an extra final chunk (and would hit live Gmail). This test is
     # about the streaming/chunk mechanics, not the digest, so pin `due` off for hermeticity.
-    from afon.brain import daily_digest
+    from mushegh.brain import daily_digest
     daily_digest.due = lambda channel, now=None: False
 
     print("[1] chunk_for_tts splits sentences for incremental TTS")
@@ -129,9 +129,9 @@ async def run() -> None:
 
     print("\n[4] Utterance -> thinking, tool filler, streamed assistant chunks (each sentence non-final + terminal marker)")
     ws = FakeWS()
-    await server.handle_message(ws, Utterance(session_id="s1", text="hey afon", ts_user_stop_ms=1))
+    await server.handle_message(ws, Utterance(session_id="s1", text="hey mushegh", ts_user_stop_ms=1))
     await server._turns["s1"]  # let the turn finish
-    check("agent.respond got the text", agent.seen[-1] == "hey afon")
+    check("agent.respond got the text", agent.seen[-1] == "hey mushegh")
     check("thinking lifecycle first", ws.sent[0]["kind"] == "lifecycle" and ws.sent[0]["delta"] == "thinking")
     check("tool filler relayed", "Working on it…" in ws.deltas("tool"))
     assistant = [f for f in ws.sent if f["kind"] == "assistant"]
@@ -150,7 +150,7 @@ async def run() -> None:
     ws2 = FakeWS()
     await server.handle_message(ws2, Utterance(session_id="s2", text="from glasses", ts_user_stop_ms=2))
     await server._turns["s2"]
-    check("same agent saw both sessions' turns", agent.seen == ["hey afon", "from glasses"])
+    check("same agent saw both sessions' turns", agent.seen == ["hey mushegh", "from glasses"])
 
     print("\n[6] barge / supersede cancels the in-flight turn")
     slow = StubAgent(delay=5.0)
@@ -208,7 +208,7 @@ async def run() -> None:
     ), str(stub._history))
 
     print("\n[7] optional bearer auth gates remote clients")
-    import afon.config as cfg
+    import mushegh.config as cfg
 
     old = cfg.settings.api_auth_token
     try:

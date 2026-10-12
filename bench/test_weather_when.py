@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.tools import utility  # noqa: E402
+from mushegh.brain.tools import utility  # noqa: E402
 
 _ok = 0
 _fail = 0

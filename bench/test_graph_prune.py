@@ -96,11 +96,11 @@ def main() -> int:
     # A fabricated edge into a module this file does not import: the exact shape of the 15.
     planted = copy.deepcopy(graph)
     victim = next(n for n in planted["nodes"]
-                  if (n.get("source_file") or "").endswith("src/afon/brain/coaching.py"))
+                  if (n.get("source_file") or "").endswith("src/mushegh/brain/coaching.py"))
     origin = next(n for n in planted["nodes"]
-                  if (n.get("source_file") or "").endswith("src/afon/edge/pc_agent.py"))
+                  if (n.get("source_file") or "").endswith("src/mushegh/edge/pc_agent.py"))
     planted["links"].append({"relation": "calls", "context": "call", "confidence": "INFERRED",
-                             "source_file": "src/afon/edge/pc_agent.py", "source_location": "L1",
+                             "source_file": "src/mushegh/edge/pc_agent.py", "source_location": "L1",
                              "confidence_score": 0.5, "source": origin["id"],
                              "target": victim["id"]})
     check("an edge into an unimported module is caught",

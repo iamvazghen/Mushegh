@@ -1,6 +1,6 @@
 """Composio tool router — Phase 7 (hermetic, no network).
 
-Verifies the two-step router that gives Afon 250+ external apps with a TINY tool footprint:
+Verifies the two-step router that gives Mushegh 250+ external apps with a TINY tool footprint:
   * composio_find_tools searches the owner's CONNECTED apps (filters out unconnected ones) and lists
     slug + required args;
   * composio_run_tool executes by slug and surfaces the result;
@@ -34,7 +34,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def test_confirm_gating() -> None:
     print("[1] writes are confirm-gated, reads run free (slug-verb heuristic)")
-    from afon.brain.proactive import _composio_write, confirm_required
+    from mushegh.brain.proactive import _composio_write, confirm_required
 
     for slug in ("GITHUB_CREATE_AN_ISSUE", "SLACKBOT_CHAT_POST_MESSAGE", "STRIPE_CREATE_CHARGE",
                  "GOOGLESHEETS_ADD_ROW", "GITHUB_DELETE_A_REPOSITORY"):
@@ -52,8 +52,8 @@ def test_confirm_gating() -> None:
 
 async def test_find_and_run() -> None:
     print("\n[2] find scopes to connected apps; run executes by slug")
-    import afon.brain.tools.composio as cx
-    from afon.config import settings
+    import mushegh.brain.tools.composio as cx
+    from mushegh.config import settings
 
     settings.composio_api_key = "test-key"
     # Clear the memo the way a fresh process would. `_context_resolved` is the actual memo key since
@@ -96,13 +96,13 @@ async def test_find_and_run() -> None:
     cx._user_id = cx._active_toolkits = None
     cx._context_resolved = False
     out3 = await cx.composio_find_tools({"query": "x"})
-    from afon.brain.tools.base import is_not_configured
+    from mushegh.brain.tools.base import is_not_configured
     check("no key -> graceful not-configured note", is_not_configured(out3), out3)
 
 
 def test_registry_wiring() -> None:
     print("\n[3] the 2 router tools are registered in the lazy 'apps' group")
-    from afon.brain.tools import group_tool_schemas, groups_for_text, tool_handlers
+    from mushegh.brain.tools import group_tool_schemas, groups_for_text, tool_handlers
 
     h = tool_handlers()
     check("composio_find_tools registered", "composio_find_tools" in h)

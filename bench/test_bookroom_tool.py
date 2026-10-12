@@ -13,7 +13,7 @@ easy to agree with and easy to quietly break, so each is a check here:
      not be spoken as one either.
   3. **`claim_audit` is lexical overlap, not fact-checking.** It is never described as verification.
 
-Plus the Afon-side rules: the paid action is confirm-gated and the free ones are not (a gate in
+Plus the Mushegh-side rules: the paid action is confirm-gated and the free ones are not (a gate in
 front of a cost estimate teaches the owner to skip the estimate), and a missing SDK or a missing
 engine degrades to a spoken "not configured" instead of raising into the turn loop.
 
@@ -148,8 +148,8 @@ def remove_stub() -> None:
 
 
 def main() -> int:
-    from afon.brain.proactive import CONFIRM_TIER, confirm_required
-    from afon.brain.tools import bookroom as B
+    from mushegh.brain.proactive import CONFIRM_TIER, confirm_required
+    from mushegh.brain.tools import bookroom as B
 
     run = lambda a: asyncio.run(B.book(a))  # noqa: E731
 
@@ -287,12 +287,12 @@ def main() -> int:
               "a gate in front of a cost estimate teaches him to skip the estimate")
 
     print("\n[12] the tool is wired into the registry and reachable")
-    from afon.brain.tools import LAZY_GROUP_TRIGGERS, group_tool_schemas, tool_handlers
+    from mushegh.brain.tools import LAZY_GROUP_TRIGGERS, group_tool_schemas, tool_handlers
     check("the handler is registered", "book" in tool_handlers())
     check("it has a lazy group of its own", "reading" in LAZY_GROUP_TRIGGERS)
     names = [s["function"]["name"] for s in group_tool_schemas("reading")]
     check("the group advertises the tool", names == ["book"], str(names))
-    from afon.brain.tools import groups_for_text
+    from mushegh.brain.tools import groups_for_text
     check("'summarise this book' arms the group",
           "reading" in groups_for_text("can you summarise this book for me"))
     check("'book me a table' does NOT arm it",
@@ -324,8 +324,8 @@ def main() -> int:
     check("...and it is imported somewhere", "bookroom_sdk" in body)
 
     print("\n[14] the executor roster still declines this domain, and now says why")
-    import afon.brain.executors as X
-    from afon.brain.executors import Domain
+    import mushegh.brain.executors as X
+    from mushegh.brain.executors import Domain
     check("no executor serves reading",
           not any(Domain.READING in s.domains for s in X.SPECS),
           "the SDK is a library, not an agent: a subprocess would marshal a key into a child "

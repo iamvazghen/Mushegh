@@ -13,7 +13,7 @@ owner names that looked right (`Valetudo/Valetudo`, `Moonraker/Moonraker`)
 returned 404 and were dropped and re-found by search rather than reported. A
 phantom repo is worse than a blank, because it will be trusted.
 
-**Every `src/afon/...` path cited here was verified to exist** before it was
+**Every `src/mushegh/...` path cited here was verified to exist** before it was
 written down, per [subsystems/README.md](subsystems/README.md) rule 1.
 
 ---
@@ -41,9 +41,9 @@ failure the charter was written to prevent.
 | [restic/restic](https://github.com/restic/restic) | BSD-2 | verified, deduplicated, incremental backup | S22 | subprocess | `restic snapshots` |
 | [getsops/sops](https://github.com/getsops/sops) + [FiloSottile/age](https://github.com/FiloSottile/age) | MPL-2.0 / BSD-3 | credentials encrypted at rest in the env file | S20 | subprocess | `sops filestatus .env` |
 | [wenet-e2e/wespeaker](https://github.com/wenet-e2e/wespeaker) | Apache-2.0 | PLDA scoring and EER measurement | S08, S10 | in-repo, **bench only** | `uv run python bench/test_phase5_identity_bench.py` |
-| [Yelp/detect-secrets](https://github.com/Yelp/detect-secrets) | Apache-2.0 | the five-language credential gap | S37 | subprocess sweep, **behind** `src/afon/brain/never_store.py` | `detect-secrets scan audit_log/` |
+| [Yelp/detect-secrets](https://github.com/Yelp/detect-secrets) | Apache-2.0 | the five-language credential gap | S37 | subprocess sweep, **behind** `src/mushegh/brain/never_store.py` | `detect-secrets scan audit_log/` |
 | [adbar/trafilatura](https://github.com/adbar/trafilatura) | Apache-2.0 | real article text instead of nav chrome | S41 | in-repo + its CLI | `trafilatura --url <url> --output-format json` |
-| [polyvertex/fitdecode](https://github.com/polyvertex/fitdecode) | MIT | FIT binary to the vitals schema | S34 | in-repo | `python -m afon.brain.vitals` |
+| [polyvertex/fitdecode](https://github.com/polyvertex/fitdecode) | MIT | FIT binary to the vitals schema | S34 | in-repo | `python -m mushegh.brain.vitals` |
 | [jgm/pandoc](https://github.com/jgm/pandoc) | GPL-2.0 | document format conversion | S06 | subprocess | `pandoc --version` |
 | [beancount/beancount](https://github.com/beancount/beancount) | GPL-2.0 | parses the one ledger the owner may read | S40 | in-repo | `bean-check ledger.beancount` |
 | [HypothesisWorks/hypothesis](https://github.com/HypothesisWorks/hypothesis) | MPL-2.0 | generates the conflict pairs M26 must enumerate | S44 | in-repo, **bench only** | `uv run python bench/test_refusal_grades.py` |
@@ -53,7 +53,7 @@ failure the charter was written to prevent.
 **Two licence obligations to record rather than inherit.** `pandoc` and
 `beancount` are GPL-2.0, and `wespeaker`, `hypothesis` and `sops` are not the
 permissive licences their popularity suggests. All are acceptable for a private,
-never-distributed install. Each becomes a real obligation the day Afon is
+never-distributed install. Each becomes a real obligation the day Mushegh is
 shared (D-57, D-60), and `THIRD_PARTY_NOTICES.md` is where that belongs.
 
 **Two are bench-only on purpose.** `wespeaker` and `hypothesis` change *how the
@@ -77,11 +77,11 @@ than a reliability benchmark — three runs per task on one profile.
 **The blocker is a question, not a missing repository:** **M49** — can that MCP
 server drive the browser the owner is looking at, with his profile? Yes buys
 `05.R1` and `05.R2` as a config line. No, and we keep
-`src/afon/brain/tools/browser.py` and port only the decision loop.
+`src/mushegh/brain/tools/browser.py` and port only the decision loop.
 
 **What must not be traded away:** S05 exists for a *visible* Chromium with a
 persistent profile. A headless agent driving its own browser somewhere he cannot
-see is the cloud path already in `src/afon/brain/tools/web.py`, and the doc is
+see is the cloud path already in `src/mushegh/brain/tools/web.py`, and the doc is
 explicit that conflating the two is how a headless fetch ends up answering as
 though he had been watching his screen.
 
@@ -95,7 +95,7 @@ in the subsystem documents: `mcode` and uv (build and coding), `aioesphomeapi`,
 the Wyoming protocol, `zigpy`, `python-matter-server`, Frigate (hardware), the
 Claude Agent SDK and Codex CLI (coding), the OpenClaw CLI over SSH (fleet),
 Rubo (finance, read side only), `bookroom-sdk` (books, §6 above),
-`src/afon/brain/mcp_client.py` (the MCP door, and it stays).
+`src/mushegh/brain/mcp_client.py` (the MCP door, and it stays).
 
 ---
 
@@ -106,18 +106,18 @@ repository in §2.
 
 1. **Install the Home Assistant token (`28.F1`).** Four hours, one credential
    already inside the D-62 budget, and every IoT item in the roadmap is
-   downstream of it. `src/afon/brain/tools/smarthome.py` is already the adapter.
+   downstream of it. `src/mushegh/brain/tools/smarthome.py` is already the adapter.
 2. **Write `emergency.md` by hand and delete `call` from `ACTIONS`.** The
    highest-stakes gap in thirteen subsystems is owner content, not a package.
-3. **Add the ArcFace enrolment driver** behind `src/afon/brain/tools/camera.py`.
+3. **Add the ArcFace enrolment driver** behind `src/mushegh/brain/tools/camera.py`.
    The backend is already installed; the gap is a driver and a person standing
    in front of a camera.
-4. **Set `AFON_WHISPER_LANGUAGE`.** Unset today, which leaves
-   `src/afon/edge/stt.py` pinned to `en`, so a Ukrainian turn during a cloud
+4. **Set `MUSHEGH_WHISPER_LANGUAGE`.** Unset today, which leaves
+   `src/mushegh/edge/stt.py` pinned to `en`, so a Ukrainian turn during a cloud
    outage is answered in English. One setting.
 5. ~~**Make the delegation routing policy readable data** beside
-   `src/afon/brain/fleet.py`.~~ **Already done, 2026-10-06/07 — this row was stale
-   when written.** The policy is `SPECS` in `src/afon/brain/executors/__init__.py`:
+   `src/mushegh/brain/fleet.py`.~~ **Already done, 2026-10-06/07 — this row was stale
+   when written.** The policy is `SPECS` in `src/mushegh/brain/executors/__init__.py`:
    a frozen table of domain, tier, argv and parser per executor, with
    `candidates()` producing the ballot and `pick()` restricting Jev to it, so the
    choice is **not** made per call by the model — a verdict naming anything off the
@@ -137,9 +137,9 @@ will ask again.
 
 | Candidate | Why declined |
 |---|---|
-| **[666ghj/MiroFish](https://github.com/666ghj/MiroFish)** (AGPL-3.0, 76k★) | Fails PRINCIPLES §1 **at the install line**: Node 18 **+** Python 3.11–3.12 **+** uv **+** a frontend on :3000 **+** an API on :5001 **+** `ZEP_API_KEY`, a hosted commercial graph store. It is also a resurrection of S46, cancelled by D-28. Jev scored it **0.00 at confidence 1.00** — the most decisive answer in the set. It is good software and not an improvement to Afon. |
+| **[666ghj/MiroFish](https://github.com/666ghj/MiroFish)** (AGPL-3.0, 76k★) | Fails PRINCIPLES §1 **at the install line**: Node 18 **+** Python 3.11–3.12 **+** uv **+** a frontend on :3000 **+** an API on :5001 **+** `ZEP_API_KEY`, a hosted commercial graph store. It is also a resurrection of S46, cancelled by D-28. Jev scored it **0.00 at confidence 1.00** — the most decisive answer in the set. It is good software and not an improvement to Mushegh. |
 | **LangGraph and relatives** | D-77 already declined it as the cortex. |
-| **A second MCP client library** | `src/afon/brain/mcp_client.py` is ~200 working lines of newline-delimited JSON-RPC that already does `initialize`, `tools/list` and `tools/call`. |
+| **A second MCP client library** | `src/mushegh/brain/mcp_client.py` is ~200 working lines of newline-delimited JSON-RPC that already does `initialize`, `tools/list` and `tools/call`. |
 | **Temporal, APScheduler, huey, taskiq, any broker** | D-01. The queue is already a SQLite table and a bounded worker. |
 | **Postgres, pgvector, `sqlite-vec`, litestream** | D-02. `sqlite-vec` was verified (Apache-2.0) and is still declined: pre-v1, it keeps the network embedding call, and it improves a recall p95 nobody has measured. |
 | **mopidy** | A music *server* — a new daemon, refused by D-42. |

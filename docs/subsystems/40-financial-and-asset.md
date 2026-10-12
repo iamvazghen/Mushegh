@@ -18,10 +18,10 @@ that would go wrong with it, he cannot undo.
 may exist, and the distinction is load-bearing because this system ships one: the
 owner's own hand-written holdings file, whose shape is `ledger.example.beancount`, is
 permitted and is the only ledger there is. What is forbidden is **ingest** — reading
-transactions, statements or bank feeds into a ledger Afon holds. A file the owner types
+transactions, statements or bank feeds into a ledger Mushegh holds. A file the owner types
 is data he already had and chose to write down; an ingested feed is his financial
 history arriving unasked, in a shape no person reads. The line is drawn at the direction
-of the write, not at the format: Afon may read that file, and writes nothing into it.
+of the write, not at the format: Mushegh may read that file, and writes nothing into it.
 
 So most of this document's goals are anti-goals. They are written as capabilities
 precisely so they can be tested: a system that refuses is a system with a passing
@@ -40,12 +40,12 @@ system that was never supposed to be built.
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/brain/portfolio.py` | brain | 40.F1–F3 — reads a ledger the owner controls, values it with a read-only quote lookup, and moves nothing |
-| `src/afon/brain/tools/portfolio.py` | brain | One tool, one read: `portfolio_snapshot`. No client, no credential, no parameter that takes an amount or a destination |
+| `src/mushegh/brain/portfolio.py` | brain | 40.F1–F3 — reads a ledger the owner controls, values it with a read-only quote lookup, and moves nothing |
+| `src/mushegh/brain/tools/portfolio.py` | brain | One tool, one read: `portfolio_snapshot`. No client, no credential, no parameter that takes an amount or a destination |
 | `ledger.example.beancount` | repo | The plain-text Beancount shape the ledger is expected to take; the owner's real file is local and not in the repo |
 | `bench/test_portfolio.py` | bench | Holds the whole finance family to the absence of a mutating tool |
-| `src/afon/brain/proactive_signals.py` | brain | Where a threshold crossing would raise the one counted signal (40.R1) |
-| `src/afon/brain/stock.py`, `src/afon/brain/tools/stock.py` | brain | **Not this system**, despite the name: these are the inventory tools for S47 |
+| `src/mushegh/brain/proactive_signals.py` | brain | Where a threshold crossing would raise the one counted signal (40.R1) |
+| `src/mushegh/brain/stock.py`, `src/mushegh/brain/tools/stock.py` | brain | **Not this system**, despite the name: these are the inventory tools for S47 |
 
 The naming trap in the last row is worth stating loudly, because "stock" reads as
 securities and is in fact household inventory. A reader who greps for the finance code
@@ -83,11 +83,11 @@ already listed. What it buys is that a date the owner mistyped in his own file
 stops becoming a confidently spoken wrong number.
 
 **It stays on the readable side of the D-12 line, which is the whole constraint.**
-A ledger file the owner types himself is data he already had; Afon may read it
+A ledger file the owner types himself is data he already had; Mushegh may read it
 and writes nothing into it. Nothing here changes that, and nothing here may.
 
 **Licence, recorded rather than inherited:** GPL-2.0, acceptable for a private,
-never-distributed install, a real obligation if Afon is ever shared (D-57, D-60).
+never-distributed install, a real obligation if Mushegh is ever shared (D-57, D-60).
 It belongs in `THIRD_PARTY_NOTICES.md` when adopted.
 
 **Gate:** `bench/test_portfolio.py`, which exists and is `not yet measured`.
@@ -96,7 +96,7 @@ PRINCIPLES §1 three commands, in order:
 ```
 uv run bean-check ledger.beancount
 uv run python bench/test_portfolio.py
-journalctl -u openafon-brain -n 100 | grep -i quote
+journalctl -u openmushegh-brain -n 100 | grep -i quote
 ```
 
 **What must not come with it:** any bank feed, statement ingest, or order
@@ -108,7 +108,7 @@ See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
 ## Goals
 
 1. **No transaction ingest path exists anywhere** — no bank feed, no statement parser,
-   and no ledger Afon writes into. The owner's own hand-written holdings file is the one
+   and no ledger Mushegh writes into. The owner's own hand-written holdings file is the one
    permitted ledger and the only one; ingest is the forbidden half. Anti-goal, and a
    failure of it is a defect (D-12).
 2. **No mutating tool exists in the finance family** — no amount parameter, no
@@ -127,7 +127,7 @@ See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
 
 | Goal | Tier | Command or drill | Threshold | Last measurement |
 |---|---|---|---|---|
-| 1 | B4 | `grep -rlniE 'plaid|open_banking|bank_feed|ofx|statement_parser' src/afon/` | 0 ingest modules; 0 credentials for a financial institution | not yet measured |
+| 1 | B4 | `grep -rlniE 'plaid|open_banking|bank_feed|ofx|statement_parser' src/mushegh/` | 0 ingest modules; 0 credentials for a financial institution | not yet measured |
 | 2 | B1 | `uv run python bench/test_portfolio.py` [no mutating tool in the finance family] | 0 handlers that write; 0 parameters taking an amount or a destination; 1 tool in the family | registry records 40.F2 done; run not reproduced here — not yet measured |
 | 3 | B1 | `uv run python bench/test_portfolio.py` | a snapshot returns holdings and values with no credential configured; 0 network calls to a financial API | registry records 40.F1 done; run not reproduced here — not yet measured |
 | 4 | B1 | `uv run python bench/test_portfolio.py` [staleness] | every value carries an as-of and a source; a price past its declared TTL is reported as stale; 0 silently old values | registry records 40.F3 done; run not reproduced here — not yet measured |
@@ -145,18 +145,18 @@ that actually holds the line, because it is a test over the tool family.
 **Someone adds a statement importer.** The obvious feature — "paste your bank statement
 and I will categorise it" — reads as helpfulness and is exactly what D-12 forbids. The
 cost is that the blast radius becomes the owner's finances. Diagnose:
-`grep -rniE 'statement|categor|transaction' src/afon/brain/`, then
+`grep -rniE 'statement|categor|transaction' src/mushegh/brain/`, then
 `uv run python bench/test_portfolio.py` and read which assertion failed.
 
 **A stale price is read as current.** The snapshot answers with a number that was true
 three days ago, and the owner makes a decision on it. This is the failure 40.F3 exists to
 prevent and the one most likely to be believed. Diagnose: the as-of in the spoken
-output, then `journalctl -u openafon-brain -n 100 | grep -i quote`.
+output, then `journalctl -u openmushegh-brain -n 100 | grep -i quote`.
 
 **The tool grows a parameter.** One added `amount` argument, or one convenience
 "function", and the read-only property the whole system rests on is gone while the tool
 name still says `portfolio_snapshot`. Diagnose: read
-`src/afon/brain/tools/portfolio.py` — it is meant to stay small enough to read in one
+`src/mushegh/brain/tools/portfolio.py` — it is meant to stay small enough to read in one
 screen, which is the cheapest test there is.
 
 **The cancellation is quietly reverted.** The registry records 40.R2 and 40.R3 as

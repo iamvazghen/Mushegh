@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="assets/openafon-logo.png" alt="OpenAfon" width="140">
+<img src="assets/openmushegh-logo.png" alt="Mushegh" width="140">
 
-# OpenAfon
+# Mushegh
 
-**An open-source framework for building your own 24/7, voice-first, multi-device AI companion — "Afon".**
+**An open-source framework for building your own 24/7, voice-first, multi-device AI companion — "Mushegh".**
 
 Wake-word listening · streaming natural voice · its own reasoning LLM + tools · six-layer memory ·
 proactive companion · phone / laptop / glasses · self-improving — **self-hosted state, cloud
@@ -14,23 +14,28 @@ inference**, yours.
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![Platform](https://img.shields.io/badge/edge-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
-📖 **Documentation:** **[openafon.vercel.app](https://openafon.vercel.app)** — the full docs site
+📖 **Documentation:** **[openmushegh.vercel.app](https://openmushegh.vercel.app)** — the full docs site
 
 </div>
 
-<img src="assets/openafon-banner.png" alt="OpenAfon — build your own voice-first AI companion" width="100%">
+<img src="assets/openmushegh-banner.png" alt="Mushegh — build your own voice-first AI companion" width="100%">
 
 ---
 
-> **Naming.** The project is **OpenAfon**; the assistant you build and talk to is **Afon**.
-> *Afon* — the fictional assistant — is only the **blueprint/inspiration** for what a personal AI
-> companion should be; this is an independent, from-scratch implementation. The Python package and
-> CLI keep the short internal name `afon` (import paths, `afon-setup`, `python -m afon.…`) for
-> stability; everything user-facing is Afon / OpenAfon.
+> **Naming.** The project is **Mushegh** — *Modular Universal Synthetic Hyper Engine
+> General Hub* — and the assistant you build and talk to is **Mushegh** too.
+>
+> Everything you read is Mushegh: this file, the docs, the website, and the
+> assistant's own voice. The Python package and CLI deliberately keep the short
+> internal name `mushegh` for now (import paths, `mushegh-setup`, `python -m mushegh.…`,
+> the `MUSHEGH_` environment prefix and the `~/.mushegh` state directory). That is a
+> separate, planned migration: changing those names without migrating a live
+> `.env` would start the brain healthy with zero configuration, which is the one
+> failure this project's own preflight exists to catch.
 
 ## What this is
 
-**OpenAfon is a framework, not a product.** Clone it, run the [setup wizard](#-quick-start-5-minutes),
+**Mushegh is a framework, not a product.** Clone it, run the [setup wizard](#-quick-start-5-minutes),
 point it at the voice/LLM providers you like, and you have a personal assistant you **talk to**: it
 listens for a wake word, answers in a natural streaming voice, remembers across sessions, acts on
 your machine and your accounts, reaches you proactively when it matters, and can even **improve its
@@ -43,8 +48,8 @@ wherever you are — laptop, phone, smart-glasses — all sharing one brain and 
 Everything **degrades gracefully**: a capability with no credentials simply says "that isn't
 configured yet" instead of crashing, so you light up integrations one at a time.
 
-> **Afon is its own agent.** It has its own reasoning model, its own memory, and its own
-> personality (`personality/afon.md`). Pipecat is the voice shell; the LLM + tool loop is the mind.
+> **Mushegh is its own agent.** It has its own reasoning model, its own memory, and its own
+> personality (`personality/Mushegh.md`). Pipecat is the voice shell; the LLM + tool loop is the mind.
 > An *optional* external multi-agent fleet can be **consulted** as one tool among many — it never
 > becomes the assistant.
 
@@ -147,8 +152,8 @@ Two cooperating processes over one streaming WebSocket protocol:
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Edge** (`src/afon/edge/`) keeps audio + STT/TTS **local** (privacy, low mic latency).
-- **Brain** (`src/afon/brain/`) holds the 24/7 obligations (reasoning, memory, scheduler,
+- **Edge** (`src/mushegh/edge/`) keeps audio + STT/TTS **local** (privacy, low mic latency).
+- **Brain** (`src/mushegh/brain/`) holds the 24/7 obligations (reasoning, memory, scheduler,
   channels) and can run in-process **or** as a shared WebSocket server (`brain/server.py`) so a
   laptop, an iPhone, and glasses all share **one** brain + memory.
 - The Pipecat "LLM stage" is replaced by a thin **`BrainBridge`** processor, so swapping reasoning
@@ -161,22 +166,22 @@ Two cooperating processes over one streaming WebSocket protocol:
 Requires **Python 3.11+** and [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
-git clone https://github.com/iamvazghen/OpenAfon openafon && cd openafon
+git clone https://github.com/iamvazghen/Mushegh Mushegh && cd Mushegh
 
-# 1. Install the base + the stack you want (this also makes `afon-setup` available):
+# 1. Install the base + the stack you want (this also makes `mushegh-setup` available):
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra dev
 #   ↳ for a 100% local/offline voice stack, drop `cloud-voice` and add `local-voice`.
 
 # 2. Configure interactively — writes your .env:
-uv run afon-setup
+uv run mushegh-setup
 
 # 3. Verify everything (offline, no keys needed to pass):
 uv run python bench/run_all_tests.py        # → all green
 
 # 4. Talk to it:
-uv run python -m afon.edge.assistant      # local voice loop on this machine
+uv run python -m mushegh.edge.assistant      # local voice loop on this machine
 #   …or run the shared brain for phone/glasses:
-uv run python -m afon.brain.server
+uv run python -m mushegh.brain.server
 ```
 
 `uv sync` **prunes** extras you don't list — install the full set you intend to use **in one go**.
@@ -191,7 +196,7 @@ pass: every one-time login/credential, voice enrollment, and the full real-devic
 
 ## The setup wizard
 
-`uv run afon-setup` (a Rich terminal UI; falls back to plain text on a bare install) walks a forker
+`uv run mushegh-setup` (a Rich terminal UI; falls back to plain text on a bare install) walks a forker
 through the decisions that matter and writes a ready `.env`:
 
 1. **Identity** — display name + wake phrase (from the pre-trained set; custom phrases use Porcupine).
@@ -210,19 +215,19 @@ in `.env.example` for the knobs you didn't touch. Re-run it any time to reconfig
 
 ## Networking: the Tailnet requirement
 
-OpenAfon is multi-device, and the secure way to connect a phone, a laptop, and glasses to the same
+Mushegh is multi-device, and the secure way to connect a phone, a laptop, and glasses to the same
 24/7 brain on a VPS is a **private mesh VPN** — a **Tailnet** ([Tailscale](https://tailscale.com),
 WireGuard under the hood). **Install Tailscale and sign in on _every_ device** — the VPS/brain host,
 your laptop, your iPhone, and (via its companion phone) the glasses. Then:
 
 - Every device gets a stable `100.x.y.z` address reachable only inside *your* tailnet.
 - The brain binds `0.0.0.0` but is only routable to your own devices — **never the public internet** —
-  and is still guarded by the `AFON_API_AUTH_TOKEN` bearer the wizard generates.
+  and is still guarded by the `MUSHEGH_API_AUTH_TOKEN` bearer the wizard generates.
 - The edge connects to `ws://<brain-tailnet-ip>:8765/voice`; the iPhone Siri Shortcut posts to
   `http://<brain-tailnet-ip>:8766/talk`; the PC-control executor dials the brain's `/control` — all
   over the tailnet, no port-forwarding, no public exposure.
 
-**Rule of thumb:** if a device should talk to Afon, it must be **on the tailnet and logged in**.
+**Rule of thumb:** if a device should talk to Mushegh, it must be **on the tailnet and logged in**.
 Off the tailnet, only the public fallbacks work (Telegram bot messages, ntfy push). See the docs
 site's *Networking* page for the exact Tailscale steps.
 
@@ -234,17 +239,17 @@ One brain, reached many ways — all sharing memory, all over the tailnet:
 
 | Device setup | How it connects | Barge-in | Notes |
 |---|---|---|---|
-| **Laptop** (Windows/Linux, built-in mic/speakers) | `afon.edge.assistant` → brain WS | off (open speakers) | baseline local pipeline |
-| **Mac** (macOS, built-in or external) | `afon.edge.assistant` → brain WS | off (open speakers) | same Python/PyAudio edge, runs natively |
+| **Laptop** (Windows/Linux, built-in mic/speakers) | `Mushegh.edge.assistant` → brain WS | off (open speakers) | baseline local pipeline |
+| **Mac** (macOS, built-in or external) | `Mushegh.edge.assistant` → brain WS | off (open speakers) | same Python/PyAudio edge, runs natively |
 | **Laptop/Mac + headphones** (AirPods/BT → host) | same, auto-routes to headphones | **on** (private) | interrupt mid-sentence |
-| **iPhone** (no app) | "Hey Siri, Afon" → `POST /talk` | n/a | Siri dictation → spoken reply |
+| **iPhone** (no app) | "Hey Siri, Mushegh" → `POST /talk` | n/a | Siri dictation → spoken reply |
 | **Android** (no app) | Assistant/Tasker → `POST /talk`, or Termux edge-lite | n/a | dictation → spoken reply; or full mic stream via Termux |
 | **Phone + headphones** (AirPods/BT → phone) | same shortcut (`android-headphones`/`phone-headphones` hint) | **on** (private) | reply plays in the earbuds |
 | **Mentra OS glasses** | *not shipped* — brain-side device routing (`device_id="mentra"`) only | n/a | the TypeScript bridge scaffold was deleted; parked, see TODO.md |
 | **Home Assistant** | brain → HA REST (local) | n/a | states + control (locks confirm-gated) |
 | **Remote PC control** | host executor → brain `/control` | n/a | brain drives a laptop from anywhere |
 
-Every setup is modelled in `src/afon/edge/device_profile.py` (`SUPPORTED_DEVICES`: laptop, **mac**,
+Every setup is modelled in `src/mushegh/edge/device_profile.py` (`SUPPORTED_DEVICES`: laptop, **mac**,
 iphone, **android**, airpods, mentra) and verified in `bench/test_phase6_multidevice.py`. Each has a
 step-by-step acceptance test (TTFW numbers, auto-route, barge-in, Siri/Assistant voice, music room,
 proactive voice, shared memory) in **[`TESTING_GUIDE.md`](TESTING_GUIDE.md) §14** and the docs
@@ -254,19 +259,19 @@ site's *Devices* page.
 
 ## Configuration
 
-Everything is driven by environment variables (prefix `AFON_`) read from `.env`. See
+Everything is driven by environment variables (prefix `MUSHEGH_`) read from `.env`. See
 **[`.env.example`](.env.example)** — every knob is documented inline. Nothing is hard-coded; the same
 codebase runs CPU-local-only or cloud-quality just by flipping provider flags. **Never commit `.env`**
-(it's gitignored). The assistant's *character* is `personality/afon.md`; its *knowledge* is the
+(it's gitignored). The assistant's *character* is `personality/Mushegh.md`; its *knowledge* is the
 Markdown under `memory/`; its *skills* are `skills/*.md` — all editable without touching code.
 
 Notable knobs added for safety/memory:
-- `TYPESAFE_API_KEY` + `AFON_JEV_ENABLED` — optional typed contextual decisions. Jev selects among
+- `TYPESAFE_API_KEY` + `MUSHEGH_JEV_ENABLED` — optional typed contextual decisions. Jev selects among
   explicit options; the generative LLM only phrases the result. Safety, confirmation, privacy and
-  autonomy budgets remain deterministic code. Without a key, Afon asks rather than silently choosing.
-- `AFON_VAULT_WRITABLE` — `true` only on the host that *owns* the vault; lets Afon save notes
+  autonomy budgets remain deterministic code. Without a key, Mushegh asks rather than silently choosing.
+- `MUSHEGH_VAULT_WRITABLE` — `true` only on the host that *owns* the vault; lets Mushegh save notes
   into it (`write_vault`). Off on the laptop (its mirror gets clobbered by the one-way sync).
-- `AFON_SESSION_IDLE_RESET_MINUTES` — after this idle gap the brain journals the prior conversation
+- `MUSHEGH_SESSION_IDLE_RESET_MINUTES` — after this idle gap the brain journals the prior conversation
   and clears working memory, so stale context can't bleed into a fresh conversation hours later.
 
 ---
@@ -278,7 +283,7 @@ Notable knobs added for safety/memory:
 | **L0 Working** | the live conversation (rolling turns; smart-reset on long idle) | RAM |
 | **L1 Learned** | durable facts it saves (`remember`/`recall`/`forget`) | `memory/learned/*.md` |
 | **L2 Journal** | daily summaries + a durable log of proactive nudges | `memory/journal/*.md` |
-| **L3 Vault** | your Obsidian knowledge base (read always; **write** on the authoritative host) | `AFON_VAULT_PATH` |
+| **L3 Vault** | your Obsidian knowledge base (read always; **write** on the authoritative host) | `MUSHEGH_VAULT_PATH` |
 | **L4 Hot-cache** | fronts the slow paths (search, utilities) | in-process TTL |
 | **L5 Semantic** | recall by *meaning*, not just keywords | optional local embedder |
 
@@ -289,7 +294,7 @@ Markdown layers are always the source of truth.
 
 ## The tool belt
 
-All tools live in `src/afon/brain/tools/` (46 modules, **152 tools**) and self-degrade when
+All tools live in `src/mushegh/brain/tools/` (46 modules, **152 tools**) and self-degrade when
 unconfigured. The whole registry is never advertised at once: **54 core tools** are on every turn and
 the remaining 25 groups arm only when what you said matches them, under an enforced per-turn token
 budget — a turn that would exceed it asks you one short question instead of guessing. Highlights:
@@ -327,13 +332,13 @@ it's helpful, never noisy. It speaks to a listening device or falls back to a Te
 ntfy push when you're away. Crucially, **every proactive line is recorded** — into working memory
 (so you can answer "yes, do it" right away) and into the L2 journal (so you can refer back days
 later: "that thing you suggested last week"). Mute it on demand by voice: *"focus mode for an hour"*,
-*"lockdown"*, *"normal"*, *"give me my briefing"*. Toggle with `AFON_PROACTIVE_ENABLED`.
+*"lockdown"*, *"normal"*, *"give me my briefing"*. Toggle with `MUSHEGH_PROACTIVE_ENABLED`.
 
 ---
 
 ## Self-improvement
 
-Afon can improve its own codebase, with a hard safety rail: **every change is reversible and
+Mushegh can improve its own codebase, with a hard safety rail: **every change is reversible and
 verified.** Repo-scoped, secret-blocked file I/O; `run_tests`/`lint` before trusting a change;
 **reversible-only git** (no reset/force-push/rebase/branch-delete — a revert is a new commit);
 writes/commits/pushes are confirm-gated. A background "review" pass also distils durable facts from
@@ -384,7 +389,7 @@ configuration, memory, security, and licensing.
 
 ## Deployment
 
-1. Run `uv run afon-setup`, then work through **[`SOP.md`](SOP.md)** (Tailscale on every device,
+1. Run `uv run mushegh-setup`, then work through **[`SOP.md`](SOP.md)** (Tailscale on every device,
    voice enrollment, VPS ticker, Google/Notion/Telegram logins, GitHub repo, optional
    embedder, proactive switch-on) and **[`TESTING_GUIDE.md`](TESTING_GUIDE.md)** for the
    real-device test plan.
@@ -397,7 +402,7 @@ configuration, memory, security, and licensing.
 
 ## Security
 
-Afon is powerful — it runs shell commands, drives a browser, sends messages, and edits its own
+Mushegh is powerful — it runs shell commands, drives a browser, sends messages, and edits its own
 code. The full safety model (secret handling, **enforced** confirmation tier, protocol passwords,
 self-improvement guardrails, fleet gating, speaker biometrics, audit log, the Tailnet posture, what's
 kept out of git) is in **[SECURITY.md](SECURITY.md)**. **Read it before deploying**, and keep your
@@ -408,13 +413,13 @@ fork **private** if it carries personal `memory/` or persona content.
 ## Project layout
 
 ```
-src/afon/        # package keeps the short internal name `afon`
+src/mushegh/        # package keeps the short internal name `Mushegh`
   edge/            # voice pipeline: wake word, VAD, STT/TTS, device routing, barge-in, PC executor
   brain/           # the agent: LLM, memory, cache, semantic, proactive, audit, health, protocols
     tools/         # the tool belt (one module per capability; SCHEMAS + HANDLERS)
   shared/          # the edge↔brain WebSocket protocol
-  setup_wizard.py  # `afon-setup` — interactive .env generator
-personality/       # afon.md — who Afon is (system-prompt persona; edit to make it yours)
+  setup_wizard.py  # `mushegh-setup` — interactive .env generator
+personality/       # Mushegh.md — who Mushegh is (system-prompt persona; edit to make it yours)
 memory/            # what it knows (Markdown): about, projects, tools, learned/, journal/
 skills/            # on-demand playbooks (self-improvement, architecture, python, pc-control, …)
 clients/iphone/    # the phone client assets
@@ -432,7 +437,7 @@ LICENSE · THIRD_PARTY_NOTICES.md · SECURITY.md · SOP.md · TESTING_GUIDE.md �
 
 ## License
 
-OpenAfon is released under the **[MIT License](LICENSE)** — free to use, modify, and redistribute,
+Mushegh is released under the **[MIT License](LICENSE)** — free to use, modify, and redistribute,
 including commercially. You don't "acquire" or pay for MIT; you just keep the `LICENSE` file (with its
 copyright line) in copies of the code.
 
@@ -443,7 +448,7 @@ unmodified `pip` library is compatible with shipping your own MIT code, and you 
 100%-permissive stack. The full breakdown plus cloud-service Terms is in
 **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**.
 
-> The name **OpenAfon / Afon** is the project's own. *Afon* is referenced only as the
+> The name **Mushegh / Mushegh** is the project's own. *Mushegh* is referenced only as the
 > blueprint/inspiration and is not used as this project's brand. Before a public release, run
 > `uvx pip-licenses --format=markdown` over your locked environment as a final check.
 
@@ -473,6 +478,6 @@ how to add a tool. By participating you agree to the **[Code of Conduct](CODE_OF
 ---
 
 <div align="center">
-<sub><b>OpenAfon</b> — build your own Afon. A from-scratch, self-hosted companion framework;
-Afon was the inspiration, not the implementation.</sub>
+<sub><b>Mushegh</b> — build your own Mushegh. A from-scratch, self-hosted companion framework;
+Mushegh was the inspiration, not the implementation.</sub>
 </div>

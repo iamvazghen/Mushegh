@@ -1,4 +1,4 @@
-# Afon — Engineering TODO
+# Mushegh — Engineering TODO
 
 **Rewritten 2026-10-06.** This file is the **canonical** engineering log and the
 next-action list; `docs/MASTER-PLAN.md` is superseded and points here.
@@ -29,7 +29,7 @@ records what was found. It does not restate decisions — it cites `D-nn`.
 >   implementation ordering. Those sections are not in this file any more. Read them with
 >   `git show HEAD:TODO.md` for Parts A–N; Parts O–S are only in the lost copy, and their
 >   conclusions are in the registry and the decision docs instead.
-> - **Recoverable by the owner, not by me:** Windows *Previous Versions* on `C:\Afon`
+> - **Recoverable by the owner, not by me:** Windows *Previous Versions* on `C:\Mushegh`
 >   (Explorer → Properties → Previous Versions), or an elevated `vssadmin list shadows`.
 >   Worth one attempt before this notice is deleted.
 >
@@ -41,12 +41,12 @@ records what was found. It does not restate decisions — it cites `D-nn`.
 
 ## The new direction — 2026-10-06
 
-The owner restated what Afon is for: **a Jev-guided brain that routes work to the executor
+The owner restated what Mushegh is for: **a Jev-guided brain that routes work to the executor
 that is best at it, and owns the voice, the judgement and the typed boundary itself.**
 
 | Domain | Executor | Status today |
 |---|---|---|
-| Daily life, errands, admin | a **new** OpenClaw fleet, free models (D-87) | transport chosen (CLI over SSH); `src/afon/brain/fleet.py` still disabled; agent ids still placeholders |
+| Daily life, errands, admin | a **new** OpenClaw fleet, free models (D-87) | transport chosen (CLI over SSH); `src/mushegh/brain/fleet.py` still disabled; agent ids still placeholders |
 | Coding | the corporate CLIs, best models (D-87) | contract built; `claude` and `codex` both already on PATH; no adapter calls them yet |
 | Finances, taxes, investments, portfolio, salary | Rubo CLI | **D-12 superseded by D-83.** Declared in the routing table; its output is withheld from every store (`financial_position`) |
 | Reading, book summarisation | the owner's own SDK, in progress | **not built**, and correctly so until the SDK has a version |
@@ -80,21 +80,21 @@ work. Every estimate below assumes a trustworthy suite underneath it.
 
 ## Part U — The executor brain (M41–M46) · **all six built; M42 owes a live round-trip and a coordination row**
 
-Afon becomes the router. Each executor is a subprocess or an MCP server behind a typed
+Mushegh becomes the router. Each executor is a subprocess or an MCP server behind a typed
 adapter, never an interactive shell (D-80), and Jev picks among candidates code produced
 (D-81).
 
 | ID | Milestone | Done when | h |
 |---|---|---|---|
-| M41 | ~~**One executor adapter contract.**~~ **BUILT 2026-10-06, hermetically.** `src/afon/brain/executors/__init__.py` — Pydantic `Brief`/`Result`/`ExecutorSpec`, the routing table, `candidates()`/`resolve()`/`dispatch()`. Registry: `39.R1` in-progress | `bench/test_executor_contract.py` **58/58**, registered in the suite. Dark until M42–M45 call it (D-46) | 6 ✓ |
+| M41 | ~~**One executor adapter contract.**~~ **BUILT 2026-10-06, hermetically.** `src/mushegh/brain/executors/__init__.py` — Pydantic `Brief`/`Result`/`ExecutorSpec`, the routing table, `candidates()`/`resolve()`/`dispatch()`. Registry: `39.R1` in-progress | `bench/test_executor_contract.py` **58/58**, registered in the suite. Dark until M42–M45 call it (D-46) | 6 ✓ |
 | M42 | **OpenClaw goes live for daily-life work.** Transport **BUILT 2026-10-07** — the local `openclaw agent --agent <id> --message-file <path> --timeout <s> --json` CLI. The agent ids `personal` and `business` are **real and live**, read off the VPS; the **SSH plan is declined** (D-91) because a remote shell re-parses the command string. Registry: `39.R7` | `bench/test_fleet_transport.py` **40/40**, registered — no shell, nothing delivered, the task in a file so a brief with `&` or a quote now runs instead of being refused. **Still owed:** a real errand round-trip (spends money on the fleet — the owner's call) and the `coordination.py` row with a deadline and a verdict | 5 |
-| M43 | ~~**Coding delegation lands under D-08.**~~ **BUILT 2026-10-06, hermetically.** `src/afon/brain/executors/landing.py` — a `git worktree` per brief, the four conditions in order, and `commit_approved()` as the second half because `ApprovalQueue` is durable rather than blocking. Registry: `39.R4` in-progress; D-90 records what writing it changed about condition 1 | `bench/test_coding_delegation.py` **98/98**, registered. It caught four real defects in my own code, and a fifth came from re-reading the design — see the log. **Blocked on T0.1 for real use:** a worktree is cut from HEAD, and the checkout has 171 uncommitted changes against a HEAD from 2026-09-15, so the path correctly refuses to delegate against code the owner has moved past | 7 ✓ |
+| M43 | ~~**Coding delegation lands under D-08.**~~ **BUILT 2026-10-06, hermetically.** `src/mushegh/brain/executors/landing.py` — a `git worktree` per brief, the four conditions in order, and `commit_approved()` as the second half because `ApprovalQueue` is durable rather than blocking. Registry: `39.R4` in-progress; D-90 records what writing it changed about condition 1 | `bench/test_coding_delegation.py` **98/98**, registered. It caught four real defects in my own code, and a fifth came from re-reading the design — see the log. **Blocked on T0.1 for real use:** a worktree is cut from HEAD, and the checkout has 171 uncommitted changes against a HEAD from 2026-09-15, so the path correctly refuses to delegate against code the owner has moved past | 7 ✓ |
 | M44 | ~~**A second and third coding executor behind the same contract.**~~ **BUILT 2026-10-06.** `mcode` is one `ExecutorSpec` row, measured from `mcode exec --help` — and it has the richest interface of the three: `--output-format stream-json`, `--output-schema` and an explicit `--permission` policy. No new module, no caller change, which was M41's whole claim. Registry: `39.R1` evidence | `bench/test_executor_contract.py` **109/109** (was 98). It caught a coding brief defaulting to the personal tier, which matched no executor and failed with a message that read as a missing install | 5 ✓ |
 | M45 | ~~**Jev picks the executor.**~~ **BUILT 2026-10-06.** `executors.pick()` over `judgment.arbitrate()` with a declared `route_purpose`. `resolve()` stays the authority; `pick()` is the policy, so the refusal and the fallbacks live in different places on purpose. Registry: `39.R5` | `bench/test_executor_arbitration.py` **43/43**, registered — an uninstalled executor is not even present in the outbound payload, and every failure mode (timeout, outage, no key, disabled, a service object that raises) keeps the deterministic choice silently | 6 ✓ |
-| M46 | ~~**The prompting layer is Afon's, not the executor's.**~~ **BUILT 2026-10-06.** `src/afon/brain/executors/briefing.py` — a constraint table in code, the tier derived from `SPECS` rather than restated, the acceptance check rendered last. Registry: `39.R6` | `bench/test_brief_assembly.py` **54/54**, registered. The refusal that is the point: an acceptance check that *restates the task* is refused, and `from_task()` refuses a record with none rather than generating one. Owes the ten recorded briefs, which is real use | 5 ✓ |
+| M46 | ~~**The prompting layer is Mushegh's, not the executor's.**~~ **BUILT 2026-10-06.** `src/mushegh/brain/executors/briefing.py` — a constraint table in code, the tier derived from `SPECS` rather than restated, the acceptance check rendered last. Registry: `39.R6` | `bench/test_brief_assembly.py` **54/54**, registered. The refusal that is the point: an acceptance check that *restates the task* is refused, and `from_task()` refuses a record with none rather than generating one. Owes the ten recorded briefs, which is real use | 5 ✓ |
 
 **What M41 buys that four bespoke integrations do not:** one place where a cost is charged
-against `src/afon/brain/governor.py`, one place where an audit row is written, and one
+against `src/mushegh/brain/governor.py`, one place where an audit row is written, and one
 failure mode to debug at 2 AM instead of four (D-01).
 
 ---
@@ -120,9 +120,9 @@ chosen action is a type. That is D-04 and D-72 in a new place.
 
 | ID | Milestone | Done when | h |
 |---|---|---|---|
-| M47 | ~~**Close the open browser floor first.**~~ **BUILT 2026-10-06, hermetically.** `submit_needs_confirm()` in `src/afon/brain/tools/browser.py`, called from `proactive.confirm_required`. Registry: `05.R1` in-progress | `bench/test_browser_submit_confirm.py` **45/45**, registered. Owes D-43's seven days of real use | 4 ✓ |
-| M48 | **The Jev-per-step loop inside the existing browser.** Keep `src/afon/brain/tools/browser.py` and the visible Chromium on the laptop — that is the part no library gives us. Replace the *decision* inside the loop: observe, build an indexed element table, one Jev call for operation and target, act, verify freshness | A five-step real web task end to end (`05.E1`); a planned gate `bench/test_browser_session.py` carries multi-tab state (`05.R2`) and downloads by path (`05.R3`); the published baseline to beat is roughly 7 s per task | 10 |
-| M49 | **Evaluate the MCP route before writing the loop by hand.** `jev-browser` ships as a library, a CLI *and* an MCP server under MIT, with a pause-before-irreversible-action gate — which is `05.R1` for free. `src/afon/brain/mcp_client.py` already converts any MCP server into normal Afon tools | A one-day spike answers one question in writing: does that MCP server, driving its own Chromium, keep the owner's logged-in profile visible on his own screen? If no, M48 is built in-repo and the spike is recorded as a decline with its reason | 6 |
+| M47 | ~~**Close the open browser floor first.**~~ **BUILT 2026-10-06, hermetically.** `submit_needs_confirm()` in `src/mushegh/brain/tools/browser.py`, called from `proactive.confirm_required`. Registry: `05.R1` in-progress | `bench/test_browser_submit_confirm.py` **45/45**, registered. Owes D-43's seven days of real use | 4 ✓ |
+| M48 | **The Jev-per-step loop inside the existing browser.** Keep `src/mushegh/brain/tools/browser.py` and the visible Chromium on the laptop — that is the part no library gives us. Replace the *decision* inside the loop: observe, build an indexed element table, one Jev call for operation and target, act, verify freshness | A five-step real web task end to end (`05.E1`); a planned gate `bench/test_browser_session.py` carries multi-tab state (`05.R2`) and downloads by path (`05.R3`); the published baseline to beat is roughly 7 s per task | 10 |
+| M49 | **Evaluate the MCP route before writing the loop by hand.** `jev-browser` ships as a library, a CLI *and* an MCP server under MIT, with a pause-before-irreversible-action gate — which is `05.R1` for free. `src/mushegh/brain/mcp_client.py` already converts any MCP server into normal Mushegh tools | A one-day spike answers one question in writing: does that MCP server, driving its own Chromium, keep the owner's logged-in profile visible on his own screen? If no, M48 is built in-repo and the spike is recorded as a decline with its reason | 6 |
 
 **M49 runs before M48.** The repo may deliver most of M48 for a config line, and `05.R1` with
 it. If it drives a browser the owner cannot see, it fails the one requirement S05 exists for,
@@ -159,7 +159,7 @@ D-12 is marked **superseded**; [D-83](docs/DECISIONS.md) is live and carries the
 finances, taxes, investments, portfolio, salary planning and distribution. What was still only
 prose was D-83's own promise that the *figures* stay in Rubo's store, so that is now enforced:
 
-- a fifth `never_store` class, `financial_position`, in `src/afon/brain/never_store.py`;
+- a fifth `never_store` class, `financial_position`, in `src/mushegh/brain/never_store.py`;
 - **declaration-only, with no detector at all** — and this is the design decision worth keeping.
   Every other class is anchored on a label or a format. A financial position has neither: "EUR
   2,400" is a balance, a salary, or what the coffee machine cost, and a pattern would refuse to
@@ -170,7 +170,7 @@ prose was D-83's own promise that the *figures* stay in Rubo's store, so that is
   into the one file D-83 promises they never reach. A declared payload is now withheld and the
   line carries an HMAC fingerprint instead, so two runs are comparable and nothing is recoverable.
 
-What is still refused is unchanged and deliberate: Afon does not **move** money. A transfer is
+What is still refused is unchanged and deliberate: Mushegh does not **move** money. A transfer is
 external dispatch, and D-13 puts that outside the blast radius without the owner physically
 present. To change that, strike D-13's fourth bullet on purpose.
 
@@ -243,7 +243,7 @@ Not restated here — these are the standing surfaces, and they are authoritativ
 
 ### 2026-10-07 (T0.1 + M42) — the backlog landed, and the transport plan was wrong
 
-**T0.1 is done.** Three weeks and 173 paths committed on `afon/land-2026-10` in seven reviewable
+**T0.1 is done.** Three weeks and 173 paths committed on `mushegh/land-2026-10` in seven reviewable
 chunks: the charter and registry; the executor brain; the toolchain jobs; Bookroom; the browser
 gate and never-store; the graph-gate fix; the graph-memory deletion; and one honest batch of 117
 files for which I had no per-file provenance — splitting *that* into themes would have meant
@@ -267,7 +267,7 @@ gateway.
   strictly better than what it replaces: `_batch_hazard`'s own docstring said the fix was to hand
   the task over in a file rather than guess at quoting. A brief reading *Draft a reply about "the
   boiler" & the rent* used to be **refused**; it now runs, verified byte for byte.
-- **`--deliver` defaults to false**, and Afon never passes it, nor any channel or recipient. So a
+- **`--deliver` defaults to false**, and Mushegh never passes it, nor any channel or recipient. So a
   fleet turn produces a reply and **sends nothing**. The consent gate lives in the transport rather
   than in a prompt — the only place a model cannot be talked out of it.
 - **`--timeout` exists**, so the CLI gets the brief's deadline and exits with a transcript instead
@@ -290,7 +290,7 @@ assuming it. The nine, and what each actually was:
 
 | Gate | Cause | Fix |
 |---|---|---|
-| `check_public_clean` | **4 leaks.** `tools/bookroom.py` read `GEMINI_API_KEY` and `TYPESAFE_API_KEY` straight from `os.environ`, giving four credentials a second home. 36.F5 says one home, and the gate was right | the keys are declared in `afon/config.py` with their aliases; the tool asks config |
+| `check_public_clean` | **4 leaks.** `tools/bookroom.py` read `GEMINI_API_KEY` and `TYPESAFE_API_KEY` straight from `os.environ`, giving four credentials a second home. 36.F5 says one home, and the gate was right | the keys are declared in `mushegh/config.py` with their aliases; the tool asks config |
 | `test_loop_registry` | **Both toolchain jobs were running unseen** — no period, no budget, no kill switch, no HUD row. 31.F4 exists for exactly this class and caught my own work from the previous turn | declared in `brain/loops.py` with generous budgets (an npm install is minutes) and the kill switch named |
 | `test_catalogue_narrowing` | the `reading` group had no prompt in the 60-prompt corpus, so the Bookroom tool was never exercised by the router measurement | two prompts added, phrased the way he talks; 62 now |
 | `test_website_claims` | the published tool list said 151 and the registry says 152 — `book` was missing | regenerated |
@@ -340,14 +340,14 @@ functions. The things worth recording:
 - **An acceptance check that restates the task is refused.** `Brief` already rejects an empty one;
   the one that gets past it is the one that reads like diligence and verifies nothing. And
   `from_task()` refuses a record with no check rather than generating one — a generated
-  acceptance check is Afon marking his own homework.
+  acceptance check is Mushegh marking his own homework.
 - **The constraints are chosen for failures a later check cannot undo.** `landing.py` would refuse
   a migration anyway, so telling the executor up front is the difference between a wasted paid run
   and a usable diff; an agent that has already sent an email has done something no gate reverses.
 
 ### 2026-10-06 (M43) — the landing path, and four defects it caught in my own code
 
-**What got built.** `src/afon/brain/executors/landing.py`, the only path from an external coding
+**What got built.** `src/mushegh/brain/executors/landing.py`, the only path from an external coding
 executor to a commit, plus `bench/test_coding_delegation.py` (**91/91**, registered). D-08 is four
 sentences in a charter; four sentences enforce nothing, so this is the function they become.
 Registry: `39.R4`. Charter: **D-90**.
@@ -364,8 +364,8 @@ note, and all four came from checks written to be awkward rather than agreeable:
 
 1. The branch name was the clock to the second, so two briefs in the same second collided and the
    **second legitimate delegation was refused**. A random suffix now.
-2. A blank worktree path resolved to the current directory — which was `C:\Afon`. So
-   `commit_approved("")` would have operated on **Afon's own repo**. Refused explicitly now, and
+2. A blank worktree path resolved to the current directory — which was `C:\Mushegh`. So
+   `commit_approved("")` would have operated on **Mushegh's own repo**. Refused explicitly now, and
    the gate asserts it.
 3. Condition 1 was checked by the branch merely not being named `main`. A dirty owner checkout
    passed in as the worktree **would have been committed to**. The check is now provenance: a
@@ -413,7 +413,7 @@ in development, two machines on the VPS, and unresolved.
 The owner asked for two jobs: a 24 h version check across Claude Code, Codex, OpenClaw and MiniMax
 Code that installs a new release and proves it with a **ping that must come back a pong**; and a
 168 h review in which Jev says what each tool is missing and the tools are asked themselves.
-`src/afon/brain/toolchain.py`, `bench/test_toolchain.py` **73/73**, scheduled in `server.py` behind
+`src/mushegh/brain/toolchain.py`, `bench/test_toolchain.py` **73/73**, scheduled in `server.py` behind
 `toolchain_autoupdate_enabled`. Charter: **D-88** (a bounded extension of D-07's whitelist — an
 unattended host mutation is a decision, not a feature) and **D-89** (advisory by construction).
 Registry `31.R8`, `31.R9`.
@@ -474,7 +474,7 @@ The owner handed over `bookroom-sdk` v1.0.0 with a `SKILL.md` in its root. Readi
 **changed D-86**: it was written assuming the SDK would enter as an executor adapter, and it enters
 as a tool instead. The reasons generalise, which is why they are in the charter and not just here:
 
-1. the SDK's own first rule is that **Python holds the keys in the process**, and Afon's brain
+1. the SDK's own first rule is that **Python holds the keys in the process**, and Mushegh's brain
    already is that process — a subprocess would marshal `GEMINI_API_KEY` into a child for nothing;
 2. the `bookroom` CLI has **no `preflight` subcommand**, and `guide` does not preflight on its way
    in — so the CLI route would lose the one call the SDK says to always make before spending;
@@ -485,7 +485,7 @@ as a tool instead. The reasons generalise, which is why they are in the charter 
 something that acts on its own judgement. A library is a tool. Routing a library through the
 contract buys none of its protections and costs all of its ceremony.
 
-`src/afon/brain/tools/bookroom.py` is one tool, `book`, with four actions. The fence: a `guide` is
+`src/mushegh/brain/tools/bookroom.py` is one tool, `book`, with four actions. The fence: a `guide` is
 **refused** until a preflight for that same file has run within thirty minutes, and it is a refusal
 rather than an automatic estimate, because the point of the number is that the owner hears it. An
 expired estimate is refused like none at all. Only `guide` is confirm-gated — a gate in front of a
@@ -530,7 +530,7 @@ which is the argument for writing the enforcement instead of the promise.
 Second thing worth keeping: the finance never-store class has **no detector, on purpose.** Every
 other class is anchored on a label or a format; a financial position has neither. "EUR 2,400" is a
 balance, a salary, or what the coffee machine cost, so a pattern would refuse to remember the last
-of those — the exact false positive `src/afon/brain/never_store.py`'s own docstring warns against.
+of those — the exact false positive `src/mushegh/brain/never_store.py`'s own docstring warns against.
 Declaration beats detection wherever a caller has certainty, and the finance executor has it.
 
 Third: D-05's rule moved from a test into a **type**. `ExecutorSpec` refuses an interpreter at
@@ -540,9 +540,9 @@ grep over the file would not have stopped them.
 `test_executor_contract.py` 83/83 (was 58), `test_never_store.py` 53/53 (was 50), `test_doc_paths`
 27/27, `test_layering` 38/38, `test_audit_integrity` 45/45, registry re-rendered. Ruff is clean on
 everything touched; seven pre-existing errors remain in files this work did not open
-(`src/afon/brain/emergency.py`, `src/afon/brain/governor.py`, `src/afon/brain/tools/routines.py`,
-`src/afon/brain/tools/stock.py`, `src/afon/edge/voice_health.py`,
-`src/afon/protocols/portable.py`) and are left alone rather than swept into an unrelated change.
+(`src/mushegh/brain/emergency.py`, `src/mushegh/brain/governor.py`, `src/mushegh/brain/tools/routines.py`,
+`src/mushegh/brain/tools/stock.py`, `src/mushegh/edge/voice_health.py`,
+`src/mushegh/protocols/portable.py`) and are left alone rather than swept into an unrelated change.
 
 ### 2026-10-06 (evening) — the contract and the browser gate, and three things found by running them
 
@@ -552,7 +552,7 @@ fleet on free models, corporate to OpenClaw on the best models; **finances, taxe
 portfolio, salary management and distribution** to Rubo; summarisation to his own SDK. The finance
 half had been flagged as needing a deliberate nod because D-12 refused it; he restated the broad
 reading, so **D-12 is now marked superseded and [D-83](docs/DECISIONS.md) is the live decision**,
-with the blast-radius half of D-12's reasoning kept: Afon reads, computes, models and drafts
+with the blast-radius half of D-12's reasoning kept: Mushegh reads, computes, models and drafts
 across all of it, and does not **move** money, because a transfer is external dispatch and D-13
 puts that outside the radius without the owner physically present. **D-87** records the tier rule.
 

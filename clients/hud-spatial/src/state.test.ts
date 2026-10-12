@@ -16,7 +16,7 @@ describe('Spatial state invariants', () => {
 });
 describe('Brain contract', () => {
   it('maps every real producer top-level field to a named surface', () => {
-    const source = readFileSync(new URL('../../../src/afon/brain/hud.py', import.meta.url), 'utf8');
+    const source = readFileSync(new URL('../../../src/mushegh/brain/hud.py', import.meta.url), 'utf8');
     const body = source.slice(source.indexOf('    return {', source.indexOf('def hud_snapshot(')), source.indexOf('\ndef _unattended'));
     const keys = [...body.matchAll(/^        "([a-z_]+)":/gm)].map(m => m[1]);
     expect([...new Set(Object.values(DATA_COVERAGE).flat())].sort()).toEqual(keys.sort());

@@ -8,7 +8,7 @@ wrong. Measured on the 2026-08-15 graph:
     cites. Not one is invented; 0.5 is graphify's prior for a *category* of evidence (a name passed
     as an argument, a name in a collection literal), not a per-edge probability of being false.
   * **15 of 307 resolve to the wrong file.** `llm.py:339` calls a nested `_push()` and the graph
-    points it at `deploy/vps/afon_ticker.py`'s `push`. `agent.py` calls a nested `_run()` three
+    points it at `deploy/vps/mushegh_ticker.py`'s `push`. `agent.py` calls a nested `_run()` three
     times and lands on `tools/coding.py`. `autostart.py` calls its own `install()` and `status()`
     and lands on `shared/errors.py` and `brain/modes.py`. All 15 are bare local names colliding
     with a same-named symbol elsewhere in the tree.
@@ -22,7 +22,7 @@ the 61 cross-file inferred edges that has one is kept; the 15 without one are dr
 edges (231) are never touched, and no EXTRACTED edge is ever touched: this only removes claims the
 extractor itself scored as guesses.
 
-The bug is graphify's name resolution, not Afon's code, and graphify is not this repo's to fix —
+The bug is graphify's name resolution, not Mushegh's code, and graphify is not this repo's to fix —
 so this runs from the post-commit hook after every rebuild, like the routing manifest, because
 `graphify update` regenerates the graph from the AST and puts them all back.
 

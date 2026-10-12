@@ -1,4 +1,4 @@
-"""Doc integrity gate for the Afon documentation tree.
+"""Doc integrity gate for the Mushegh documentation tree.
 
 This exists because a shell write corrupted `01-brain-core-intelligence.md`
 during development: two control characters were injected into words, and a whole
@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 
 PATH_RE = re.compile(
-    r"`((?:src/afon|bench|tools|scripts|deploy)/[A-Za-z0-9_./-]+)`"
+    r"`((?:src/mushegh|bench|tools|scripts|deploy)/[A-Za-z0-9_./-]+)`"
 )
 DECISION_RE = re.compile(r"^## D-(\d+)", re.M)
 
@@ -66,16 +66,16 @@ NOT_PATHS = {"tools/call", "tools/list"}
 #: them. Allowed to not resolve, and listed so the removal stays visible.
 HISTORICALLY_REMOVED = {
     # D-26 deleted S24's relation layer; DECISIONS.md names the deleted modules.
-    "src/afon/brain/graph.py",
-    "src/afon/brain/tools/graphmem.py",
+    "src/mushegh/brain/graph.py",
+    "src/mushegh/brain/tools/graphmem.py",
     # D-02 cancelled the Postgres/vector migration, so S30-MIGRATION.md describes
     # a set of files that were never built. That is the document's subject.
     "bench/test_postgres_vectors.py",
     "bench/test_store_migration_snapshot.py",
-    "src/afon/brain/sql/postgres_vectors.sql",
+    "src/mushegh/brain/sql/postgres_vectors.sql",
     # ...and the same migration named its client in 30-persistent-memory.md.
-    "src/afon/brain/postgres_client.py",
-    "src/afon/brain/postgres_vectors.py",
+    "src/mushegh/brain/postgres_client.py",
+    "src/mushegh/brain/postgres_vectors.py",
     # 27-contextual-awareness.md records this as the gate a planned room-presence
     # source still owes. It has not been written, and the document says so.
     "bench/test_room_presence.py",
@@ -142,11 +142,11 @@ def main() -> int:
                     planned_present.append(rel)
                 continue
             # The subsystem Structure tables use a house shorthand: `tools/x.py`
-            # means `src/afon/brain/tools/x.py`. Resolve it before calling it a
+            # means `src/mushegh/brain/tools/x.py`. Resolve it before calling it a
             # phantom, or the gate cries wolf on the docs' own convention.
             shorthand = None
             if rel.startswith("tools/"):
-                candidate = ROOT / "src" / "afon" / "brain" / rel
+                candidate = ROOT / "src" / "mushegh" / "brain" / rel
                 if candidate.exists():
                     shorthand = candidate
             if shorthand is not None:

@@ -3,7 +3,7 @@
 Measured: loading ECAPA takes ~56s on this machine. It was warmed synchronously while the pipeline
 was being built, so the edge did not start listening until it finished. That is invisible at 03:20
 when the refresh task runs, and very visible when the audio watchdog restarts the edge on a device
-change at midday: Afon simply does not answer, with nothing in the log that says why.
+change at midday: Mushegh simply does not answer, with nothing in the log that says why.
 
 Moving the warm-up to a background thread is only safe because of the second half. `_ensure_embedder`
 used to set `_tried_load = True` on entry, so a real utterance arriving mid-load would see "already
@@ -42,7 +42,7 @@ def check(ok: bool, name: str, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.edge.speaker_id import SpeakerVerifier
+    from mushegh.edge.speaker_id import SpeakerVerifier
 
     print("[1] a caller arriving mid-load WAITS for the backend, it does not get None")
     # The whole point: None means "no backend", and no backend means verify() accepts everyone.
@@ -96,7 +96,7 @@ def main() -> None:
           "a supplied embedder short-circuits the loader (tests stay hermetic)")
 
     print("\n[4] the edge does not block on the warm-up")
-    src = (ROOT / "src" / "afon" / "edge" / "assistant.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "edge" / "assistant.py").read_text(encoding="utf-8")
     seg = src[src.index("Phase 5 — speaker biometrics"):]
     seg = seg[:seg.index("stages.append(gate)")]
     check("Thread(" in seg and "_ensure_embedder" in seg,
@@ -108,7 +108,7 @@ def main() -> None:
     print("\n[5] the gate still fails OPEN when there is genuinely no backend")
     # Not a regression to fix — it is the deliberate contract. A missing backend must never lock
     # the owner out of his own assistant; only a LOADED backend may reject him.
-    from afon.config import settings
+    from mushegh.config import settings
 
     saved = settings.speaker_id_enabled
     try:
@@ -126,14 +126,14 @@ def main() -> None:
     print("\n[6] the voiceprint lives in state, not in the source tree")
     # It is biometric data. It was sitting at the repo root, kept out of git by a single
     # `voiceprint.json*` ignore line, and shipped nowhere useful — it is state, so a fresh clone or
-    # a deploy had no business seeing it. Moved to ~/.afon/ with the face refs, with a one-time
-    # migration so an existing enrolment is not silently abandoned (which reads as "Afon went deaf").
-    import afon.edge.speaker_id as SI
-    from afon.config import settings as cfg
+    # a deploy had no business seeing it. Moved to ~/.mushegh/ with the face refs, with a one-time
+    # migration so an existing enrolment is not silently abandoned (which reads as "Mushegh went deaf").
+    import mushegh.edge.speaker_id as SI
+    from mushegh.config import settings as cfg
 
-    check(str(SI._default_profile_path()).replace("\\", "/").endswith(".afon/voiceprint.json")
+    check(str(SI._default_profile_path()).replace("\\", "/").endswith(".mushegh/voiceprint.json")
           or bool(cfg.speaker_profile_path),
-          "the default path is under ~/.afon/, not the repo",
+          "the default path is under ~/.mushegh/, not the repo",
           str(SI._default_profile_path()))
     check(not (ROOT / "voiceprint.json").exists(),
           "no voiceprint is left at the repo root", "the migration did not run")

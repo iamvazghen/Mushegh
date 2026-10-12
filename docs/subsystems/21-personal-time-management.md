@@ -17,9 +17,9 @@ pinned event, or fills an empty hour. A schedule it decided is one the owner has
 which is the shape of the half-baked state D-50 forbids.
 
 If it is absent the owner keeps a system that can list events and warn that one is
-imminent, and nothing else: a day can be structurally impossible and Afon will not say so
+imminent, and nothing else: a day can be structurally impossible and Mushegh will not say so
 until 09:00, when the first clash has already cost something. The second absence is quieter
-and worse — the capability is built and unfed. `~/.afon/routines.json` holds two dynamic
+and worse — the capability is built and unfed. `~/.mushegh/routines.json` holds two dynamic
 commitments and no windowed entries, so everything downstream reasons from an empty file.
 Timing of the morning brief is **not** this system's business: the learned-wake-pattern idea
 is superseded, and the brief fires on the owner's first interaction, rendering silently
@@ -32,26 +32,26 @@ everything else.
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/schedule.py` | `Clash`, `clashes()`, `spoken()` — the three ways a day is broken |
-| `src/afon/brain/tools/day_shape.py` | The day-shape tools, deliberately not in the always-advertised `routines.py` |
-| `src/afon/brain/routine_draft.py` | Drafts land in a file for the owner to adopt, never straight into `routines.json` |
-| `~/.afon/routines.json` | The owner's routines; read by `src/afon/brain/proactive_signals.py` for routine anchors |
-| `src/afon/brain/anticipation.py` | Calendar look-ahead — reading what is already written down |
-| `src/afon/brain/goal_deviation.py` | The one path from a stated goal to an interruption, held against the budget |
-| `src/afon/brain/patterns.py` | Time-of-day and topic patterns from the command log, persisted as L1 facts |
-| `src/afon/brain/forecast.py` | A forecaster today; D-28 removes it as a modelling system, leaving the deterministic look-ahead |
-| `src/afon/brain/presence.py`, `src/afon/brain/tools/activity.py` | The actual-vs-planned source for 21.R2 |
+| `src/mushegh/brain/schedule.py` | `Clash`, `clashes()`, `spoken()` — the three ways a day is broken |
+| `src/mushegh/brain/tools/day_shape.py` | The day-shape tools, deliberately not in the always-advertised `routines.py` |
+| `src/mushegh/brain/routine_draft.py` | Drafts land in a file for the owner to adopt, never straight into `routines.json` |
+| `~/.mushegh/routines.json` | The owner's routines; read by `src/mushegh/brain/proactive_signals.py` for routine anchors |
+| `src/mushegh/brain/anticipation.py` | Calendar look-ahead — reading what is already written down |
+| `src/mushegh/brain/goal_deviation.py` | The one path from a stated goal to an interruption, held against the budget |
+| `src/mushegh/brain/patterns.py` | Time-of-day and topic patterns from the command log, persisted as L1 facts |
+| `src/mushegh/brain/forecast.py` | A forecaster today; D-28 removes it as a modelling system, leaving the deterministic look-ahead |
+| `src/mushegh/brain/presence.py`, `src/mushegh/brain/tools/activity.py` | The actual-vs-planned source for 21.R2 |
 
-Flow: the calendar is read through `src/afon/brain/google.py` and
-`src/afon/brain/tools/calendar.py`; `schedule.clashes()` classifies the day; `day_shape`
-tools render it; a focus block is proposed, and once accepted `src/afon/brain/modes.py`
+Flow: the calendar is read through `src/mushegh/brain/google.py` and
+`src/mushegh/brain/tools/calendar.py`; `schedule.clashes()` classifies the day; `day_shape`
+tools render it; a focus block is proposed, and once accepted `src/mushegh/brain/modes.py`
 holds it, silencing audio interruptions for its duration (D-29).
 
 **Calendar sync is not two-way, and the credential is not the one D-62 names.** There is
-no CalDAV client anywhere in `src/afon/`; the read and create path is a Google OAuth
+no CalDAV client anywhere in `src/mushegh/`; the read and create path is a Google OAuth
 refresh token shared with Gmail, while M22's done-when is a CalDAV token installed. That is
 recorded rather than smoothed over, and it is an open question below. What it stores:
-`~/.afon/routines.json`, the presence database for actuals, and audit lines for every
+`~/.mushegh/routines.json`, the presence database for actuals, and audit lines for every
 schedule tool call. Nothing is written to a pinned event without confirmation.
 
 ## Goals
@@ -79,7 +79,7 @@ schedule tool call. Nothing is written to a pinned event without confirmation.
   events modified, 3/3 classes named. Last: **not yet measured**. 21.F2 is `done` in the
   registry, whose only status evidence is `unverified-import`, so no dated run exists.
 - **G2** · B1 · `bench/test_day_shape.py` [1]-[4] plus the draft path in
-  `src/afon/brain/routine_draft.py`. Threshold 0 writes into `routines.json` without an
+  `src/mushegh/brain/routine_draft.py`. Threshold 0 writes into `routines.json` without an
   owner adoption. Last: **not yet measured** — the floor is `done` and the file is still
   effectively empty, which is the honest state.
 - **G3** · B1 · `bench/check_date_robustness.py`. Threshold 12/12 clock cases. Last: **not
@@ -102,29 +102,29 @@ schedule tool call. Nothing is written to a pinned event without confirmation.
 
 - **`routines.json` is empty or malformed.** Everything that reasons about a normal day
   falls back to defaults, silently, and a bad file is caught and replaced rather than
-  reported. Diagnose: `type %USERPROFILE%\.afon\routines.json`, then
-  `journalctl -u afon-brain -n 200 --no-pager | grep -i routines`.
-- **The calendar read fails.** The day looks empty, and Afon says there is nothing today
+  reported. Diagnose: `type %USERPROFILE%\.mushegh\routines.json`, then
+  `journalctl -u mushegh-brain -n 200 --no-pager | grep -i routines`.
+- **The calendar read fails.** The day looks empty, and Mushegh says there is nothing today
   about a day with five meetings — the most damaging sentence this system can produce. The
   not-configured sentinel covers credentials, not a token that has expired. Diagnose:
-  `journalctl -u afon-brain | grep -i calendar` for the error class, and the token's
+  `journalctl -u mushegh-brain | grep -i calendar` for the error class, and the token's
   presence in `.env` without printing it.
 - **A clash is missed or invented.** A false overlap costs the owner trust in the feature; a
-  missed one costs the meeting. Diagnose: `sqlite3 afon_tasks.sqlite` for the calls and
+  missed one costs the meeting. Diagnose: `sqlite3 mushegh_tasks.sqlite` for the calls and
   `bench/test_day_shape.py` for the classifier.
-- **A focus block becomes a schedule.** The moment Afon places the owner's own work without
+- **A focus block becomes a schedule.** The moment Mushegh places the owner's own work without
   being asked, it is editing his day — a defect, diagnosable in the audit lines.
 - **Energy-aware scheduling becomes forecasting.** D-28 removed ML forecasting; a placement
   rule that reappears as a learned time series is that work returning under a new name.
-  Diagnose: `grep -rni "holt\|arima\|prophet\|statsmodels" src/afon/`, which today matches
-  only the prose in `src/afon/brain/forecast.py` declining them.
+  Diagnose: `grep -rni "holt\|arima\|prophet\|statsmodels" src/mushegh/`, which today matches
+  only the prose in `src/mushegh/brain/forecast.py` declining them.
 
 ## Open questions
 
 1. D-62 names CalDAV as a token; the code's calendar path is a Google OAuth refresh token
-   shared with Gmail, and no CalDAV client exists in `src/afon/`. Which is the one calendar
+   shared with Gmail, and no CalDAV client exists in `src/mushegh/`. Which is the one calendar
    credential M22 installs?
 2. `routines.json` is effectively empty and 21.F1 is `done`. Does the owner fill it by hand
-   under D-32, or does it get seeded by adopting `src/afon/brain/routine_draft.py` drafts?
+   under D-32, or does it get seeded by adopting `src/mushegh/brain/routine_draft.py` drafts?
 3. 21.R3 wants hard work placed in the hours it has historically worked. What deterministic
    rule may that use, given the pattern is exactly what D-28 stopped modelling?

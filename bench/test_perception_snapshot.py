@@ -27,7 +27,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import perception as P  # noqa: E402
+from mushegh.brain import perception as P  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 NOW = 1000.0
@@ -120,7 +120,7 @@ def main() -> None:
           "an empty room is a fact; not having looked is not")
     check(looked.value == "empty", "the recorded verdict is what comes back")
 
-    # A stale meeting verdict must not read as a meeting — this is how Afon would stay silent for
+    # A stale meeting verdict must not read as a meeting — this is how Mushegh would stay silent for
     # twenty minutes after a call ended.
     m_late = NOW + P.MAX_AGE_S["meeting"] + 1
     m = P.perceive(_Presence(meeting=True), now=m_late)
@@ -139,7 +139,7 @@ def main() -> None:
           "a stale fact is never stated bare, which is what would be believed", d_old)
 
     print("\n[4] perceive() is passive and cheap — it runs on every turn")
-    src = (ROOT / "src/afon/brain/perception.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/brain/perception.py").read_text(encoding="utf-8")
     body = src[src.index("def perceive("):]
     for forbidden in ("cv2", "VideoCapture", "_capture", "await ", "requests", "httpx"):
         check(forbidden not in body, f"perceive() does not reach for `{forbidden.strip()}`")
@@ -154,7 +154,7 @@ def main() -> None:
     check(per_ms < 30.0, f"a snapshot is {per_ms:.3f}ms, well inside the turn budget")
 
     print("\n[5] the camera path is what dates the visual fact")
-    cam = (ROOT / "src/afon/brain/tools/camera.py").read_text(encoding="utf-8")
+    cam = (ROOT / "src/mushegh/brain/tools/camera.py").read_text(encoding="utf-8")
     check("_record_visual(" in cam, "the camera tool records its verdict for the perception layer")
     check("record_visual" in cam and "if d.get(\"available\")" in cam,
           "only an available verdict is recorded — a busy webcam is not evidence about the room")
@@ -162,11 +162,11 @@ def main() -> None:
 
     print("\n[presence fusion] 43.F3 — he is here if ANY sensor says so, away only if all agree")
     # The single-source bug: `place` was device idle and nothing else. The laptop sleeps, the edge
-    # drops, he unplugs for an hour — the sample goes stale and Afon concludes the room is empty
+    # drops, he unplugs for an hour — the sample goes stale and Mushegh concludes the room is empty
     # while the man is sitting in it. Every sensor here is blind in a way the others are not: the
     # keyboard cannot see him on a phone call, the camera cannot see him reading on the sofa, and
-    # neither of them hears him talking to Afon.
-    from afon.brain.situation import _fuse_place
+    # neither of them hears him talking to Mushegh.
+    from mushegh.brain.situation import _fuse_place
 
     now = 10_000.0
 
@@ -203,7 +203,7 @@ def main() -> None:
     check(place == "desk", "a stale keyboard does NOT mean away when the camera just saw him")
     check(why == "visual", f"...and the source names which sensor vouched for him ({why})")
 
-    # The phone-call case: the laptop has been untouched for an hour, but he spoke to Afon.
+    # The phone-call case: the laptop has been untouched for an hour, but he spoke to Mushegh.
     place, why = _fuse_place(snapshot(idle=3.0, age=4000.0, voice=True, voice_age=60.0), now)
     check(place == "desk", "a voice turn a minute ago outweighs an hour of not typing")
     check(why == "voice", f"...credited to the voice ({why})")
@@ -228,7 +228,7 @@ def main() -> None:
     # 'I have not looked' must never be readable as 'nobody is there' — the same rule 26.F2 sets
     # for a single fact, now holding for the fusion of three.
     fused_src = (Path(__file__).resolve().parents[1]
-                 / "src/afon/brain/situation.py").read_text(encoding="utf-8")
+                 / "src/mushegh/brain/situation.py").read_text(encoding="utf-8")
     check("_fuse_place" in fused_src and "perception.presence" not in
           fused_src.split("def assemble")[1].split("def ")[0],
           "assemble() no longer reads the presence fact directly — it goes through the fusion")
@@ -239,9 +239,9 @@ def main() -> None:
           "a voice turn is trusted longer than a camera frame — it is evidence of a while, not an "
           "instant")
 
-    import afon.brain.server as srv
+    import mushegh.brain.server as srv
     check("record_voice" in (Path(__file__).resolve().parents[1]
-                             / "src/afon/brain/server.py").read_text(encoding="utf-8")
+                             / "src/mushegh/brain/server.py").read_text(encoding="utf-8")
           and srv is not None,
           "an inbound utterance records the voice fact")
     P.reset_visual()

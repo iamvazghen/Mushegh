@@ -14,7 +14,7 @@ replaced a guess:
   1. **`--message-file` exists**, so the task is handed over in a file and nothing ever re-parses
      it. That is the fix `_batch_hazard`'s docstring named, rather than refusing a brief for
      containing a quote.
-  2. **`--deliver` defaults to false**, and Afon never passes it. An agent turn therefore produces
+  2. **`--deliver` defaults to false**, and Mushegh never passes it. An agent turn therefore produces
      a reply and sends *nothing* to any channel — the owner-consent property living in the
      transport instead of in a prompt, which is the only place it cannot be talked out of.
   3. **`--timeout` exists**, so the CLI gets the brief's own deadline and exits with a transcript
@@ -60,8 +60,8 @@ def _raises(fn, exc) -> bool:
 
 
 async def main() -> int:  # noqa: PLR0915
-    import afon.brain.executors as X
-    from afon.brain.executors import Brief, Domain, ExecutorSpec, Tier
+    import mushegh.brain.executors as X
+    from mushegh.brain.executors import Brief, Domain, ExecutorSpec, Tier
 
     fleet = [s for s in X.SPECS if s.name.startswith("openclaw-")]
 
@@ -82,8 +82,15 @@ async def main() -> int:  # noqa: PLR0915
     print("\n[2] the two fleet agents are the real ones")
     check("both tiers of fleet work have an executor", len(fleet) == 2, str(len(fleet)))
     ids = {s.argv[s.argv.index("--agent") + 1] for s in fleet}
+    # CORRECTED 2026-10-11. This read {"personal", "business"} — real agents of the EIGHT-agent
+    # fleet, deleted on 2026-10-08. Their roles belong to tatev (Personal operations) and tamara
+    # (Business and vendor operations) in the eighteen-agent fleet, and the ids are checked
+    # against the live roster rather than a literal, so the next roster change fails HERE.
+    from mushegh.brain import roster
     check("the agent ids are the live ones, not placeholders",
-          ids == {"personal", "business"}, str(sorted(ids)),)
+          ids == {"tatev", "tamara"}, str(sorted(ids)))
+    check("...and every one of them is on the live eighteen-agent roster",
+          all(i in roster.names() for i in ids), str(sorted(ids)))
     personal = next(s for s in fleet if s.name == "openclaw-personal")
     business = next(s for s in fleet if s.name == "openclaw-business")
     check("personal work is on the free pool (the owner's split)",
@@ -101,7 +108,7 @@ async def main() -> int:  # noqa: PLR0915
                    & set(s.argv)),
               "a channel is how a draft becomes a sent message")
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/executors/__init__.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/executors/__init__.py").read_text(encoding="utf-8")
     # Precisely: no STRING LITERAL "--deliver" anywhere in the contract, which is the only form
     # that could reach an argv. The prose above it explains why the flag is absent, and a check
     # that forbade the explanation too would just delete the reasoning. (First version of this
@@ -119,12 +126,12 @@ async def main() -> int:  # noqa: PLR0915
           all(set(s.env_allow) == {"OPENCLAW_GATEWAY_URL", "OPENCLAW_GATEWAY_TOKEN"}
               for s in fleet),
           str([s.env_allow for s in fleet]))
-    os.environ["AFON_FAKE_SECRET_FOR_TEST"] = "sk-must-not-leak"
+    os.environ["MUSHEGH_FAKE_SECRET_FOR_TEST"] = "sk-must-not-leak"
     env = X._child_env(personal)
     check("no unrelated secret reaches the fleet child",
-          "AFON_FAKE_SECRET_FOR_TEST" not in env
-          and not any(k.startswith("AFON_") for k in env))
-    os.environ.pop("AFON_FAKE_SECRET_FOR_TEST", None)
+          "MUSHEGH_FAKE_SECRET_FOR_TEST" not in env
+          and not any(k.startswith("MUSHEGH_") for k in env))
+    os.environ.pop("MUSHEGH_FAKE_SECRET_FOR_TEST", None)
 
     print("\n[5] a brief with a metacharacter now RUNS instead of being refused")
     original = X.SPECS
@@ -160,7 +167,7 @@ async def main() -> int:  # noqa: PLR0915
     print("\n[6] the handoff file does not outlive the call")
     import tempfile
 
-    before = {p.name for p in Path(tempfile.gettempdir()).glob("afon-brief-*.txt")}
+    before = {p.name for p in Path(tempfile.gettempdir()).glob("mushegh-brief-*.txt")}
     X.SPECS = (ExecutorSpec(
         name="openclaw-personal", domains=(Domain.DAILY,), tiers=(Tier.PERSONAL,),
         argv=(sys.executable, "-c", "print('{\"ok\":true}')", "--message-file", "{task_file}",
@@ -169,7 +176,7 @@ async def main() -> int:  # noqa: PLR0915
     try:
         await X.dispatch(Brief(domain=Domain.DAILY, task="book the dentist",
                                acceptance="an appointment exists", timeout_s=30))
-        after = {p.name for p in Path(tempfile.gettempdir()).glob("afon-brief-*.txt")}
+        after = {p.name for p in Path(tempfile.gettempdir()).glob("mushegh-brief-*.txt")}
         check("the brief file is removed when the run succeeds", after <= before,
               str(sorted(after - before)))
 
@@ -182,7 +189,7 @@ async def main() -> int:  # noqa: PLR0915
             parser="openclaw_json"),)
         res = await X.dispatch(Brief(domain=Domain.DAILY, task="book the dentist",
                                      acceptance="an appointment exists", timeout_s=30))
-        after2 = {p.name for p in Path(tempfile.gettempdir()).glob("afon-brief-*.txt")}
+        after2 = {p.name for p in Path(tempfile.gettempdir()).glob("mushegh-brief-*.txt")}
         check("...and when the run exits non-zero", after2 <= before,
               str(sorted(after2 - before)))
         check("a failed fleet turn never reads as success", not res.ok and res.error, res.error)
@@ -195,14 +202,14 @@ async def main() -> int:  # noqa: PLR0915
         # property: `candidates()` filters on `shutil.which`, so no file is ever written for it.
         X.SPECS = (ExecutorSpec(
             name="openclaw-personal", domains=(Domain.DAILY,), tiers=(Tier.PERSONAL,),
-            argv=("afon-no-such-binary-xyz", "--message-file", "{task_file}",
+            argv=("mushegh-no-such-binary-xyz", "--message-file", "{task_file}",
                   "--timeout", "{timeout}"),
             parser="openclaw_json"),)
         check("an uninstalled fleet CLI is REFUSED before anything is written",
               await _refuses(X, Brief(domain=Domain.DAILY, task="book the dentist",
                                       acceptance="an appointment exists", timeout_s=30)),
               "availability is measured, so a dead binary cannot even be dispatched to")
-        after3 = {p.name for p in Path(tempfile.gettempdir()).glob("afon-brief-*.txt")}
+        after3 = {p.name for p in Path(tempfile.gettempdir()).glob("mushegh-brief-*.txt")}
         check("...and no brief file was created for it", after3 <= before,
               str(sorted(after3 - before)))
     finally:

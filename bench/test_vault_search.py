@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.tools import vault  # noqa: E402
+from mushegh.brain.tools import vault  # noqa: E402
 
 _ok = 0
 _fail = 0
@@ -140,7 +140,7 @@ asyncio.run(main())
 # --- 50.F3: the vault-write rule is enforced in code, not only in documentation ------------------
 # "Writes go to the VPS, never the local replica" was a sentence in a document, and a sentence is
 # not a mechanism. The only thing standing between a dictated note and a directory that gets
-# nuked-and-replaced was AFON_VAULT_WRITABLE being set correctly on every host, forever. Set it
+# nuked-and-replaced was MUSHEGH_VAULT_WRITABLE being set correctly on every host, forever. Set it
 # wrong once on the laptop and every note would be written, reported as saved, and deleted by the
 # next pull — with nothing anywhere recording that it had happened.
 print("\n[50.F3] a replica refuses the write, whatever the flag says")
@@ -171,14 +171,14 @@ with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _d:
             vault.write_note("A decision", "worth keeping")
         except vault.VaultIsReplica as e:
             _raised = str(e)
-        check(bool(_raised), "write_note refuses even with AFON_VAULT_WRITABLE=true")
+        check(bool(_raised), "write_note refuses even with MUSHEGH_VAULT_WRITABLE=true")
         check(not list(_replica.rglob("*.md")), "...and nothing was written")
 
         _said = asyncio.run(vault.write_vault({"note": "A decision", "content": "worth keeping"}))
         check("won't write that here" in _said, "the tool refuses loudly, not politely", _said[:90])
         check("VPS" in _said, "...and names where the authoritative copy is", _said[:160])
         check("record_op" in (Path(__file__).resolve().parents[1]
-                              / "src/afon/brain/tools/vault.py").read_text(encoding="utf-8"),
+                              / "src/mushegh/brain/tools/vault.py").read_text(encoding="utf-8"),
               "...and the refusal is recorded where failures are counted",
               "a refusal phrased as a pleasant sentence leaves no trace at all")
 
@@ -195,13 +195,13 @@ with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _d:
             vault.write_note("A decision", "worth keeping")
         except PermissionError as e:
             _off = str(e)
-        check("AFON_VAULT_WRITABLE" in _off, "the flag is still honoured on its own", _off)
+        check("MUSHEGH_VAULT_WRITABLE" in _off, "the flag is still honoured on its own", _off)
     finally:
         vault.settings.vault_path, vault.settings.vault_writable = _saved_path, _saved_flag
         vault._CACHE.clear()
 
 print("\n[50.F3] one writer, so the rule cannot be walked around")
-_src_root = Path(__file__).resolve().parents[1] / "src" / "afon"
+_src_root = Path(__file__).resolve().parents[1] / "src" / "mushegh"
 _offenders = []
 for _py in _src_root.rglob("*.py"):
     if _py.name == "vault.py":

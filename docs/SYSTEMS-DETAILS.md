@@ -1,4 +1,4 @@
-# Afon System Plan Detail Archive
+# Mushegh System Plan Detail Archive
 
 > **Non-authoritative historical detail.** docs/systems-plan.json owns all live task state, gates, evidence, budgets, dependencies, and economics. docs/SYSTEMS.md is generated from that registry. This archive preserves the decision rationale and delivery notes that informed it.
 >
@@ -8,7 +8,7 @@
 
 # Legacy 50-System Master Plan
 
-# Afon — the 50-system master plan
+# Mushegh — the 50-system master plan
 
 **What this document is.** One section per system, fifty of them, each with a floor to reach, a
 sequence of small raises, and a verification gate on every step. `TODO.md` remains the **canonical
@@ -30,8 +30,8 @@ decision from you, not by work from me. Those numbers are the point of the revis
 absent before, which meant the plan could not be argued with.
 
 State at the time of writing: **158 registered tests**, last full run green; last behavioural grade
-**84.9/100** (target ≥95, no category <90); **136 registered tools**; Afon **parked** by
-`~/.afon/MAINTENANCE` on both hosts, deliberately out of production until this plan's floors are met.
+**84.9/100** (target ≥95, no category <90); **136 registered tools**; Mushegh **parked** by
+`~/.mushegh/MAINTENANCE` on both hosts, deliberately out of production until this plan's floors are met.
 
 ---
 
@@ -80,11 +80,11 @@ Blocked     — needs the owner (a key, a decision, a recording). Never silently
 | G-A | The full hermetic suite stays green. No task lands red. | `run_all_tests.py`, pre-push hook |
 | G-B | Every new capability ships with a bench test **registered in the runner** | `test_run_all_tests_classifier.py` |
 | G-C | No new tool may enter the registry undocumented or unrouted | `test_registry_complete.py` |
-| G-D | Any tool that mutates the world outside Afon enters the confirm tier | `test_confirm_tier_documented.py` |
+| G-D | Any tool that mutates the world outside Mushegh enters the confirm tier | `test_confirm_tier_documented.py` |
 | G-E | No doc may cite a path that does not exist | `test_doc_paths.py` |
 | G-F | No layering violation (edge→brain internals, tools→agent) | `test_layering.py` |
 | G-G | Degradation is typed, never prose-matched (`is_not_configured`, `tool_failed`) | `test_no_result_sentinels.py`, `test_error_taxonomy.py` |
-| G-H | Nothing autostarts while `~/.afon/MAINTENANCE` exists | `test_maintenance_lock.py` |
+| G-H | Nothing autostarts while `~/.mushegh/MAINTENANCE` exists | `test_maintenance_lock.py` |
 | G-I | Per-turn cost does not regress: prefill tokens, p50/p95 turn latency | `test_speed.py`, `efficiency_report.py` |
 | G-J | Behavioural grade never drops below the previous recorded median-5 | `behavioral_suite.py` |
 | G-K | This document stays honest: 50 sections, a gate on every task, a scoreboard that matches | `test_systems_plan.py` |
@@ -182,12 +182,12 @@ by saying so and giving a reason.
 |---|---|
 | Kubernetes, multi-region, Consul/etcd, load balancers | One VPS, one laptop, one owner. Consensus systems coordinate many nodes; at two nodes the honest answer is a declared degraded mode (S32). |
 | Neo4j, InfluxDB/TimescaleDB, Qdrant, MinIO | Four separate daemons for data one Postgres already holds: a graph is an edge table, a time series is a timestamped row, vectors are pgvector, blobs are a directory with a path in a row. Adding four servers to avoid four schemas is a bad trade at this size. |
-| LangChain / LangGraph / CrewAI / AutoGen as the agent core | The loop already carries the confirm tier, typed degradation, clause completion and streaming failover. A framework rewrite re-litigates all four for no capability Afon lacks. |
+| LangChain / LangGraph / CrewAI / AutoGen as the agent core | The loop already carries the confirm tier, typed degradation, clause completion and streaming failover. A framework rewrite re-litigates all four for no capability Mushegh lacks. |
 | Celery / Temporal / Prefect / Airflow | Broker plus worker tier for a queue of a handful of items; durability already comes from sqlite and restart-expiry. |
 | Keycloak / Auth0 / Vault / OPA | Exactly one principal. The confirm tier *is* the policy engine; `pass` *is* the secret store. A second authority is a sync problem, not a security gain. |
 | NeMo Guardrails | Refusals are deterministic and in code (S44). Two policy engines produce two answers to "may I", and the disagreement shows up as behaviour, not as an error. |
 | Differential privacy | It protects individuals inside an aggregate release. One subject, no release. |
-| Schemathesis | It fuzzes the OpenAPI surface *you* expose; Afon consumes APIs and exposes almost none. |
+| Schemathesis | It fuzzes the OpenAPI surface *you* expose; Mushegh consumes APIs and exposes almost none. |
 | pytest as the runner | Deliberate, and load-bearing: `run_all_tests.py` executes each bench file as a **subprocess**, so every test runs standalone with no conftest and no shared harness that the failure under diagnosis could itself have broken (J3.1). pytest is fine *inside* a file; it is not the gate. |
 | Rust / Go rewrites | Nothing is measured CPU-bound. The latency budget is model inference and network. |
 | A digital twin / simulation layer for the home (proposed 2026-09-12) | Recommended in the same review that praised this plan for refusing over-engineering, which is the tell. For one owner's smart home the proportionate version is a dry-run flag on scene application (S28), not a simulated model of the house to keep in step with the house. |
@@ -208,7 +208,7 @@ learned state under identical names, because stores resolved from the location o
 rather than from a state root.
 
 **Why that objection is gone.** Task 30.F1 is done. There is one state root per host
-(`AFON_STATE_DIR`, default `~/.afon`, resolved in `shared/paths.py` and nowhere else), the union
+(`MUSHEGH_STATE_DIR`, default `~/.mushegh`, resolved in `shared/paths.py` and nowhere else), the union
 migration ran, and `test_memory_single_origin.py` holds the invariant at 46 checks with ten planted
 regressions. The divergence a migration would have run through no longer exists. The specific reason
 for the decline is spent, so the decline is revisited rather than repeated.
@@ -221,7 +221,7 @@ for the decline is spent, so the decline is revisited rather than repeated.
 | Semantic recall without a remote API | Jina embeddings over HTTP on the answer path | `pgvector` locally; embeddings stop being a network dependency and a bill |
 | A real claim primitive for S16 and S48 | a file lock and hope | `SELECT … FOR UPDATE SKIP LOCKED`, which is the whole of what Ray was proposed for |
 | Replication for S32 | copying files and praying about torn pages | logical replication, or Litestream if it stays sqlite |
-| One store, not ten | ten `afon_*.sqlite` files, each with its own schema drift | one schema, one backup, one restore drill |
+| One store, not ten | ten `mushegh_*.sqlite` files, each with its own schema drift | one schema, one backup, one restore drill |
 
 **What it costs, stated plainly.** A daemon on the brain host. On a VPS that OOMed once this summer
 that is not free, so it is tuned down deliberately rather than run at defaults:
@@ -236,7 +236,7 @@ real, and a task that crosses it is a bug, not a feature.
 **The cache is Valkey, not Redis.** Redis changed licence in 2024 and, although Redis 8 returned to
 AGPL-3.0 in 2025, **Valkey (BSD-3, Linux Foundation)** is the clean OSI answer and is protocol- and
 client-compatible — `redis-py` talks to it unchanged. Confirm both licence positions at adoption.
-Afon already declares Redis as an optional L4 hot cache that degrades to a no-op, so this finishes a
+Mushegh already declares Redis as an optional L4 hot cache that degrades to a no-op, so this finishes a
 half-built dependency rather than adding a new one. **It must stay a no-op when absent.** Four uses,
 and no others:
 
@@ -253,10 +253,10 @@ migration seam and the reason this is a week rather than a rewrite:
 
 1. Create the schema; dual-write sqlite and Postgres behind the facade.
 2. Backfill, then run `compare_stores.py` until reads agree row for row.
-3. Flip reads per store, one at a time, behind `AFON_STORE_BACKEND`.
+3. Flip reads per store, one at a time, behind `MUSHEGH_STORE_BACKEND`.
 4. Keep dual-write for two weeks, then drop sqlite writes for that store.
 
-**Rollback is per store and needs no revert:** flip `AFON_STORE_BACKEND` back to `sqlite`. The
+**Rollback is per store and needs no revert:** flip `MUSHEGH_STORE_BACKEND` back to `sqlite`. The
 sqlite file is still being written during the overlap, which is what makes the rollback real rather
 than theoretical.
 
@@ -270,7 +270,7 @@ unchanged or better · brain host RSS ceiling enforced in `test_speed.py`.
 
 | Confidence | Settled by | Effort F/R/E | Owner | €/mo | Rollback |
 |---|---|---|---|---|---|
-| reasoned | store-parity green and recall p95 no worse on the real corpus | 6 / 4 / 2 d | 0 | 0 (same VPS) | `AFON_STORE_BACKEND=sqlite`, per store |
+| reasoned | store-parity green and recall p95 no worse on the real corpus | 6 / 4 / 2 d | 0 | 0 (same VPS) | `MUSHEGH_STORE_BACKEND=sqlite`, per store |
 
 
 # How coherence is tested — fifty capabilities, one organism
@@ -285,7 +285,7 @@ process, two laptop processes, and a set of stores.
 | Tier | What it proves | How it runs here |
 |---|---|---|
 | **1 · Hermetic unit** | One module's contract, including its failure shapes | A bench script with every dependency stubbed. No network, no clock, no camera. 157 of these today. |
-| **2 · Wire contract** | The three real boundaries agree | Schema tests over `src/afon/shared/protocol.py`, PC_LINK ops, and the client↔brain routes (`test_client_endpoints.py`, `test_pc_agent_routing.py`). This is where contract testing earns its keep. |
+| **2 · Wire contract** | The three real boundaries agree | Schema tests over `src/mushegh/shared/protocol.py`, PC_LINK ops, and the client↔brain routes (`test_client_endpoints.py`, `test_pc_agent_routing.py`). This is where contract testing earns its keep. |
 | **3 · Cross-system scenario** | Several systems produce one coherent outcome | A journey: drive the agent with stubbed *externals* but real internals, then assert on spoken output, emitted signals **and final store state**. |
 | **4 · Behavioural** | The whole assistant, judged | `behavioral_suite.py` against the deployed brain with a real model and an LLM judge, median-5. |
 | **5 · Live drill** | Reality, once | A recorded run: unplug the VPS, churn the AirPods, sit at the desk. Logged in `TODO.md` with a date. |
@@ -336,7 +336,7 @@ waves, and do not start a wave until the previous wave's floors are green.
 |---|---|---|
 | **0 — Unpark safely** | S31, S36, S22, S23 | Nothing goes back into production until self-monitoring, security, recovery and reachability floors hold. |
 | **1 — The organs** | S01, S02, S03, S30, S24 | Brain, LLM, tools, memory, world model. Every other system's quality is capped by these. |
-| **2 — Identity & senses** | S08, S09, S10, S11, S18, S26, S27 | Afon cannot be trusted with autonomy until he knows who is speaking and what he is looking at. |
+| **2 — Identity & senses** | S08, S09, S10, S11, S18, S26, S27 | Mushegh cannot be trusted with autonomy until he knows who is speaking and what he is looking at. |
 | **3 — The daily loop** | S07, S14, S16, S17, S21, S13, S33 | The behaviour the owner meets every single day. |
 | **4 — Reach & control** | S04, S05, S12, S19, S20, S28, S29, S38, S42, S43 | Hands, devices, homes, channels. |
 | **5 — Judgment** | S25, S41, S44, S45, S37, S39, S48 | Personality, research, ethics, explanation, delegation. |
@@ -344,7 +344,7 @@ waves, and do not start a wave until the previous wave's floors are green.
 
 ### The unpark gate — added 2026-09-12, and it outranks every raise in this document
 
-**Afon goes back into production when Wave 3's floors are green. Not when the raises are done, and
+**Mushegh goes back into production when Wave 3's floors are green. Not when the raises are done, and
 not when the behavioural score reaches 95.**
 
 This is a change, and the reason is that the current order has a failure mode nobody had named:
@@ -457,7 +457,7 @@ percentile, a week of logs). None blocks a floor.
 1. **The floors alone are 128 days** — a third of the total. Everything else is optional in a way
    the floors are not: a floor is "make it exist and stop it lying".
 2. **Waves 0–2 are 140 days and they gate everything else.** Wave 0 (33 days) is what stands between
-   Afon and being unparked.
+   Mushegh and being unparked.
 3. **The elite tier is 97 days and most of it cannot be compressed**, because it is measurement —
    a month of acceptance data is a month regardless of how fast anyone types.
 
@@ -503,7 +503,7 @@ external blocker in Part C.
 
 # What it costs to run
 
-Afon's existing bill is unchanged by this plan: the VPS, the LLM providers, Deepgram, ElevenLabs and
+Mushegh's existing bill is unchanged by this plan: the VPS, the LLM providers, Deepgram, ElevenLabs and
 Jina embeddings are all already running. What the plan **adds**:
 
 | Added | €/month | Why | Optional? |
@@ -533,7 +533,7 @@ are why the per-system Rollback column is short:
    rewrites what exists. A rollback is then "stop reading the column", not "restore a backup".
 3. **A facade wraps; it does not replace.** The memory recall facade and the media state owner both
    sit *over* the existing paths, so removing them leaves a working system rather than a hole.
-4. **The park switch is always the last resort and always works.** `~/.afon/MAINTENANCE` halts every
+4. **The park switch is always the last resort and always works.** `~/.mushegh/MAINTENANCE` halts every
    role on every host, and `test_maintenance_lock.py` keeps it that way.
 
 A change that cannot be described in one line of that column is too big and should be split.
@@ -561,7 +561,7 @@ the time of writing and must be confirmed at adoption** — this is a shortlist,
 | Litestream | Apache-2.0 | S32 | Continuous sqlite replication to object storage |
 | restic (or borg) | BSD-2 (BSD-3) | S22, S50 | Encrypted, deduplicated, off-site snapshots |
 | Uptime Kuma / Healthchecks | MIT / BSD-3 | S23 | Uptime that is not self-reported |
-| Beancount | GPL-2.0 | S40 | A plain-text ledger that is auditable without Afon |
+| Beancount | GPL-2.0 | S40 | A plain-text ledger that is auditable without Mushegh |
 | Grocy | MIT | S47 | A full inventory app, if one table proves too bare |
 | statsforecast / statsmodels | Apache-2.0 / BSD-3 | S46 | Baselines worth beating before any foundation model |
 | SearXNG | AGPL-3.0 | S41 | Free meta-search, self-hosted, if the chain proves weak |
@@ -569,9 +569,9 @@ the time of writing and must be confirmed at adoption** — this is a shortlist,
 | Already in use: pipecat · SpeechBrain · OpenCV · Playwright · Silero VAD · Home Assistant · ntfy · `pass` | BSD · Apache-2.0 · Apache-2.0 · Apache-2.0 · MIT · Apache-2.0 · Apache-2.0/GPL-2.0 · GPL-2.0 | — | The existing foundation, listed so its licences are visible in one place |
 
 **The linking rule.** Copyleft tools (Beancount, `pass`, SearXNG, mpv, OctoPrint, LinuxCNC) are used
-as **separate processes, CLIs, file formats or self-hosted services — never imported into the `afon`
-package.** That keeps the repository's own licensing position clean if OpenAfon is ever published,
-and it is also better engineering: a ledger that is a text file survives Afon.
+as **separate processes, CLIs, file formats or self-hosted services — never imported into the `mushegh`
+package.** That keeps the repository's own licensing position clean if OpenMushegh is ever published,
+and it is also better engineering: a ledger that is a text file survives Mushegh.
 
 ---
 
@@ -623,7 +623,7 @@ good practice.* That is the mechanism this section exists to serve.
 ## What it found wrong — and it is one finding, not fifty
 
 Every dimension resting on **evidence** collapsed. Runtime connectedness averaged **0.96/4**; asked
-plainly whether Afon is connected, **0.28/4 at confidence 0.77 — *a collection of parts: most
+plainly whether Mushegh is connected, **0.28/4 at confidence 0.77 — *a collection of parts: most
 capabilities do not actually reach each other***, with **P = 0.90** that the coupling is only
 import-level or test-only. **All fifty** systems scored below 0.50 on whether their gate would catch
 real failure, and **all fifty** below 0.50 on whether their floor is usable. **49 of 50** floors
@@ -695,7 +695,7 @@ Part O.
 
 ## The one place this archive's design is contradicted
 
-`src/afon/brain/hud.py` is deliberately read-only — its docstring records that it *"only READS the
+`src/mushegh/brain/hud.py` is deliberately read-only — its docstring records that it *"only READS the
 same singletons the brain already runs on, so it can never perturb a live turn"*, marked as a
 `ponytail:` simplification. **Jev says that is the wrong call: a control room, not a dashboard —
 p = 0.93, confidence 0.85.** *Seeing a wrong belief and being unable to correct it is worse than not
@@ -705,7 +705,7 @@ Both concerns are real, so the resolution is to keep the guarantee and add the c
 interventions **queue** rather than reaching into a running turn. The surface itself extends the
 existing browser clients against the brain's HTTP/WS surface — **no new runtime, p = 0.99,
 confidence 0.99** — and is built **after** the first real week (p = 0.88, conf 0.75), against real
-traces rather than imagined ones. Its most valuable view is **what Afon believes** (p = 0.75): the
+traces rather than imagined ones. Its most valuable view is **what Mushegh believes** (p = 0.75): the
 memory and world model, because a stale belief produces confident wrong answers indefinitely and
 **23 of 50** systems name silent wrongness as their dominant risk.
 
@@ -723,10 +723,10 @@ over Jev's.
 
 ## S01 · Brain / Core Intelligence
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/agent.py`,
-`src/afon/brain/intent_router.py`, `src/afon/brain/context.py`, `src/afon/brain/modes.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/agent.py`,
+`src/mushegh/brain/intent_router.py`, `src/mushegh/brain/context.py`, `src/mushegh/brain/modes.py`
 
-**The bar.** Afon decides *what kind of turn this is* before he spends anything on it: a greeting
+**The bar.** Mushegh decides *what kind of turn this is* before he spends anything on it: a greeting
 costs one small call and no catalogue; a multi-clause instruction plans its clauses, fires each,
 and reports what it could not do. He states a confidence he actually holds — "I don't know" is a
 first-class answer, not a failure mode — and never answers an unknowable with the same certainty as
@@ -735,12 +735,12 @@ a lookup.
 **Budget.** Pure-chat turn ≤1 LLM call, ≤2k prefill tokens. Tool turn p50 ≤2.5s to first audio,
 p95 ≤5s. Planning overhead ≤120ms of wall clock outside the model.
 
-**Stack.** Today: a custom async agent loop (`src/afon/brain/agent.py`) with clause planning, a
+**Stack.** Today: a custom async agent loop (`src/mushegh/brain/agent.py`) with clause planning, a
 confirm tier, typed tool results and streaming failover — all of which a framework rewrite would
 have to re-litigate. **Add:** Hypothesis, for property tests over generated multi-clause utterances
 (hand-written cases keep missing orderings — the 51.5 combination score is an ordering problem).
 **Declined:** LangGraph / CrewAI as the planner. They would replace a loop that already carries four
-safety properties with one that carries none of them, for no capability Afon lacks.
+safety properties with one that carries none of them, for no capability Mushegh lacks.
 
 **Verified by.** Stubbed-LLM unit tests · property tests over clause orderings · journeys J-01/J-03
 · behavioural median-5 on the deployed brain.
@@ -789,7 +789,7 @@ planning stays in-process (no extra round trip).
       Shipped as `brain/turn_trace.py`: one row per turn from a `finally`, so the turns that
       refuse, take the zero-arg fast path, get barged in on, or raise are recorded too — those are
       the ones worth reading, and an emit-on-success tracer drops exactly them. Rows persist to
-      `~/.afon/traces/` because METRICS is in-memory and the brain restarts nightly, so an
+      `~/.mushegh/traces/` because METRICS is in-memory and the brain restarts nightly, so an
       in-process tracer could never accumulate the three days this asks for.
       *gate:* `test_metrics.py` extended — every turn emits a complete trace row. 54/54.
 
@@ -803,7 +803,7 @@ planning stays in-process (no extra round trip).
       question, and "why did he treat that as chatter?" had nowhere to look and no number to move.
       `_is_pure_chat`, `_is_multi_intent` and `_is_work_intent` moved verbatim into
       `intent_router.py` (agent.py imports them; every existing gate still imports them from
-      `afon.brain.agent` unchanged, because the name is still there), and `classify()` composes
+      `mushegh.brain.agent` unchanged, because the name is still there), and `classify()` composes
       them. Nothing new is guessed: every class is a signal that was already deciding turns.
       The act/lookup split is the one fact that had to be written down — `_WRITE_TOOLS` /
       `_READ_TOOLS` over the tools `_ROUTES` can return. A set rather than a split of the route
@@ -870,7 +870,7 @@ planning stays in-process (no extra round trip).
       turn stops being read. Discovered by introspection over the tool modules, so a new
       integration appears the day it is added and a retired one disappears the day it goes; a
       module that declares a dependency with no way to check it is reported NOT ready, because the
-      failure of a silent default here is Afon claiming a capability he does not have.
+      failure of a silent default here is Mushegh claiming a capability he does not have.
       Writing it found one live lie: `fitness._NEEDS` still sent the owner to enable the Google
       Fitness API that **34.F1 had already retired**, and because that module borrows the Google
       login as its readiness probe it reported itself configured while the capability it now uses
@@ -899,7 +899,7 @@ planning stays in-process (no extra round trip).
 
 ## S02 · LLM Integration
 
-**Status** complete for now · **Surfaces** `src/afon/brain/llm.py`, `src/afon/config.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/llm.py`, `src/mushegh/config.py`
 
 **The bar.** The owner never perceives a model problem. A primary that stalls is abandoned before
 the silence is audible; a rate limit is a routing decision, not an outage; the expensive model is
@@ -944,7 +944,7 @@ thinking tier only where it changes the answer (<15% of turns).
       rediscovered that one entry at a time, paying a failed round-trip for each, every turn.
       Failures now also count per provider; two inside five minutes moves its entries to the
       **back** of the chain rather than out of it (a provider that failed twice is not proven
-      dead, and a chain that can empty itself can leave Afon mute), repeat offences double the
+      dead, and a chain that can empty itself can leave Mushegh mute), repeat offences double the
       cooldown to a 30-minute cap, a dead key skips straight to the long bench, and one success
       clears it — without that half, the first bad five minutes of a day would bench a provider
       until the next restart.
@@ -1020,12 +1020,12 @@ thinking tier only where it changes the answer (<15% of turns).
 
 ## S03 · Tool Utilization
 
-**Status** complete for now · **Surfaces** `src/afon/brain/tools/` (42 modules, 136 tools),
-`src/afon/brain/tools/base.py`, `src/afon/brain/tool_reliability.py`,
-`src/afon/brain/tool_usage.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/tools/` (42 modules, 136 tools),
+`src/mushegh/brain/tools/base.py`, `src/mushegh/brain/tool_reliability.py`,
+`src/mushegh/brain/tool_usage.py`
 
 **The bar.** The right tool fires the first time, with the right arguments, and a tool that fails
-says *why* in a way the agent can act on. Afon knows which of his own tools are flaky and stops
+says *why* in a way the agent can act on. Mushegh knows which of his own tools are flaky and stops
 leaning on them.
 
 **Budget.** Catalogue presented per turn ≤20 tools / ≤2.5k tokens (today: 58 tools ≈10k — the
@@ -1154,7 +1154,7 @@ cannot own the turn.
       CALLS, or it is catalogue tokens spent on code no one checks. **Six of 152 were named by no
       bench file at all** — `define_macro`, `list_macros`, `list_recent_actions`, `mark_telegram`,
       `telegram_music`, `undo_last`. None deserved retiring; the README advertises all six. They are
-      now called with empty arguments and asserted to answer in Afon's voice with a typed failure.
+      now called with empty arguments and asserted to answer in Mushegh's voice with a typed failure.
       That small test is not a rubber stamp: it immediately found **`list_recent_actions` had never
       worked**. It was written `def` in a registry the agent `await`s, so
       `asyncio.ensure_future` raised `TypeError` before its result was ever read — "show me what you
@@ -1193,7 +1193,7 @@ cannot own the turn.
       the follow-up and a guess loses to a request. A deferred group keeps its TTL — he may say the
       missing half next turn.
       The fallback is the point, not the saving: a turn that defers a group is a turn where the
-      trigger matcher matched broadly and could not tell, so Afon is told to ask **one** short
+      trigger matcher matched broadly and could not tell, so Mushegh is told to ask **one** short
       question naming the candidates rather than guess with half a surface. `test_speed.py`'s
       ceiling drops 13,000 → 11,200 (worst measured 10,929), kept a hair above the enforced budget
       on purpose: equal numbers would let a rounding difference between the two counters flap.
@@ -1218,8 +1218,8 @@ cannot own the turn.
 
 ## S04 · Device Control
 
-**Status** complete for now · **Surfaces** `src/afon/edge/pc_agent.py`,
-`src/afon/brain/pc_link.py`, `src/afon/brain/tools/system.py`, `src/afon/brain/tools/audioout.py`
+**Status** complete for now · **Surfaces** `src/mushegh/edge/pc_agent.py`,
+`src/mushegh/brain/pc_link.py`, `src/mushegh/brain/tools/system.py`, `src/mushegh/brain/tools/audioout.py`
 
 **The bar.** "Open my email", "mute this", "put the laptop to sleep in ten minutes" all work from
 any room, with a confirm for anything destructive and a refusal for anything catastrophic. A
@@ -1274,7 +1274,7 @@ after idle is not a reconnect · verify-after-act only where the check is cheape
       answer described the request rather than the result.
       **Volume** read the level, computed a target, wrote it, and then said the *target* out loud.
       Windows rounds to its own steps, a device can clamp, and an output that has gone away accepts
-      the write and changes nothing; in all three cases Afon reported a number that was not true,
+      the write and changes nothing; in all three cases Mushegh reported a number that was not true,
       and the owner's only way to catch it was to listen and disagree. It now reads the level BACK
       and says what it measured — and when the gap is more than a couple of points it says both
       numbers, because "I set it to 40" while it sits at 100 is the difference between a volume
@@ -1305,10 +1305,10 @@ after idle is not a reconnect · verify-after-act only where the check is cheape
 
 ## S05 · Browser Control
 
-**Status** complete for now · **Surfaces** `src/afon/brain/tools/browser.py`,
-`src/afon/brain/tools/web.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/tools/browser.py`,
+`src/mushegh/brain/tools/web.py`
 
-**The bar.** Afon uses a real browser the way the owner would: navigates, reads, fills, clicks,
+**The bar.** Mushegh uses a real browser the way the owner would: navigates, reads, fills, clicks,
 keeps a session, and tells the truth about what he saw on the page — including when a page blocked
 him.
 
@@ -1370,11 +1370,11 @@ fonts on scrape-only fetches · cap page-wait and fall through to the HTTP chain
 ## S06 · Document Creation
 
 **Status** half-built — reading is strong, *creation* is three ad-hoc writers ·
-**Surfaces** `src/afon/brain/tools/documents.py`, `src/afon/brain/tools/vault.py`,
-`src/afon/brain/tools/notion.py`, `src/afon/brain/tools/gmail.py`
+**Surfaces** `src/mushegh/brain/tools/documents.py`, `src/mushegh/brain/tools/vault.py`,
+`src/mushegh/brain/tools/notion.py`, `src/mushegh/brain/tools/gmail.py`
 
 **The bar.** "Write it up and put it where it belongs" produces a real document — structured,
-formatted, in the right place, with a version history — and Afon can revise it later by name.
+formatted, in the right place, with a version history — and Mushegh can revise it later by name.
 
 **Budget.** Generation ≤1 LLM call per document section; write + verify ≤500ms.
 
@@ -1413,7 +1413,7 @@ structure · PDF only when asked · never re-render an unchanged document.
       than up: 57 to 56. The Notion path needed a real change to be possible at all — the old
       handler discarded the API response including the page id, so the page it had just created
       could never be read, revised or linked to again.
-- [x] 06.F2 Every created document is verified by reading it back before Afon reports success.
+- [x] 06.F2 Every created document is verified by reading it back before Mushegh reports success.
       *gate:* `test_document_create.py` [read-back]
       *done 2026-09-13:* all three writers reported success on the strength of not having raised,
       which is a different claim from "it is there". A write that returns without an exception has
@@ -1430,7 +1430,7 @@ structure · PDF only when asked · never re-render an unchanged document.
       *done 2026-09-13:* every created document is recorded — title, kind, where it went, when, and
       the reference a later read needs — and `find_document` resolves a spoken description against
       it. `search_vault` cannot answer this question: it covers what the OWNER wrote too, and has
-      no idea which notes were Afon's or when he made them. Only the title is kept, never the body.
+      no idea which notes were Mushegh's or when he made them. Only the title is kept, never the body.
       A second copy of the text in the state root would be one more thing to keep in step and one
       more place to sweep on "forget that" — and the document already exists where it was written.
       A document written but unconfirmed stays findable and is named as unconfirmed, since that is
@@ -1454,8 +1454,8 @@ structure · PDF only when asked · never re-render an unchanged document.
 
 ## S07 · Session & Context Management
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/context.py`,
-`src/afon/brain/agent.py` (history + trim), `src/afon/brain/presence.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/context.py`,
+`src/mushegh/brain/agent.py` (history + trim), `src/mushegh/brain/presence.py`
 
 **The bar.** A conversation survives a walk from the desk to the kitchen, a reconnect, and a night's
 sleep. "That one" and "the thing we discussed" resolve. Context never grows without bound and never
@@ -1493,7 +1493,7 @@ close, not per turn · topic segmentation so recall does not drag unrelated turn
 **Floor**
 - [x] 07.F1 Session identity is explicit: one session id per conversation, carried across edge
       reconnects and across devices.
-      `src/afon/shared/session.py`. A session id is now `<device>:<conversation>`: the device half
+      `src/mushegh/shared/session.py`. A session id is now `<device>:<conversation>`: the device half
       says which box is speaking, the conversation half is shared by every device and persists in
       the state directory, so a reconnect rejoins the conversation it left. The three entry points
       carried their own constants — `laptop-1`, `laptop-edge`, `android-1` — so one laptop appeared
@@ -1513,8 +1513,8 @@ close, not per turn · topic segmentation so recall does not drag unrelated turn
       none is journalled twice.
       *gate:* `test_session_identity.py` [trim retains gist]
 - [x] 07.F3 Reference resolution ("it", "that", "the second one") is tested, not assumed.
-      `src/afon/brain/references.py` resolves the references that have a deterministic answer and
-      **declines the rest**: ordinals into a list Afon just produced, and a bare pronoun with
+      `src/mushegh/brain/references.py` resolves the references that have a deterministic answer and
+      **declines the rest**: ordinals into a list Mushegh just produced, and a bare pronoun with
       exactly one recent concrete candidate. Two candidates is ambiguous and declines; an
       out-of-range ordinal declines rather than clamping, because clamping is how "the fourth one"
       against three items acts on the third. The owner's message enters history verbatim and the
@@ -1581,7 +1581,7 @@ close, not per turn · topic segmentation so recall does not drag unrelated turn
 ## S08 · Voice Enrollment
 
 **Status** built, **measurably weak** · **Surfaces** `bench/enroll_voice.py`, `to-read-script.md`,
-`src/afon/edge/speaker_id.py`
+`src/mushegh/edge/speaker_id.py`
 
 **The bar.** Enrolment takes five minutes once, and afterwards the owner's voice scores far enough
 above every other voice that the threshold is not a compromise.
@@ -1650,9 +1650,9 @@ per-condition vectors so scoring stays one dot product.
 ## S09 · Face Enrollment
 
 **Status** built, **never run on the current backend** · **Surfaces**
-`src/afon/brain/tools/camera.py` (`enroll_owner_face`), refs at `~/.afon/faces/`
+`src/mushegh/brain/tools/camera.py` (`enroll_owner_face`), refs at `~/.mushegh/faces/`
 
-**The bar.** The reference set covers the faces Afon will actually see: glasses on and off, lit and
+**The bar.** The reference set covers the faces Mushegh will actually see: glasses on and off, lit and
 dim, front and three-quarter — and a new reference can be added in one command.
 
 **Budget.** Owner match ≥0.65 cosine on ArcFace, impostor ≤0.35, at ≤120ms per frame.
@@ -1720,10 +1720,10 @@ confirmed at adoption for anything beyond personal use.**
 
 ## S10 · Voice Recognition (speaker identification)
 
-**Status** built, not well structured · **Surfaces** `src/afon/edge/speaker_id.py`,
-`src/afon/edge/speaker_gate.py`, `src/afon/edge/audio_gate.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/edge/speaker_id.py`,
+`src/mushegh/edge/speaker_gate.py`, `src/mushegh/edge/audio_gate.py`
 
-**The bar.** Afon answers the owner and ignores the television. A stranger asking for something
+**The bar.** Mushegh answers the owner and ignores the television. A stranger asking for something
 protected is refused by identity, not by luck. When he is unsure, he says he is unsure rather than
 guessing in either direction.
 
@@ -1759,7 +1759,7 @@ broadcast audio before embedding where the scene classifier can rule it out.
       separation band, and shown to flip a verdict the constant got wrong.
       **Built without S08.F1**, which the plan listed as a dependency: what needs a good profile is a
       good *number*, not the derivation. Enrolment already measured owner and impostor scores and did
-      nothing with them but advise a manual `AFON_SPEAKER_THRESHOLD` edit; it now records them beside
+      nothing with them but advise a manual `MUSHEGH_SPEAKER_THRESHOLD` edit; it now records them beside
       the vectors they were measured against (`record_separation`), and `accept_bar()` derives the
       midpoint from them. Both modules that read the constant independently now go through that one
       method — raising it in one place on 2026-07-25 had left the gate's borderline check comparing
@@ -1797,8 +1797,8 @@ broadcast audio before embedding where the scene classifier can rule it out.
 
 ## S11 · Face Recognition
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/camera.py`,
-`src/afon/brain/tools/multimodal.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/camera.py`,
+`src/mushegh/brain/tools/multimodal.py`
 
 **The bar.** The camera is a *second factor*, never a gatekeeper: it can strengthen a decision, and
 it can say "I can't tell", but it may never assert absence it cannot see. A photograph does not pass.
@@ -1870,8 +1870,8 @@ skip the occupancy cascades entirely when a frontal face was already found.
 
 ## S12 · Multi-Device Coordination
 
-**Status** built, not well structured · **Surfaces** `src/afon/edge/device_profile.py`,
-`src/afon/edge/edge_lite.py`, `src/afon/edge/brain_client.py`, `src/afon/brain/pc_link.py`,
+**Status** built, not well structured · **Surfaces** `src/mushegh/edge/device_profile.py`,
+`src/mushegh/edge/edge_lite.py`, `src/mushegh/edge/brain_client.py`, `src/mushegh/brain/pc_link.py`,
 `clients/`
 
 **The bar.** Speak to whichever device is nearest; only one answers; the conversation is the same
@@ -1905,7 +1905,7 @@ one answering device, others silent · capability registry so routing stops prob
 - [x] 12.F2 Reconnect without losing the brain link. *gate:* `test_edge_reconnect.py`
 - [x] 12.F3 **One answering device.** Arbitration when two edges hear the same wake word — nearest or
       loudest wins, others stay silent. *gate:* `test_device_handoff.py` extended [double-wake]
-      *done 2026-09-12:* one sentence, two microphones, two turns, Afon talking over himself from
+      *done 2026-09-12:* one sentence, two microphones, two turns, Mushegh talking over himself from
       two speakers. `_claim_wake` gives the turn to the better-placed device and tells the others
       the turn is over, so they stop listening and say nothing. `wake_score` was added to the wire
       as an optional field with a default, so an older edge still talks to a newer brain: with
@@ -1921,7 +1921,7 @@ one answering device, others silent · capability registry so routing stops prob
       speaker, a screen. *gate:* new `test_device_capabilities.py`
 - [ ] 12.R3 Graceful degradation to a text-only or push-only device.
       *gate:* `test_edge_lite.py` extended.
-- [ ] 12.R4 **The wire is versioned.** `src/afon/shared/protocol.py` carries the edge↔brain message
+- [ ] 12.R4 **The wire is versioned.** `src/mushegh/shared/protocol.py` carries the edge↔brain message
       shapes; nothing asserts that a brain and an edge of different vintages agree, which is the one
       place contract testing genuinely pays here (three boundaries, deployed separately).
       *gate:* new `test_protocol_contract.py` — every message type round-trips, unknown fields are
@@ -1937,11 +1937,11 @@ one answering device, others silent · capability registry so routing stops prob
 
 ## S13 · Notification Management
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/notify.py`,
-`src/afon/brain/tools/telegram.py`, `src/afon/brain/proactive.py` (quiet hours, suppression)
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/notify.py`,
+`src/mushegh/brain/tools/telegram.py`, `src/mushegh/brain/proactive.py` (quiet hours, suppression)
 
 **The bar.** Nothing arrives that the owner would not have wanted; everything urgent does arrive.
-Afon knows whether a notification was *seen*, and escalates only what deserves it.
+Mushegh knows whether a notification was *seen*, and escalates only what deserves it.
 
 **Budget.** Push delivery p95 ≤3s. Duplicate notifications 0/day (was 7–8/day before the dedup fix).
 
@@ -1970,9 +1970,9 @@ into the next brief instead of interrupting · push p95 ≤3s.
 - [x] 13.F1 Push + Telegram delivery with quiet hours and suppression.
       *gate:* `test_proactive_suppression.py`, `test_proactive_windows.py`
 - [x] 13.F2 No duplicate delivery — one sender, one path. *gate:* `test_acknowledgements.py`
-- [x] 13.F3 **Acknowledgement tracking.** Afon knows delivered vs seen vs acted-on, and an urgent
+- [x] 13.F3 **Acknowledgement tracking.** Mushegh knows delivered vs seen vs acted-on, and an urgent
       item he never acknowledged is offered back exactly once.
-      *done 2026-09-12:* `src/afon/brain/delivery.py`. A push is only ever `delivered` — ntfy reports
+      *done 2026-09-12:* `src/mushegh/brain/delivery.py`. A push is only ever `delivered` — ntfy reports
       nothing about eyes, so inferring "seen" from a successful POST would be the same overclaim as a
       status page that shows green because it never asked. Exactly one inference is allowed and it is
       named in the code: a line spoken into a live session and answered inside the reaction window was
@@ -2002,11 +2002,11 @@ into the next brief instead of interrupting · push p95 ≤3s.
 
 ## S14 · Proactivity Engine
 
-**Status** complete for now · **Surfaces** `src/afon/brain/proactive.py`,
-`src/afon/brain/proactive_signals.py`, `src/afon/brain/proactive_report.py`,
-`src/afon/brain/interventions.py`, `src/afon/brain/anticipation.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/proactive.py`,
+`src/mushegh/brain/proactive_signals.py`, `src/mushegh/brain/proactive_report.py`,
+`src/mushegh/brain/interventions.py`, `src/mushegh/brain/anticipation.py`
 
-**The bar.** Afon speaks first only when it earns its interruption, and afterwards he can say why he
+**The bar.** Mushegh speaks first only when it earns its interruption, and afterwards he can say why he
 chose to. Ignored suggestions become rarer suggestions of that kind. Nothing autonomous happens
 silently.
 
@@ -2070,11 +2070,11 @@ IO · budget and quiet hours enforced before any scoring work.
 
 ## S15 · Recommendation Engine
 
-**Status** **missing as a system** — nearest neighbours are `src/afon/brain/coaching.py` and
+**Status** **missing as a system** — nearest neighbours are `src/mushegh/brain/coaching.py` and
 memory resurfacing, both narrow and hand-tuned.
 
 **The bar.** "What should I do next / what should I read / where should we eat" answers from what
-Afon actually knows about the owner — history, stated preferences, current constraints — with a
+Mushegh actually knows about the owner — history, stated preferences, current constraints — with a
 reason attached and a memory of whether it landed.
 
 **Budget.** Recommendation ≤1 LLM call plus one memory query; ≤600ms.
@@ -2091,7 +2091,7 @@ logged acceptances once the log has depth.
 **Options weighed.** *Build:* log-then-rules · implicit ALS collaborative filtering · **LLM as
 ranker over a rule-generated candidate set** → **log first, then LLM ranking.** Collaborative
 filtering needs other users and there is one. LLM ranking is strong at cold start and costs one call
-Afon is already making. *Test:* reason-cites-its-data · cold-start refusal · offline acceptance
+Mushegh is already making. *Test:* reason-cites-its-data · cold-start refusal · offline acceptance
 replay → **all three.**
 **Open-source base.** `river` (BSD-3), shared with S14, for a contextual bandit over logged decisions; `implicit` (MIT) only if a second user ever exists.
 **Speed & efficiency.** One memory query plus one LLM call · candidates cached per day · no
@@ -2111,7 +2111,7 @@ recommendation at all when the basis is thin (cheaper *and* more honest).
       the rule and the field it read: "it's overdue by two days", not "this seems important". A
       recommendation whose reason cannot be checked is indistinguishable from a guess, and a guess
       delivered confidently is worse than no answer, because he reorganises his morning around it.
-      Domain chosen for the reason the plan gives: next-task is the one where Afon already holds
+      Domain chosen for the reason the plan gives: next-task is the one where Mushegh already holds
       the inputs. Restaurants and reading need taste there is no data for.
 - [x] 15.F2 Every recommendation is logged with its context, so acceptance can be learned later.
       *gate:* `test_recommend.py` [logged]
@@ -2121,7 +2121,7 @@ recommendation at all when the basis is thin (cheaper *and* more honest).
       recommender trained on a handful of events is a random number generator with a confidence
       interval, so there is no ranker here, only a table that will make one possible — or show it
       is not worth building.
-- [x] 15.F3 Afon declines to recommend when he has no basis, instead of inventing taste.
+- [x] 15.F3 Mushegh declines to recommend when he has no basis, instead of inventing taste.
       *gate:* `test_recommend.py` [no-basis case]
       *done 2026-09-13:* `NoBasis` is a first-class answer, not an empty one. When every open item
       has no deadline, no priority and no objective, nothing distinguishes them and the answer says
@@ -2144,12 +2144,12 @@ recommendation at all when the basis is thin (cheaper *and* more honest).
 
 ## S16 · Task Queue & Execution
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tasks.py`,
-`src/afon/brain/worker.py`, `src/afon/brain/backlog.py`, `src/afon/brain/tools/tasks.py`,
-`src/afon/brain/tools/notion.py`, `src/afon/brain/scheduler.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tasks.py`,
+`src/mushegh/brain/worker.py`, `src/mushegh/brain/backlog.py`, `src/mushegh/brain/tools/tasks.py`,
+`src/mushegh/brain/tools/notion.py`, `src/mushegh/brain/scheduler.py`
 
 **The bar.** Anything the owner asks for that cannot finish now becomes a tracked task with an
-owner, a due date and a next step — and Afon works the ones he can, reporting progress without
+owner, a due date and a next step — and Mushegh works the ones he can, reporting progress without
 being asked. Nothing is silently dropped.
 
 **Budget.** Queue operations ≤50ms. Background task heartbeat every ≤60s with progress in the HUD.
@@ -2209,10 +2209,10 @@ narrated at milestones rather than on a timer.
 
 ## S17 · Morning Brief
 
-**Status** complete for now · **Surfaces** `src/afon/brain/daily_digest.py`,
-`src/afon/brain/tools/calendar.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/daily_digest.py`,
+`src/mushegh/brain/tools/calendar.py`
 
-`src/afon/brain/mynews.py` was listed here as a surface and is not one. It was an
+`src/mushegh/brain/mynews.py` was listed here as a surface and is not one. It was an
 unprompted proactive signal, not a digest section: `daily_digest.py` has no news path,
 and 41.R4 closed the ambient feed under D-34. See [17-morning-brief](subsystems/17-morning-brief.md).
 
@@ -2269,9 +2269,9 @@ the overnight fetch · a section with nothing to say is dropped, not padded.
 
 ## S18 · Microphone & Speaker Management
 
-**Status** complete for now · **Surfaces** `src/afon/edge/audio_devices.py`,
-`src/afon/edge/switch_audio.py`, `src/afon/edge/audio_watchdog.py`, `src/afon/edge/aec.py`,
-`src/afon/edge/vad_bargein.py`, `src/afon/edge/voice_health.py`
+**Status** complete for now · **Surfaces** `src/mushegh/edge/audio_devices.py`,
+`src/mushegh/edge/switch_audio.py`, `src/mushegh/edge/audio_watchdog.py`, `src/mushegh/edge/aec.py`,
+`src/mushegh/edge/vad_bargein.py`, `src/mushegh/edge/voice_health.py`
 
 **The bar.** Plug in AirPods mid-sentence and nothing breaks. He never goes deaf without noticing;
 he never talks over himself; barge-in works at conversational volume.
@@ -2324,8 +2324,8 @@ across turns · barge-in ≤300ms.
 
 ## S19 · Composio / MCP Integration
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/composio.py`,
-`src/afon/brain/composio_catalog.py`, `src/afon/brain/mcp_client.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/composio.py`,
+`src/mushegh/brain/composio_catalog.py`, `src/mushegh/brain/mcp_client.py`
 
 **The bar.** A new external capability is one connection away, appears in the catalogue with a
 correct description, and fails loudly and typed when its account is not connected.
@@ -2385,8 +2385,8 @@ long-tail lookup runs locally against the cache · context memoised on success o
 
 ## S20 · External API Integrations
 
-**Status** complete for now · **Surfaces** `src/afon/brain/tools/` (weather, maps, wolfram, gmail,
-calendar, notion, telegram, music, web), `src/afon/brain/google.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/tools/` (weather, maps, wolfram, gmail,
+calendar, notion, telegram, music, web), `src/mushegh/brain/google.py`
 
 **The bar.** Every integration either works, or says precisely what it needs — a key, a scope, a
 connection — and never invents an answer in the meantime.
@@ -2397,7 +2397,7 @@ slow provider (hard timeout).
 **Stack.** Today: httpx per integration with a typed not-configured contract. **Add:** `respx`
 fixtures per provider, and **one** retry/timeout policy object instead of per-module constants —
 `tenacity` if a library is wanted, but the policy matters more than the library.
-**Declined:** Schemathesis. It fuzzes *your* OpenAPI surface; Afon consumes APIs and exposes almost
+**Declined:** Schemathesis. It fuzzes *your* OpenAPI surface; Mushegh consumes APIs and exposes almost
 none, so the useful contract test here is a recorded-response fixture, not a fuzzer.
 
 **Verified by.** Per-provider fixtures · quota and timeout injection · response-shape drift check ·
@@ -2455,11 +2455,11 @@ rotation, `.env` → password-store migration.
 
 ## S21 · Personal Time Management
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/calendar.py`,
-`src/afon/brain/tools/routines.py`, `src/afon/brain/modes.py`,
-`src/afon/brain/interventions.py`, `src/afon/brain/tools/activity.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/calendar.py`,
+`src/mushegh/brain/tools/routines.py`, `src/mushegh/brain/modes.py`,
+`src/mushegh/brain/interventions.py`, `src/mushegh/brain/tools/activity.py`
 
-**The bar.** Afon protects the owner's time: he knows the shape of a normal day, notices when it is
+**The bar.** Mushegh protects the owner's time: he knows the shape of a normal day, notices when it is
 being eaten, and intervenes before the day is lost rather than reporting it afterwards.
 
 **Budget.** Schedule reasoning ≤300ms, no LLM call for conflict detection.
@@ -2537,7 +2537,7 @@ routines read from one file, not recomputed.
       midnight, so both failed for a window every night and passed for the rest of the day.
       `test_presence.py` was already on this list and still could not be caught. Found because the
       suite happened to run at 00:01, which is the same luck this file exists to replace.
-      `AFON_FAKE_CLOCK=HH:MM` now moves the clock, expressed as a fixed DELTA rather than a pinned
+      `MUSHEGH_FAKE_CLOCK=HH:MM` now moves the clock, expressed as a fixed DELTA rather than a pinned
       hour — a pinned clock stops advancing inside the minute and a test measuring a duration would
       measure zero. `time.localtime`/`gmtime` move with it: shifting one clock and not the other
       leaves the process disagreeing with itself about which day it is, which is the exact defect
@@ -2568,15 +2568,15 @@ routines read from one file, not recomputed.
 
 **Elite**
 - [ ] 21.E1 A month where every routine commitment either happened or was consciously renegotiated
-      with Afon. *gate:* routine adherence log.
+      with Mushegh. *gate:* routine adherence log.
 
 ---
 
 ## S22 · System Recoverability
 
-**Status** complete for now · **Surfaces** `src/afon/brain/protocols.py`,
-`src/afon/protocols/` (backup, checkpoint, phoenix, ragnarok, diagnostics, goodnight, ping,
-auditpack), `src/afon/brain/health.py`, `scripts/restart_edge.ps1`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/protocols.py`,
+`src/mushegh/protocols/` (backup, checkpoint, phoenix, ragnarok, diagnostics, goodnight, ping,
+auditpack), `src/mushegh/brain/health.py`, `scripts/restart_edge.ps1`
 
 **The bar.** Any single failure — process, disk, config, model, network — is recovered from without
 the owner learning about it, and every recovery leaves a record. A total loss is restorable from
@@ -2623,7 +2623,7 @@ the cost is known rather than discovered.
       *gate:* `test_protocol_reports.py`
 
 **Elite**
-- [ ] 22.E1 A blind drill: kill the brain, the edge, and the network in one hour; Afon is back
+- [ ] 22.E1 A blind drill: kill the brain, the edge, and the network in one hour; Mushegh is back
       without owner action and can narrate what happened. *gate:* recorded drill in TODO.
 
 ---
@@ -2631,10 +2631,10 @@ the cost is known rather than discovered.
 ## S23 · 24/7 Reachability
 
 **Status** complete for now — **currently parked by design** · **Surfaces** VPS `jarvis-brain`
-systemd user unit, `deploy/vps/afon_ticker.py`, `src/afon/brain/tools/notify.py`,
-`src/afon/brain/telegram_bridge.py`
+systemd user unit, `deploy/vps/mushegh_ticker.py`, `src/mushegh/brain/tools/notify.py`,
+`src/mushegh/brain/telegram_bridge.py`
 
-**The bar.** Afon is reachable from anywhere, always, by voice or text — and when he cannot answer,
+**The bar.** Mushegh is reachable from anywhere, always, by voice or text — and when he cannot answer,
 the message is held and answered later rather than lost.
 
 **Budget.** Cold reach-to-first-word ≤4s. Uptime ≥99.5% monthly excluding deliberate parks.
@@ -2666,7 +2666,7 @@ retrying blindly · degraded mode answers time, reminders and status with no LLM
       *gate:* `test_uptime_watch.py`, `test_warm_standby.py`
 - [x] 23.F2 Messages arriving while down are held and forwarded. *gate:* `test_error_spool.py`
 - [x] 23.F3 **The park switch honours itself on every host and role** — no autostart while
-      `~/.afon/MAINTENANCE` exists. *gate:* `test_maintenance_lock.py`
+      `~/.mushegh/MAINTENANCE` exists. *gate:* `test_maintenance_lock.py`
 - [x] 23.F4 Unpark is as deliberate as park: a documented checklist that verifies each floor before
       the lock is removed — `scripts/preflight.sh --unpark`, which reads the Wave-0 floors from this
       document rather than a copy, refuses on any unmet one, and never removes the lock itself.
@@ -2688,10 +2688,10 @@ retrying blindly · degraded mode answers time, reminders and status with no LLM
 
 ## S24 · Knowledge & World Model
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/world_model.py`,
-`src/afon/brain/graph.py` (removed 2026-10-04, D-26), `src/afon/brain/semantic.py`, `src/afon/brain/docstore.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/world_model.py`,
+`src/mushegh/brain/graph.py` (removed 2026-10-04, D-26), `src/mushegh/brain/semantic.py`, `src/mushegh/brain/docstore.py`
 
-**The bar.** Afon holds a model of the owner's world — people, places, projects, obligations,
+**The bar.** Mushegh holds a model of the owner's world — people, places, projects, obligations,
 recurring shapes — and reasons *from* it rather than re-deriving it each turn. Asked "what do you
 think is going on with X", he answers with entities and relations, dated.
 
@@ -2757,8 +2757,8 @@ consulted in the prompt path so answers are shaped by it rather than re-derived.
 
 ## S25 · Personality & Interaction Style
 
-**Status** complete for now · **Surfaces** `personality/`, `src/afon/brain/affect.py`,
-`src/afon/edge/affect_tts.py`, `src/afon/brain/relationship.py`, `src/afon/brain/prefs.py`
+**Status** complete for now · **Surfaces** `personality/`, `src/mushegh/brain/affect.py`,
+`src/mushegh/edge/affect_tts.py`, `src/mushegh/brain/relationship.py`, `src/mushegh/brain/prefs.py`
 
 **The bar.** One recognisable character across voice, text and push: dry, precise, unhurried, never
 sycophantic. He reads the room — brief when the owner is busy, fuller when he is not — and the
@@ -2824,11 +2824,11 @@ cache hit · affect derived in-process, never a second model call.
 
 ## S26 · Multi-Modal Perception
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/camera.py`,
-`src/afon/brain/tools/multimodal.py`, `src/afon/brain/tools/activity.py`,
-`src/afon/brain/presence.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/camera.py`,
+`src/mushegh/brain/tools/multimodal.py`, `src/mushegh/brain/tools/activity.py`,
+`src/mushegh/brain/presence.py`
 
-**The bar.** Afon perceives more than words: who is present, what is on the screen, what the room
+**The bar.** Mushegh perceives more than words: who is present, what is on the screen, what the room
 sounds like — and fuses those into one situational read rather than three unrelated facts.
 
 **Budget.** A perception snapshot ≤500ms total, ≤1 vision call, cached for 60s.
@@ -2860,7 +2860,7 @@ audio classification runs on the frame already captured for VAD, not a second ca
 - [x] 26.F1 Vision on demand with a VLM path. *gate:* `test_vision.py`, `test_screenshot_transport.py`
 - [x] 26.F2 A single `perceive()` snapshot that returns presence + visual + activity together, so
       callers stop assembling their own.
-      `src/afon/brain/perception.py`: presence, visual, activity and meeting as four `Fact`s.
+      `src/mushegh/brain/perception.py`: presence, visual, activity and meeting as four `Fact`s.
       **`perceive()` never captures** — it reads cached facts, because it runs on every turn inside
       S27's 30ms budget and because opening the camera here is the path that has hard-segfaulted on
       this laptop's device enumeration. The camera tool feeds `record_visual()` on its way past, and
@@ -2891,11 +2891,11 @@ audio classification runs on the frame already captured for VAD, not a second ca
 
 ## S27 · Contextual Awareness
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/presence.py`,
-`src/afon/brain/modes.py`, `src/afon/brain/tools/activity.py`, `src/afon/brain/tools/maps.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/presence.py`,
+`src/mushegh/brain/modes.py`, `src/mushegh/brain/tools/activity.py`, `src/mushegh/brain/tools/maps.py`
 
 **The bar.** The same sentence gets a different answer depending on where the owner is, what he is
-doing, and how his day has gone — and Afon can state which context he assumed.
+doing, and how his day has gone — and Mushegh can state which context he assumed.
 
 **Budget.** Context read ≤30ms in-process; never an LLM call.
 
@@ -2921,7 +2921,7 @@ down · cached for the tick so proactivity reads the same world the answer did.
 **Floor**
 - [x] 27.F1 One context object — location, presence, activity, mode, time-of-day, calendar state —
       assembled once per turn and passed down, not re-derived per tool.
-      `src/afon/brain/situation.py`: a frozen `Situation`, assembled once inside both turn entry
+      `src/mushegh/brain/situation.py`: a frozen `Situation`, assembled once inside both turn entry
       points and published on a contextvar, the same shape `turn_trace` already uses — so a helper
       deep in the tool path reads the world the answer read without every signature growing a
       parameter. Each source is guarded individually: a dead presence store degrades one field to
@@ -2954,7 +2954,7 @@ down · cached for the tick so proactivity reads the same world the answer did.
 ## S28 · Environmental / IoT Orchestration
 
 **Status** built and **dark** — complete code, no token, controls nothing ·
-**Surfaces** `src/afon/brain/tools/smarthome.py`, `docs/home-assistant.md`
+**Surfaces** `src/mushegh/brain/tools/smarthome.py`, `docs/home-assistant.md`
 
 **The bar.** "It's cold", "I'm going to bed", "I'm leaving" each do the right physical thing, are
 confirmed by *reading the device state back*, and never surprise anyone else in the flat.
@@ -2985,13 +2985,13 @@ device calls concurrently.
 **Floor**
 - [ ] 28.F1 **Home Assistant token** installed and the connection verified live. This is the single
       blocker for the whole system. *gate:* `test_new_integrations.py` — a real entity listed.
-- [x] 28.F2 Read-back verification: Afon reports the state he *observed*, not the command he sent.
+- [x] 28.F2 Read-back verification: Mushegh reports the state he *observed*, not the command he sent.
       *gate:* new `test_smarthome_verify.py`
       *done 2026-09-12:* Home Assistant answers 200 to a service call for a device that is
       unplugged, out of battery or simply not listening, and returns an empty change list. The old
       reply was "Done, sir — light.turn_on on kitchen. 0 entity change(s)": a claim about the world
       assembled from the absence of an error, and he walks into a dark kitchen having been told the
-      light is on. Afon now reports the state that came back, reads the entity when nothing
+      light is on. Mushegh now reports the state that came back, reads the entity when nothing
       changed, says so when the device did not do it, and says he cannot confirm when he cannot
       read it back. A service with no unambiguous target state — `toggle` — is reported and never
       graded, because grading it would mean claiming a result he cannot check.
@@ -2999,7 +2999,7 @@ device calls concurrently.
       confirm tier. *gate:* `test_confirm_tier_documented.py`, `test_smarthome_verify.py` [7]-[9]
       *done 2026-09-12:* heating and hot water joined locks, alarms, covers and garage doors.
       Everyone in the building lives in the temperature he sets, and unlike a lamp nobody else can
-      undo it from the wall. Shared rooms are configured (`AFON_HA_SHARED_AREAS`), never guessed:
+      undo it from the wall. Shared rooms are configured (`MUSHEGH_HA_SHARED_AREAS`), never guessed:
       only he knows which of his rooms other people live in, and a list invented for him would gate
       the wrong lamps and get ignored. His own lamp still flows without friction, because gating
       everything is how an owner learns to say yes without reading. The gate also asserts the
@@ -3023,9 +3023,9 @@ device calls concurrently.
 
 ## S29 · Automation & Workflow Engine
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/macros.py`,
-`src/afon/brain/tools/routines.py`, `src/afon/brain/tools/skills.py`,
-`src/afon/brain/scheduler.py`, `src/afon/brain/approvals.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/macros.py`,
+`src/mushegh/brain/tools/routines.py`, `src/mushegh/brain/tools/skills.py`,
+`src/mushegh/brain/scheduler.py`, `src/mushegh/brain/approvals.py`
 
 **The bar.** "When X, do Y" means exactly that, including when X is a negative condition. Automations
 are visible, listable, pausable, and every autonomous run leaves a report.
@@ -3046,7 +3046,7 @@ behaviour · a month of owner-authored automations with a monthly report.
 Temporal is a workflow server to operate for automations that run in seconds. *Test:* the full
 operator matrix in both directions · dry-run · failure-policy behaviour → **all three**; the operator
 bug (H2.12) is exactly what a partial matrix misses.
-**Open-source base.** `json-logic-py` (MIT) so a routine's conditions are declarative data the owner can read and Afon can validate, instead of Python branches nobody audits; `croniter` (MIT) shared with S16. n8n and Temporal stay declined — see the standing table.
+**Open-source base.** `json-logic-py` (MIT) so a routine's conditions are declarative data the owner can read and Mushegh can validate, instead of Python branches nobody audits; `croniter` (MIT) shared with S16. n8n and Temporal stay declined — see the standing table.
 **Speed & efficiency.** Rule evaluation ≤20ms · scheduler drift ≤5s · dry-run costs nothing because
 it is the same evaluation without the effect.
 
@@ -3091,9 +3091,9 @@ it is the same evaluation without the effect.
 
 ## S30 · Persistent Memory
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/memory.py`,
-`src/afon/brain/semantic.py`, `src/afon/brain/graph.py` (removed 2026-10-04, D-26), `src/afon/brain/patterns.py`,
-`src/afon/brain/relationship.py`, `src/afon/brain/docstore.py`, `src/afon/brain/cache.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/memory.py`,
+`src/mushegh/brain/semantic.py`, `src/mushegh/brain/graph.py` (removed 2026-10-04, D-26), `src/mushegh/brain/patterns.py`,
+`src/mushegh/brain/relationship.py`, `src/mushegh/brain/docstore.py`, `src/mushegh/brain/cache.py`
 
 **The bar.** One question — "what do we know about X?" — reaches every store once, ranked, with
 provenance and a date. Nothing the owner said last week is lost because it was said to the other
@@ -3137,15 +3137,15 @@ embed once per turn and reuse · cache the digest · target p95 ≤300ms.
 - [x] 30.F1 **Resolve the two-host split.** Laptop and VPS hold divergent learned state; he is
       running on a week-old memory of the owner (TODO I6 and the rename findings). Decide the merge
       direction, execute it, record the decision.
-      **The split was not a sync failure.** `afon_*.sqlite`, `memory/learned` and `memory/journal`
+      **The split was not a sync failure.** `mushegh_*.sqlite`, `memory/learned` and `memory/journal`
       resolved as `Path(__file__).parents[3]` — *wherever the code was unpacked* — while patterns,
-      the relationship model and the voiceprint resolved from `~/.afon`. `deploy_vps.sh` untars the
+      the relationship model and the voiceprint resolved from `~/.mushegh`. `deploy_vps.sh` untars the
       source tree into the brain host's own directory, so the repo root there is a different
       directory from the laptop's and each host kept its own half under the same names. Nothing
       detected it: both paths resolve, both stores open, each host answers confidently. A sync
       would not have fixed a store keyed on the location of the code.
-      **Decision.** One state root per host — `AFON_STATE_DIR`, default `~/.afon`, resolved in
-      `shared/paths.py` and nowhere else (28 modules had spelled `Path.home() / ".afon"` privately,
+      **Decision.** One state root per host — `MUSHEGH_STATE_DIR`, default `~/.mushegh`, resolved in
+      `shared/paths.py` and nowhere else (28 modules had spelled `Path.home() / ".mushegh"` privately,
       so the whole brain could not be pointed at another disk). The repo keeps code and the
       hand-authored overlay; it keeps no state, so a deploy cannot carry memory between hosts.
       Where two hosts already diverged: the brain host wins for **derived** stores (vectors,
@@ -3200,7 +3200,7 @@ embed once per turn and reuse · cache the digest · target p95 ≤300ms.
       J0). *gate:* `test_memory_graph_learn.py` extended — no unverified edge below the confidence
       floor participates in recall.
 - [ ] 30.R5 **Schema and dual-write.** Postgres schema for every brain store; the 30.F2 facade
-      writes both backends behind `AFON_STORE_BACKEND`. sqlite keeps being written throughout, which
+      writes both backends behind `MUSHEGH_STORE_BACKEND`. sqlite keeps being written throughout, which
       is what makes the rollback real rather than theoretical.
       *gate:* new `test_store_parity.py` — every facade query returns identical rows from both
       backends, including the empty and contradiction cases.
@@ -3215,7 +3215,7 @@ embed once per turn and reuse · cache the digest · target p95 ≤300ms.
 - [ ] 30.R8 **The laptop stays on sqlite, proven, not assumed.** edge and pc_agent never open a
       Postgres connection, and their suites pass with the brain host unreachable.
       *gate:* new `test_offline_edge.py` — laptop processes green with Postgres stopped; a Postgres
-      import anywhere under `src/afon/edge/` fails the layering test.
+      import anywhere under `src/mushegh/edge/` fails the layering test.
 - [ ] 30.R9 **The cache is optional, proven, not assumed.** Valkey carries the turn digest, the
       distributed lock, the presence key and the rate-limit counters — and nothing durable.
       *gate:* new `test_cache_optional.py` — the full suite passes with the cache stopped, and no
@@ -3235,11 +3235,11 @@ embed once per turn and reuse · cache the digest · target p95 ≤300ms.
 
 ## S31 · Self-Monitoring, Diagnostics & Self-Healing
 
-**Status** complete for now · **Surfaces** `src/afon/brain/reliability.py`,
-`src/afon/brain/health.py`, `src/afon/brain/hud.py`, `src/afon/brain/metrics.py`,
-`src/afon/brain/tools/diagnose.py`, `src/afon/brain/audit.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/reliability.py`,
+`src/mushegh/brain/health.py`, `src/mushegh/brain/hud.py`, `src/mushegh/brain/metrics.py`,
+`src/mushegh/brain/tools/diagnose.py`, `src/mushegh/brain/audit.py`
 
-**The bar.** Afon knows what is wrong with himself before the owner does, says it in one sentence,
+**The bar.** Mushegh knows what is wrong with himself before the owner does, says it in one sentence,
 repairs what he can, and escalates the rest with evidence. No surface ever calls a broken component
 healthy.
 
@@ -3316,10 +3316,10 @@ the last probe rather than re-probing per poll.
 ## S32 · Redundancy & Failover
 
 **Status** **partially missing at the architecture level** — model failover is real; there is one
-VPS, one edge, no replication. **Surfaces** `src/afon/brain/llm.py`,
-`src/afon/edge/_supervisor.py`, `src/afon/shared/singleton.py`
+VPS, one edge, no replication. **Surfaces** `src/mushegh/brain/llm.py`,
+`src/mushegh/edge/_supervisor.py`, `src/mushegh/shared/singleton.py`
 
-**The bar.** No single machine's death takes Afon away. Losing the VPS degrades him to local-only;
+**The bar.** No single machine's death takes Mushegh away. Losing the VPS degrades him to local-only;
 losing the laptop degrades him to cloud-only; both are announced, and neither is silent.
 
 **Budget.** Failover detection ≤30s. Degraded mode announced within one turn.
@@ -3381,7 +3381,7 @@ replication is a background stream, not a batch job.
 - [ ] 32.R2 Automatic promotion — the laptop takes over brain duties when the VPS is unreachable for
       N minutes.
       **Half of this already exists and should not be rebuilt:** `edge/remote_brain.py` carries
-      `_fallback_agent`, a lazily-built local `AfonAgent` held as a warm standby. What is missing is
+      `_fallback_agent`, a lazily-built local `MusheghAgent` held as a warm standby. What is missing is
       not the mechanism but the evidence — nothing tests that the fallback can carry a real turn, so
       its quality is unknown. A 2026-09-12 review called the single brain the plan's biggest
       structural weakness and it is right; the cheap answer is this standby made good, not a second
@@ -3390,7 +3390,7 @@ replication is a background stream, not a batch job.
 - [ ] 32.R3 Split-brain prevention when both come back. *gate:* `test_degraded_modes.py` [reconcile]
 
 **Elite**
-- [ ] 32.E1 A live drill: pull the VPS for an hour; Afon stays usable and reconciles cleanly
+- [ ] 32.E1 A live drill: pull the VPS for an hour; Mushegh stays usable and reconciles cleanly
       afterwards. *gate:* recorded drill.
 
 **Depends on** S30.F1 (one memory origin) — replication before that is replicating a conflict.
@@ -3399,10 +3399,10 @@ replication is a background stream, not a batch job.
 
 ## S33 · Goal & Project Management
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/objectives.py`,
-`src/afon/brain/backlog.py`, `src/afon/brain/worker.py`, `src/afon/brain/copilot.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/objectives.py`,
+`src/mushegh/brain/backlog.py`, `src/mushegh/brain/worker.py`, `src/mushegh/brain/copilot.py`
 
-**The bar.** Afon holds the owner's actual objectives, knows which are moving and which are stalled,
+**The bar.** Mushegh holds the owner's actual objectives, knows which are moving and which are stalled,
 and connects daily work to them without being asked. A stalled objective is raised, not buried.
 
 **Budget.** Objective review ≤1 LLM call weekly; daily attribution is in-process.
@@ -3441,7 +3441,7 @@ arithmetic on dates.
       holds: an objective with no milestones still stalls on silence.
 - [x] 33.F3 Every task can name the objective it serves, or is explicitly ad-hoc (pairs with 01.R3).
       *gate:* `test_goal_attribution.py`
-      *done 2026-09-12:* Afon held objectives and he held a to-do list, and nothing joined them, so
+      *done 2026-09-12:* Mushegh held objectives and he held a to-do list, and nothing joined them, so
       "am I working towards anything" had no answer — a week of tasks could serve none of his
       objectives and no surface would have said so. A to-do now carries the objective it serves,
       and the review groups open work under each one, counts the ad-hoc pile and names any
@@ -3470,10 +3470,10 @@ arithmetic on dates.
 ## S34 · Health & Wellness Monitoring
 
 **Status** half-built — tools exist, the data source is not enabled ·
-**Surfaces** `src/afon/brain/tools/fitness.py`, `src/afon/brain/tools/activity.py`,
-`src/afon/brain/coaching.py`
+**Surfaces** `src/mushegh/brain/tools/fitness.py`, `src/mushegh/brain/tools/activity.py`,
+`src/mushegh/brain/coaching.py`
 
-**The bar.** Afon notices the shape of the owner's body-clock — sleep, movement, screen hours — and
+**The bar.** Mushegh notices the shape of the owner's body-clock — sleep, movement, screen hours — and
 says something useful about it at the right moment, without nagging and without pretending to be a
 doctor.
 
@@ -3532,11 +3532,11 @@ aggregates, not raw samples.
       *gate:* `test_companion_safety.py` [34.F3]
       *done 2026-09-13:* `vitals.BOUNDARY` is stated in one place, carried into the tool
       descriptions so the model has it in front of it rather than in training, and asserted by the
-      gate. Afon reports what the numbers say and what has changed; he does not name conditions,
+      gate. Mushegh reports what the numbers say and what has changed; he does not name conditions,
       explain causes, or advise on treatment. The distinction is not squeamishness: "you slept five
       hours, three nights running" is a fact he measured, and "you're not sleeping because of X" is
       a claim he invented that a person may act on instead of asking somebody qualified.
-      `diagnostic_language` checks **Afon's own phrasing and never the owner's** — he is entitled
+      `diagnostic_language` checks **Mushegh's own phrasing and never the owner's** — he is entitled
       to describe his own health in any terms he likes, and a guard that policed his speech would
       be both useless and insulting.
 
@@ -3559,10 +3559,10 @@ aggregates, not raw samples.
 ## S35 · Crisis & Emergency Response
 
 **Status** half-built — system-level crisis protocols exist, *owner*-level does not ·
-**Surfaces** `src/afon/protocols/ragnarok.py`, `src/afon/protocols/phoenix.py`,
-`src/afon/brain/reliability.py`, `src/afon/brain/tools/phone.py`
+**Surfaces** `src/mushegh/protocols/ragnarok.py`, `src/mushegh/protocols/phoenix.py`,
+`src/mushegh/brain/reliability.py`, `src/mushegh/brain/tools/phone.py`
 
-**The bar.** In a real emergency Afon does the simplest useful thing fast: reaches someone, gives
+**The bar.** In a real emergency Mushegh does the simplest useful thing fast: reaches someone, gives
 the right information, and does not require a conversation. Outside emergencies he never
 mis-classifies one.
 
@@ -3597,7 +3597,7 @@ resolved from a local file so a network failure cannot silence the ladder.
       *gate:* `test_emergency_path.py` — false-positive rate 0 on 50 ordinary prompts.
       *done 2026-09-13:* `brain/emergency.py`, sitting beside `_catastrophic` in the turn path and
       running before `_prepare_turn` in both the blocking and the streaming body. Everything that
-      existed was system-level — `ragnarok` and `phoenix` recover **Afon**; nothing recovered the
+      existed was system-level — `ragnarok` and `phoenix` recover **Mushegh**; nothing recovered the
       owner. "Call an ambulance" reached the same machinery as "what's the weather": a model
       round-trip, a tool choice, a provider call, each of which can be slow, wrong or down at the
       moment it matters. Rules, not a classifier, exactly as the plan decided — and every alarm
@@ -3606,7 +3606,7 @@ resolved from a local file so a network failure cannot silence the ladder.
       questions and narration are guarded out ("this bug is killing me", "what do I do if there's a
       fire", "in the film they call an ambulance" all do nothing). That bias has a real cost — an
       emergency phrased unusually will not trip it — and the manual phrase is how the cost is paid:
-      **"Afon, emergency"** bypasses every guard, because a manual trigger that can be reasoned out
+      **"Mushegh, emergency"** bypasses every guard, because a manual trigger that can be reasoned out
       of firing is not one. The 50-prompt corpus is half near-misses on purpose; a keyword matcher
       fails most of it.
 - [x] 35.F2 An emergency contact list and a defined action per category, stored locally.
@@ -3644,9 +3644,9 @@ resolved from a local file so a network failure cannot silence the ladder.
 
 ## S36 · Security & Access Control
 
-**Status** complete for now · **Surfaces** `src/afon/brain/tools/base.py` (confirm tier),
-`src/afon/brain/audit.py`, `src/afon/edge/speaker_gate.py`, `src/afon/brain/tools/camera.py`,
-`src/afon/shared/maintenance.py`, `SECURITY.md`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/tools/base.py` (confirm tier),
+`src/mushegh/brain/audit.py`, `src/mushegh/edge/speaker_gate.py`, `src/mushegh/brain/tools/camera.py`,
+`src/mushegh/shared/maintenance.py`, `SECURITY.md`
 
 **The bar.** Nothing irreversible happens without the right person asking; nothing catastrophic
 happens at all; everything that happened is on the record; and there is always a switch that stops
@@ -3698,7 +3698,7 @@ off the answer path.
       *gate:* new `test_guest_mode.py`
 
 **Elite**
-- [ ] 36.E1 An adversarial pass: 30 attempts to talk Afon past the gates, zero successes.
+- [ ] 36.E1 An adversarial pass: 30 attempts to talk Mushegh past the gates, zero successes.
       *gate:* new `test_adversarial_prompts.py`
 
 **Blocked** owner: `.env` → password-store migration, key rotation.
@@ -3707,7 +3707,7 @@ off the answer path.
 
 ## S37 · Privacy & Data Governance
 
-**Status** half-built — good hygiene, no policy · **Surfaces** `src/afon/shared/errors.py`
+**Status** half-built — good hygiene, no policy · **Surfaces** `src/mushegh/shared/errors.py`
 (scrubbing), `bench/check_public_clean.py`, `SECURITY.md`, local-first processing paths
 
 **The bar.** The owner can ask "what do you know about me, where is it, and how long will you keep
@@ -3765,7 +3765,7 @@ not a scan.
 - [x] 37.F3 `forget X` actually removes X from every store, verified by re-querying.
       *gate:* `test_right_to_forget.py`
       *done 2026-09-13:* `brain/forget.py` — `forget` deleted the single best-matching learned note.
-      Told to forget a subject Afon knew four facts about, it dropped ONE and said "Forgotten, sir",
+      Told to forget a subject Mushegh knew four facts about, it dropped ONE and said "Forgotten, sir",
       while the embedding stayed in the vector store, the entities stayed in the relationship graph
       where they still shaped answers, and the journal still described the day in prose. Four stores,
       one deletion, a confident report of success. It now sweeps all four and then RE-QUERIES,
@@ -3773,10 +3773,10 @@ not a scan.
       something survives it is named rather than reported as a clean sweep, and a re-check that
       cannot run is reported as unverified rather than as clean. Two refusals: the owner's own vault
       notes are left alone and said to be left alone, since deleting them by voice would be editing
-      his documents rather than clearing Afon's memory; and the audit log is not rewritten, because
-      the record of what Afon DID is a different and much worse thing to erase. **Declined:**
+      his documents rather than clearing Mushegh's memory; and the audit log is not rewritten, because
+      the record of what Mushegh DID is a different and much worse thing to erase. **Declined:**
       counting how many vault notes mention the subject — it meant a full-text scan of 6,551 notes
-      on a path that ends in Afon speaking, and hung the first self-check. `search_vault` answers it
+      on a path that ends in Mushegh speaking, and hung the first self-check. `search_vault` answers it
       whenever he asks.
 
 **Raise**
@@ -3796,11 +3796,11 @@ not a scan.
 
 ## S38 · Communication Hub
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/gmail.py`,
-`src/afon/brain/tools/telegram.py`, `src/afon/brain/tools/channels.py`,
-`src/afon/brain/tools/phone.py`, `src/afon/brain/tools/contacts.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/gmail.py`,
+`src/mushegh/brain/tools/telegram.py`, `src/mushegh/brain/tools/channels.py`,
+`src/mushegh/brain/tools/phone.py`, `src/mushegh/brain/tools/contacts.py`
 
-**The bar.** One inbox in Afon's head: he knows what is waiting across every channel, what needs an
+**The bar.** One inbox in Mushegh's head: he knows what is waiting across every channel, what needs an
 answer, and can draft or send in the owner's voice with the owner's approval.
 
 **Budget.** Inbox sweep ≤5s across all channels; drafting ≤1 LLM call.
@@ -3864,7 +3864,7 @@ drafting ≤1 LLM call.
 - [ ] 38.R3 Voice channel (calls) once credentials exist. *gate:* `test_phase11_integrations.py`
 
 **Elite**
-- [ ] 38.E1 A week where the owner never opens an email client first — Afon surfaces everything that
+- [ ] 38.E1 A week where the owner never opens an email client first — Mushegh surfaces everything that
       mattered. *gate:* inbox review.
 
 **Blocked** owner: Twilio credentials.
@@ -3873,8 +3873,8 @@ drafting ≤1 LLM call.
 
 ## S39 · Multi-Agent Delegation
 
-**Status** built, thin · **Surfaces** `src/afon/brain/fleet.py`, `src/afon/brain/worker.py`,
-`src/afon/brain/tools/coding.py`, `src/afon/brain/code_improve.py`
+**Status** built, thin · **Surfaces** `src/mushegh/brain/fleet.py`, `src/mushegh/brain/worker.py`,
+`src/mushegh/brain/tools/coding.py`, `src/mushegh/brain/code_improve.py`
 
 **The bar.** Work that belongs elsewhere goes elsewhere — to the fleet, to a background worker, to a
 specialist — with a clear brief, a deadline, and a result that comes back verified rather than
@@ -3886,14 +3886,14 @@ period.
 **Stack.** Today: a bridge to the external OpenClaw fleet plus a local background worker.
 **Add:** tracking and verification — every delegation is a task with a deadline and a checked result.
 **Declined:** AutoGen / CrewAI. The delegation target is an existing fleet with its own protocol and
-its own agents; a second multi-agent framework inside Afon would duplicate it and own nothing.
+its own agents; a second multi-agent framework inside Mushegh would duplicate it and own nothing.
 
 **Verified by.** Tracking assertions (nothing fire-and-forget) · timeout and takeback · result
 verified before it is reported as fact · ten real delegations over a month.
 
-**Options weighed.** *Build:* the fleet bridge + tracking · AutoGen · Afon spawning his own
+**Options weighed.** *Build:* the fleet bridge + tracking · AutoGen · Mushegh spawning his own
 sub-agents → **the bridge.** The delegation target is an existing fleet with its own protocol and its
-own agents; a second multi-agent framework inside Afon would duplicate it and own nothing. *Test:*
+own agents; a second multi-agent framework inside Mushegh would duplicate it and own nothing. *Test:*
 tracking assertions · timeout and takeback · verification before reporting → **all three**;
 anti-fabrication applies to other agents too.
 **Open-source base.** none, and deliberately. One delegation end to end is a call with a brief, a deadline and a verification step. CrewAI and AutoGen stay declined; the OpenClaw fleet already supplies real workers when more than one is needed.
@@ -3922,11 +3922,11 @@ results verified once, not re-asked.
       applies to other agents too). *gate:* `test_delegation_tracking.py` [verification]
       *done 2026-09-13:* whatever the team lead returned went straight on — into the model's
       context, or into `server._announce_task`, which reads the result out **loud, verbatim**. So
-      "I don't have access to that" reached the owner as Afon's own finished answer, and a figure
-      the fleet invented reached him in Afon's voice with nothing marking it as somebody else's
+      "I don't have access to that" reached the owner as Mushegh's own finished answer, and a figure
+      the fleet invented reached him in Mushegh's voice with nothing marking it as somebody else's
       claim. Three grades now: **rejected** (empty, a refusal, or an answer with nothing in common
       with the brief) is never reported as a finding; **attributed** (it carries figures, dates or
-      links Afon never saw) is relayed in the team lead's name; **verified** may be said in Afon's
+      links Mushegh never saw) is relayed in the team lead's name; **verified** may be said in Mushegh's
       own words. **Declined:** re-running the work to see whether it agrees. That costs what the
       delegation cost and answers a different question. **Also deliberately not done:** feeding the
       answer's URLs into the citation ledger — recording them would mark them as pages this turn
@@ -3935,7 +3935,7 @@ results verified once, not re-asked.
 **Raise**
 - [ ] 39.R1 A routing policy: which kinds of work go to which agent, declared and testable.
       *gate:* `test_delegation_tracking.py` [routing]
-- [ ] 39.R2 Timeout and takeback — a delegation that stalls returns to Afon.
+- [ ] 39.R2 Timeout and takeback — a delegation that stalls returns to Mushegh.
       *gate:* `test_delegation_tracking.py` [timeout]
 - [ ] 39.R3 Cost and value accounting per delegation.
       *gate:* `test_metrics.py` extended.
@@ -3951,9 +3951,9 @@ results verified once, not re-asked.
 ## S40 · Financial & Asset Management
 
 **Status** **missing as a system** — only read-only market lookups exist
-(`stock_price`, `crypto_price`, `fx_rate` in `src/afon/brain/tools/utility.py`).
+(`stock_price`, `crypto_price`, `fx_rate` in `src/mushegh/brain/tools/utility.py`).
 
-**The bar.** Afon knows what the owner owns and owes, notices what changed, and answers "can I
+**The bar.** Mushegh knows what the owner owns and owes, notices what changed, and answers "can I
 afford this / what did I spend on that" from data rather than memory. He never moves money.
 
 **Budget.** Portfolio snapshot ≤2s, cached daily.
@@ -3969,7 +3969,7 @@ balances.
 finance family contains **no** mutating tool · monthly brief review.
 
 **Options weighed.** *Ledger:* **Beancount plain text** · Plaid/TrueLayer aggregation · a
-spreadsheet import → **Beancount.** It is diffable, git-versioned, auditable by him without Afon, and
+spreadsheet import → **Beancount.** It is diffable, git-versioned, auditable by him without Mushegh, and
 read-only by construction — the exact properties this system needs. Bank aggregation is a large
 credential and consent surface for one person's balances, and write access to money is out of scope
 by decision. *Test:* valuation snapshots with as-of times · staleness reporting · an assertion that
@@ -3986,7 +3986,7 @@ only when it changes.
 **Floor** *(deliberately small, deliberately read-only)*
 - [x] 40.F1 A Beancount ledger the owner controls, read by a `portfolio_snapshot` tool that values it
       with the existing price tools. Plain text, so it is diffable, git-versioned and auditable by
-      him without Afon. *gate:* `test_portfolio.py`
+      him without Mushegh. *gate:* `test_portfolio.py`
       *done 2026-09-13:* `brain/portfolio.py`, with `ledger.example.beancount` shipped and the real
       `ledger.beancount` gitignored. Beancount is used as a **file format and never imported**, so
       its licence does not reach this package and he keeps the option of editing the file with
@@ -4034,10 +4034,10 @@ decision record.
 
 ## S41 · Research & Synthesis
 
-**Status** half-built · **Surfaces** `src/afon/brain/tools/web.py`,
-`src/afon/brain/tools/browser.py`, `src/afon/brain/tools/documents.py`, `skills/`
+**Status** half-built · **Surfaces** `src/mushegh/brain/tools/web.py`,
+`src/mushegh/brain/tools/browser.py`, `src/mushegh/brain/tools/documents.py`, `skills/`
 
-`src/afon/brain/mynews.py` was listed here and no longer belongs: its unprompted path was
+`src/mushegh/brain/mynews.py` was listed here and no longer belongs: its unprompted path was
 closed by 41.R4 under D-34. The module survives on disk and is unreachable from any
 signal registry. See [41-research-and-synthesis](subsystems/41-research-and-synthesis.md).
 
@@ -4073,7 +4073,7 @@ parallel fetch with per-source timeouts · dedupe by domain before reading.
 - [x] 41.F1 Search/scrape with a typed fallback chain. *gate:* `test_web_fallback.py`
 - [x] 41.F2 **Citations are mandatory** for factual claims sourced from the web, and are checked to
       resolve. *gate:* `test_citations.py`
-      *done 2026-09-12:* `brain/citations.py` — a per-turn ledger of what Afon actually retrieved.
+      *done 2026-09-12:* `brain/citations.py` — a per-turn ledger of what Mushegh actually retrieved.
       `web_search` and `scrape_url` record what came back; every reply is checked against it, and a
       URL whose host he never retrieved is owned in one clause as his own reference rather than
       dressed as a source. A model handed a page of text will attribute a claim to a plausible URL
@@ -4081,7 +4081,7 @@ parallel fetch with per-source timeouts · dedupe by domain before reading.
       link from a well-formed one, which is why this is worth a spoken sentence and not a log line.
       The reply itself is never edited: rewriting what the model said to hide the problem is the
       same dishonesty one layer down. **Declined:** re-fetching each cited URL to prove it is live.
-      That is a network call per answer, and a 200 from a page Afon never read is not evidence he
+      That is a network call per answer, and a 200 from a page Mushegh never read is not evidence he
       read it — provenance is the question, reachability is not. An obstructed page is never
       recorded, so nothing behind a paywall is ever citable. The ledger is a ContextVar opened
       beside the turn's situation, so one session's reading can never vouch for another's claim.
@@ -4111,9 +4111,9 @@ parallel fetch with per-source timeouts · dedupe by domain before reading.
 
 ## S42 · Media & Entertainment Control
 
-**Status** built, not well structured · **Surfaces** `src/afon/brain/tools/music.py`,
-`src/afon/brain/tools/localplay.py`, `src/afon/brain/tools/voicechat.py`,
-`src/afon/brain/tools/channels.py`
+**Status** built, not well structured · **Surfaces** `src/mushegh/brain/tools/music.py`,
+`src/mushegh/brain/tools/localplay.py`, `src/mushegh/brain/tools/voicechat.py`,
+`src/mushegh/brain/tools/channels.py`
 
 **The bar.** "Play something", "stop", "louder", "what is this" work regardless of which of the
 several playback paths is actually running — and "stop" always stops the thing that is playing.
@@ -4184,10 +4184,10 @@ music room.
 
 ## S43 · Presence & Continuity
 
-**Status** half-built · **Surfaces** `src/afon/brain/presence.py`,
-`src/afon/edge/listening_pulse.py`, `src/afon/edge/device_profile.py`
+**Status** half-built · **Surfaces** `src/mushegh/brain/presence.py`,
+`src/mushegh/edge/listening_pulse.py`, `src/mushegh/edge/device_profile.py`
 
-**The bar.** Afon feels continuously present rather than repeatedly summoned: he knows the owner
+**The bar.** Mushegh feels continuously present rather than repeatedly summoned: he knows the owner
 arrived, knows he left, and picks up where the conversation stopped without being re-briefed.
 
 **Budget.** Presence state change detected ≤10s.
@@ -4228,7 +4228,7 @@ new sensor polling.
 - [x] 43.F3 Presence is a fused signal (voice + face + device activity), not any single source.
       *gate:* `test_perception_snapshot.py` [presence fusion]
       *done 2026-09-12:* `place` was device idle and nothing else, so a stale activity sample read
-      as "away" — the laptop sleeps, the edge drops, he unplugs for an hour, and Afon concluded the
+      as "away" — the laptop sleeps, the edge drops, he unplugs for an hour, and Mushegh concluded the
       room was empty while the man was sitting in it, held his messages and greeted him on his
       "return". Perception gained a third fact: an inbound utterance records `voice`, the one signal
       neither the keyboard nor the camera can see, trusted for ten minutes against the camera's two
@@ -4257,9 +4257,9 @@ new sensor polling.
 ## S44 · Ethical Reasoning, Safety & Alignment
 
 **Status** complete for now · **Surfaces** `personality/operating-rules.md`,
-`src/afon/brain/tools/base.py`, `src/afon/brain/approvals.py`, `src/afon/brain/worker.py`
+`src/mushegh/brain/tools/base.py`, `src/mushegh/brain/approvals.py`, `src/mushegh/brain/worker.py`
 
-**The bar.** Afon refuses the things that must be refused, deterministically, regardless of which
+**The bar.** Mushegh refuses the things that must be refused, deterministically, regardless of which
 model is answering; he never fabricates; and when he declines he says so plainly and offers what he
 can do.
 
@@ -4296,7 +4296,7 @@ around.
       *done 2026-09-13:* there were two answers and no name for either — a deterministic refusal in
       the agent, a confirm tier in the policy layer, and nothing in between. The gap showed as
       silence. Guest mode is on because someone else is in the room and lockdown is on because he
-      wants quiet; both changed what Afon did and neither said so, since the only way to tell him
+      wants quiet; both changed what Mushegh did and neither said so, since the only way to tell him
       something was to refuse. `proactive.grade` returns one of refuse / confirm / note / allow with
       a reason, `PRECEDENCE` states the order strongest-first, and the gate pins that a permissive
       rule can never soften a stronger one by matching later. Two decisions worth recording: the
@@ -4322,11 +4322,11 @@ around.
 
 ## S45 · Explainability & Transparency
 
-**Status** complete for now · **Surfaces** `src/afon/brain/proactive_report.py`,
-`src/afon/brain/tools/diagnose.py`, `src/afon/brain/audit.py`, `src/afon/brain/hud.py`
+**Status** complete for now · **Surfaces** `src/mushegh/brain/proactive_report.py`,
+`src/mushegh/brain/tools/diagnose.py`, `src/mushegh/brain/audit.py`, `src/mushegh/brain/hud.py`
 
 **The bar.** Every answer can be unpacked: which tools, which sources, which memory, how confident,
-and why *now*. Nothing Afon does autonomously is unexplainable after the fact.
+and why *now*. Nothing Mushegh does autonomously is unexplainable after the fact.
 
 **Budget.** "Why did you do that" answers from the audit trail in ≤300ms, no LLM call needed for the
 factual part.
@@ -4360,7 +4360,7 @@ confidence come from the trail; the model only phrases it.
       to the facts. It will name a tool it did not call, fluently, because the question invites a
       story and nothing contradicts it. The turn row already knew which tools fired; it now also
       carries the hosts actually retrieved (from 41.F2's ledger) and a confidence label READ off the
-      reply rather than invented, because a number Afon made up about his own certainty is the least
+      reply rather than invented, because a number Mushegh made up about his own certainty is the least
       trustworthy field in the row. `turn_trace.last()` exposes the closed row and the answer says
       plainly when NO tool was used — the most useful sentence in the feature, since an answer from
       the model's own weights looks identical to a looked-up one and the owner has no other way to
@@ -4383,9 +4383,9 @@ confidence come from the trail; the model only phrases it.
 
 ## S46 · Predictive Analytics & Forecasting
 
-**Status** **missing** — `src/afon/brain/anticipation.py` is a calendar look-ahead, not a model.
+**Status** **missing** — `src/mushegh/brain/anticipation.py` is a calendar look-ahead, not a model.
 
-**The bar.** Afon says useful things about what is *likely*: this meeting will overrun, this week is
+**The bar.** Mushegh says useful things about what is *likely*: this meeting will overrun, this week is
 overbooked, at this rate the deadline slips. Every prediction is scored afterwards.
 
 **Budget.** Forecast computation in-process, ≤200ms, no LLM call.
@@ -4464,7 +4464,7 @@ question · nothing spoken below the confidence floor (cheaper *and* more honest
 
 **Status** **fully missing.**
 
-**The bar.** Afon knows what the owner has, where it is, and when it runs out — for the small number
+**The bar.** Mushegh knows what the owner has, where it is, and when it runs out — for the small number
 of categories that actually matter, and no more.
 
 **Budget.** Inventory query ≤100ms, local store.
@@ -4496,7 +4496,7 @@ guessed · no background job until there is data to sweep.
       chooses. *gate:* `test_inventory.py`
       *done 2026-09-13:* `brain/stock.py` — one sqlite file, two tables, no framework, and Grocy
       held in reserve exactly as the plan records. The first category is the one the blocker table
-      defaulted to: **Afon's own consumables**, seeded from numbers he can read himself — free disk
+      defaulted to: **Mushegh's own consumables**, seeded from numbers he can read himself — free disk
       on the state volume and archives in the backup folder — taken by the hygiene job that already
       runs daily. That matters more than it sounds: a run rate cannot form in a table nobody writes
       to, so the alternative was a schema waiting for someone to start typing. A physical category
@@ -4511,7 +4511,7 @@ guessed · no background job until there is data to sweep.
       sample of one, and two inside the same hour is a busy afternoon rather than a rate. "I've no
       estimate of how long that lasts yet, because there's only one recorded use" is a real answer;
       a number derived from that one use would be arithmetic dressed as a forecast.
-- [x] 47.F3 Unknown is unknown — Afon never guesses stock he was not told about.
+- [x] 47.F3 Unknown is unknown — Mushegh never guesses stock he was not told about.
       *gate:* `test_inventory.py` [no invention]
       *done 2026-09-13:* consuming an item nobody has recorded is refused rather than creating it,
       because creating it on the way down would have to invent what was there before. Asked about
@@ -4537,9 +4537,9 @@ guessed · no background job until there is data to sweep.
 ## S48 · Collaborative Multi-Agent Coordination
 
 **Status** built, thin — one-way delegation to an external router; no coordination layer.
-**Surfaces** `src/afon/brain/fleet.py`, `src/afon/brain/worker.py`
+**Surfaces** `src/mushegh/brain/fleet.py`, `src/mushegh/brain/worker.py`
 
-**The bar.** When a job needs several workers, Afon briefs them, keeps them from colliding, merges
+**The bar.** When a job needs several workers, Mushegh briefs them, keeps them from colliding, merges
 what comes back, and remains the single voice the owner hears.
 
 **Budget.** Coordination overhead ≤10% of the total task time.
@@ -4607,7 +4607,7 @@ progress aggregated, not polled.
 
 **Status** **fully missing**, and correctly so today — there is no hardware.
 
-**The bar.** If and when hardware exists, Afon prepares and queues jobs, and **never** starts a
+**The bar.** If and when hardware exists, Mushegh prepares and queues jobs, and **never** starts a
 machine without a physical-presence confirmation.
 
 **Stack.** Today: nothing, deliberately. When hardware exists the likely shape is `cadquery` or the
@@ -4652,11 +4652,11 @@ right next step is a decision, not code.
 ## S50 · Legacy Continuity & Knowledge Preservation
 
 **Status** half-built — the substrate exists, the continuity policy does not.
-**Surfaces** the Obsidian vault (VPS-authoritative), `src/afon/brain/audit.py`,
-`src/afon/protocols/backup.py`, `src/afon/protocols/checkpoint.py`
+**Surfaces** the Obsidian vault (VPS-authoritative), `src/mushegh/brain/audit.py`,
+`src/mushegh/protocols/backup.py`, `src/mushegh/protocols/checkpoint.py`
 
 **The bar.** Everything worth keeping outlives any single machine, any single format, and any single
-version of Afon — and can be read by a human without Afon's help.
+version of Mushegh — and can be read by a human without Mushegh's help.
 
 **Budget.** Export runs monthly, ≤10min, verified.
 
@@ -4691,13 +4691,13 @@ than loading whole files.
       checkpoints, audit — and none of it delivered the property. A backup is a tar of this
       program's private layout: sqlite whose schema lives in the code, a `learned` tree whose
       meaning is a docstring, a JSONL whose fields are named in a dataclass. **Restoring it needs
-      Afon**, which is the opposite of preservation. The export is markdown and JSON with a README
+      Mushegh**, which is the opposite of preservation. The export is markdown and JSON with a README
       in plain language and a sha256 per file. Two decisions worth recording. The audit is
       **summarised, not copied** — tool counts per day, never the values those tools were handed,
       and the export says so where a reader will see it. And a store that was not there is named in
       the manifest as absent rather than omitted, because an export missing half the memory
       otherwise looks exactly like an export of half as much memory. The gate's load-bearing check
-      shells out to an isolated interpreter that cannot import `afon` and has it read the whole
+      shells out to an isolated interpreter that cannot import `mushegh` and has it read the whole
       thing; asserting portability from a process that has already imported the package proves
       nothing, since every helper it reaches for is the thing meant to be unnecessary.
 - [x] 50.F2 The export is verified by restoring it into an empty environment, on a schedule.
@@ -4708,13 +4708,13 @@ than loading whole files.
       by a previous run, which is precisely what a drill exists to catch. It is silent on success
       and speaks only on failure, for the same reason 22.F4 gives — a drill that congratulates
       itself daily teaches the owner to ignore it. The two drills check different properties and
-      fail for different reasons: the backup drill proves Afon can read his own archive, this
+      fail for different reasons: the backup drill proves Mushegh can read his own archive, this
       proves a person could read the export without him.
 - [x] 50.F3 The vault-write rule is enforced in code, not only in documentation: writes go to the
       authoritative host or fail loudly. *gate:* `test_vault_search.py` [50.F3]
       *done 2026-09-13:* the rule was a sentence in a document, and a sentence is not a mechanism.
       The only thing between a dictated note and a directory that gets nuked-and-replaced was
-      `AFON_VAULT_WRITABLE` being set correctly on every host, forever — set it wrong once on the
+      `MUSHEGH_VAULT_WRITABLE` being set correctly on every host, forever — set it wrong once on the
       laptop and every note would be written, reported as saved, and deleted by the next pull, with
       nothing anywhere recording that it happened. The replica already carries proof of what it is:
       the one-way sync leaves its own pull script and log in the root, and the authoritative copy
@@ -4734,7 +4734,7 @@ than loading whole files.
       *gate:* `test_portable_export.py` [migration]
 
 **Elite**
-- [ ] 50.E1 A cold-start drill: a new machine, the export, and nothing else — rebuild a working Afon
+- [ ] 50.E1 A cold-start drill: a new machine, the export, and nothing else — rebuild a working Mushegh
       with the owner's history intact. *gate:* recorded drill.
 
 ---
@@ -4864,14 +4864,14 @@ defaulted; they are marked **OWNER** and together cost under an hour.
 | Fitness API enablement; unknown wearable | S34 | **Retired.** Ingest is built against FIT and the Apple Health XML export — open formats every mainstream device produces. Naming the watch later changes no code. |
 | Voiceprint re-enrolment | S08, and S10/S11 fusion | **OWNER — 10 min** of reading the script aloud. No substitute exists: it is his voice. Enrolment quality scoring already refuses a bad capture, so one sitting is enough. |
 | Sit for the ArcFace face capture | S09, S11 | **OWNER — 5 min.** Same reason. The two biometric sittings are the only hard human dependencies in the whole plan. |
-| `routines.json` real content | S21, S17 evening brief | **Retired.** Afon drafts routines from observed calendar and activity, then asks him to approve or edit — a five-line correction beats a blank file, and reviewing a draft is not a blocker. |
+| `routines.json` real content | S21, S17 evening brief | **Retired.** Mushegh drafts routines from observed calendar and activity, then asks him to approve or edit — a five-line correction beats a blank file, and reviewing a draft is not a blocker. |
 | Merge direction for laptop ↔ VPS state | S30, S32 | **Done.** 30.F1 executed: one state root per host, derived stores from the brain, learned facts unioned. |
 | `.env` → password store; key rotation | S20.R3, S36.F5 | **Retired as a blocker, kept as a task.** The migration is scripted and idempotent; rotation is a separate later step that does not gate the store move. |
 | Elevated `Disable-ScheduledTask` | keeps the park honest | **Retired.** The maintenance lock already refuses autostart and is gated by `test_maintenance_lock.py`; the scheduled task is belt to that braces. |
-| First inventory category | S47 | **Defaulted** to what Afon can populate without asking: its own consumables — subscriptions, credentials with expiry dates, disk and backup capacity. Real data on day one, and his first physical category slots into the same schema. |
+| First inventory category | S47 | **Defaulted** to what Mushegh can populate without asking: its own consumables — subscriptions, credentials with expiry dates, disk and backup capacity. Real data on day one, and his first physical category slots into the same schema. |
 | First fabrication decision | S49 | **Deferred, not blocked.** S49 stays unstarted until a machine exists. An unstarted system with a stated reason is honest; a half-built driver for hardware nobody owns is not. |
 | No logged decisions | S15, and S14's bandit | **Defaulted to logging on**, with a kill switch. Logging is the thing that produces the corpus, so leaving it off was the blocker. |
-| No forecast baseline | S46 | **Defaulted** to what Afon already measures: per-turn latency and provider failure rate. A naive seasonal baseline exists the day the data does, and the personal variables arrive later against the same harness. |
+| No forecast baseline | S46 | **Defaulted** to what Mushegh already measures: per-turn latency and provider failure rate. A naive seasonal baseline exists the day the data does, and the personal variables arrive later against the same harness. |
 
 **The whole of the remaining owner time: one token, one voice sitting, one face sitting.** Under an
 hour, and nothing else in 424 engineering-days depends on him.

@@ -1,4 +1,4 @@
-"""The outbound-URL guard — what Afon refuses to fetch, and why it cannot promise safety.
+"""The outbound-URL guard — what Mushegh refuses to fetch, and why it cannot promise safety.
 
 The claim under test is narrow and worth stating: obvious attempts are refused at
 parse time, a hostname that resolves privately is refused, and one resolving BOTH
@@ -16,7 +16,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.shared.netguard import (  # noqa: E402
+from mushegh.shared.netguard import (  # noqa: E402
     Verdict,
     check_url,
     classify_host,
@@ -155,7 +155,7 @@ def main() -> None:
     # The policy existing is not the claim; the tools USING it is. This asserts
     # the call sites, so a later refactor cannot quietly stop consulting it.
     try:
-        from afon.brain.tools.base import guard_url
+        from mushegh.brain.tools.base import guard_url
     except Exception as exc:  # noqa: BLE001 — report, do not hide a broken import
         check("tools.base imports", False, f"{type(exc).__name__}: {exc}")
     else:

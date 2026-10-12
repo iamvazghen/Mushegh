@@ -48,12 +48,12 @@ def main() -> None:
     print("\n[3] it POSTs to /talk with the injected bearer token")
     check("posts to /talk", "'/talk'" in html or '"/talk"' in html)
     check("method POST", "method: 'post'" in low or "method:'post'" in low or "method: \"post\"" in low)
-    check("reads window.AFON_TOKEN", "window.AFON_TOKEN" in html)
+    check("reads window.MUSHEGH_TOKEN", "window.MUSHEGH_TOKEN" in html)
     check("sends Authorization: Bearer", "bearer " in low and "authorization" in low)
 
     print("\n[4] it handles BOTH server responses (audio + JSON fallback)")
     check("plays audio/mpeg reply", ".play(" in html and ("audio" in low))
-    check("reads X-Afon-Reply/Transcript headers", "x-afon-reply" in low and "x-afon-transcript" in low)
+    check("reads X-Mushegh-Reply/Transcript headers", "x-mushegh-reply" in low and "x-mushegh-transcript" in low)
     check("has a JSON/text fallback path", "res.json(" in html or ".json()" in html)
     check("browser speechSynthesis fallback", "speechsynthesis" in low)
 
@@ -65,20 +65,20 @@ def main() -> None:
 
     print("\n[6] the SERVER injects the token into the page it serves")
     # Mirror server.py's rewrite: it replaces the first </head> with a token <script>.
-    from afon.config import settings
+    from mushegh.config import settings
     saved = settings.api_auth_token
     settings.api_auth_token = "test-tok-123"
     try:
         tok = (settings.api_auth_token or "").replace("</", "<\\/")
-        inject = f'<script>window.AFON_TOKEN="{tok}";</script>'
+        inject = f'<script>window.MUSHEGH_TOKEN="{tok}";</script>'
         served = html.replace("</head>", inject + "</head>", 1)
-        check("token planted before </head>", 'window.AFON_TOKEN="test-tok-123"' in served)
+        check("token planted before </head>", 'window.MUSHEGH_TOKEN="test-tok-123"' in served)
         check("exactly one head close remains", served.count("</head>") == 1)
     finally:
         settings.api_auth_token = saved
 
     print("\n[7] the server route + docs reference the client correctly")
-    server_src = (ROOT / "src" / "afon" / "brain" / "server.py").read_text(encoding="utf-8")
+    server_src = (ROOT / "src" / "mushegh" / "brain" / "server.py").read_text(encoding="utf-8")
     check("server serves the /iphone route", '"/iphone"' in server_src)
     check("server points at iphone/index.html", '"iphone"' in server_src and "index.html" in server_src)
     check("HTTPS deploy doc exists", (ROOT / "deploy" / "vps" / "iphone-https.md").exists())

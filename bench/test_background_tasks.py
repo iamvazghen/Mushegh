@@ -43,8 +43,8 @@ async def _settle(q, timeout: float = 2.0) -> None:
 
 
 async def main() -> None:
-    from afon.brain.tasks import TaskQueue
-    import afon.brain.tools.tasks as tt
+    from mushegh.brain.tasks import TaskQueue
+    import mushegh.brain.tools.tasks as tt
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     q = TaskQueue(db_path=Path(tmp.name) / "tasks.sqlite")
@@ -103,12 +103,12 @@ async def main() -> None:
     check("slow task completed after release", t3.id not in {x.id for x in q.active()})
 
     print("\n[4] the tools + the delegate 'background' option are registered for the model")
-    from afon.brain.tools import tool_names
+    from mushegh.brain.tools import tool_names
 
     names = tool_names()
     check("list_tasks registered in the tool surface", "list_tasks" in names)
     check("task_status registered in the tool surface", "task_status" in names)
-    from afon.brain.fleet import FLEET_TOOL_SCHEMA
+    from mushegh.brain.fleet import FLEET_TOOL_SCHEMA
 
     props = FLEET_TOOL_SCHEMA["function"]["parameters"]["properties"]
     check("delegate_to_fleet exposes a 'background' option", "background" in props)

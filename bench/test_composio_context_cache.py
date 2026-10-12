@@ -41,9 +41,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import composio_catalog  # noqa: E402
-from afon.brain.tools import composio as cx  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain import composio_catalog  # noqa: E402
+from mushegh.brain.tools import composio as cx  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 passed = failed = 0
 

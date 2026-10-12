@@ -10,7 +10,7 @@ PATH = "docs/systems-plan.json"
 
 NOTE = (
     "Memory 65.0 diagnosed from the healthy-chain run, and the safety net turned out to be working. "
-    "The owner asks Afon to remember that his dentist is called Dr Petrov and the model did not call "
+    "The owner asks Mushegh to remember that his dentist is called Dr Petrov and the model did not call "
     "remember; what he heard instead was _FABRICATION_DEGRADE, the B3 anti-fabrication hard stop, "
     "which is CORRECT behaviour. The router does force remember (verified directly) and remember is "
     "not confirm-gated, so the model simply dodged the call through the whole escalation ladder. That "

@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.world_model import WorldModel  # noqa: E402
+from mushegh.brain.world_model import WorldModel  # noqa: E402
 
 _ok = _fail = 0
 
@@ -47,11 +47,11 @@ capped = w.recent_events(now=now + timedelta(minutes=20), limit=3)
 check(len(capped) == 3 and capped[-1] == "event 4", f"capped, newest-last (got {capped})")
 
 # 4) agent._world_note reflects the world model (patched to our temp instance) and is None when empty
-import afon.brain.world_model as wm  # noqa: E402
-from afon.brain.agent import AfonAgent  # noqa: E402
+import mushegh.brain.world_model as wm  # noqa: E402
+from mushegh.brain.agent import MusheghAgent  # noqa: E402
 
 wm.WORLD = w  # the note reads module-level WORLD
-a = AfonAgent()
+a = MusheghAgent()
 a._self_improve = False
 # monkeypatch recent_events to a deterministic fresh list (avoid clock coupling)
 w.recent_events = lambda **_k: ["CI failed on party-map main"]
@@ -73,7 +73,7 @@ print("\n[32.F4] each host asks about the other rather than assuming")
 import asyncio as _aio  # noqa: E402
 import inspect as _inspect  # noqa: E402
 
-from afon.brain.pc_link import PC_LINK  # noqa: E402
+from mushegh.brain.pc_link import PC_LINK  # noqa: E402
 
 check(hasattr(PC_LINK, "reachable"), "the brain can ASK whether the laptop is alive")
 check(_inspect.iscoroutinefunction(PC_LINK.reachable),
@@ -81,21 +81,21 @@ check(_inspect.iscoroutinefunction(PC_LINK.reachable),
 check(hasattr(PC_LINK, "silent_for"), "the brain knows HOW LONG the laptop has been quiet")
 check(hasattr(PC_LINK, "active"), "...and whether a socket is even registered")
 
-_hp = (Path(__file__).resolve().parents[1] / "src/afon/brain/health.py").read_text(encoding="utf-8")
+_hp = (Path(__file__).resolve().parents[1] / "src/mushegh/brain/health.py").read_text(encoding="utf-8")
 check("PC_LINK.reachable()" in _hp,
       "the health check asks, instead of trusting `active`")
 check("not a live host" in _hp or "closed its lid" in _hp,
       "...and the reason a registered socket is not proof is written down")
 
-from afon.edge.brain_client import BrainClient  # noqa: E402
+from mushegh.edge.brain_client import BrainClient  # noqa: E402
 
 check(hasattr(BrainClient, "state"), "the laptop knows the state of its link to the brain")
 check(hasattr(BrainClient, "degraded"), "...and turns it into a declared mode")
 
 _c = BrainClient.__new__(BrainClient)
 _c._state = "connected"
-from afon.shared.degraded import Announcer as _Ann  # noqa: E402
-from afon.shared.degraded import BRAIN_DOWN as _BD  # noqa: E402
+from mushegh.shared.degraded import Announcer as _Ann  # noqa: E402
+from mushegh.shared.degraded import BRAIN_DOWN as _BD  # noqa: E402
 
 _c._degraded = _Ann()
 check(_c.degraded() == "", "a connected laptop announces nothing")
@@ -108,7 +108,7 @@ check("Back to normal" in _c.degraded(), "and the recovery is announced too")
 check(_c._degraded.mode.name != _BD, "...leaving the mode cleared")
 
 # Neither side may decide the other is fine by default.
-_bc = (Path(__file__).resolve().parents[1] / "src/afon/edge/brain_client.py").read_text(encoding="utf-8")
+_bc = (Path(__file__).resolve().parents[1] / "src/mushegh/edge/brain_client.py").read_text(encoding="utf-8")
 check("brain_up=self._state == \"connected\"" in _bc,
       "the laptop derives brain-up from the real socket state, not from a constant")
 

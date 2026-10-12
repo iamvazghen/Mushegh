@@ -18,9 +18,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import presence as pmod  # noqa: E402
-from afon.brain.presence import Presence, _greeting  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain import presence as pmod  # noqa: E402
+from mushegh.brain.presence import Presence, _greeting  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 passed = failed = 0
 
@@ -123,7 +123,7 @@ def main() -> None:
     check("a whole day is not counted in hours", pmod._absence_phrase(20 * 3600) == "a while")
 
     # The rule the floor actually states: a catch-up only when there is something to catch up on.
-    import afon.brain.tools.inbox as ib
+    import mushegh.brain.tools.inbox as ib
 
     real_sources = dict(ib.SOURCES)
 

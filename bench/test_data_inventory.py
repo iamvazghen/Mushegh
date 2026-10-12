@@ -47,8 +47,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain import inventory as I
-    from afon.config import settings
+    from mushegh.brain import inventory as I
+    from mushegh.config import settings
 
     print("[1] every store answers all three questions")
     check("something is declared", len(I.STORES) > 20, len(I.STORES))
@@ -72,12 +72,12 @@ def main() -> None:
         try:
             settings.state_dir = d
             check("a clean root has nothing undeclared", I.undeclared() == [], I.undeclared())
-            (Path(d) / "afon_secrets.sqlite").write_text("x", encoding="utf-8")
+            (Path(d) / "mushegh_secrets.sqlite").write_text("x", encoding="utf-8")
             check("a new store is caught immediately",
-                  I.undeclared() == ["afon_secrets.sqlite"], I.undeclared())
+                  I.undeclared() == ["mushegh_secrets.sqlite"], I.undeclared())
             (Path(d) / "objectives.json").write_text("{}", encoding="utf-8")
             check("...while a DECLARED store is not flagged",
-                  I.undeclared() == ["afon_secrets.sqlite"], I.undeclared())
+                  I.undeclared() == ["mushegh_secrets.sqlite"], I.undeclared())
             (Path(d) / ".lock").write_text("", encoding="utf-8")
             check("a dotfile is not treated as a store",
                   ".lock" not in I.undeclared(), I.undeclared())
@@ -87,7 +87,7 @@ def main() -> None:
             said = I.spoken()
             check("the spoken answer admits what it cannot account for",
                   "can't account for" in said, said)
-            check("...and names it", "afon_secrets.sqlite" in said, said)
+            check("...and names it", "mushegh_secrets.sqlite" in said, said)
             check("the long report says where to declare it",
                   "NOT DECLARED" in I.report() and "inventory.STORES" in I.report())
         finally:
@@ -108,7 +108,7 @@ def main() -> None:
     print("\n[4] a document replaced in place gets no day count it would be wrong to enforce")
     # The first version of the sweep proposed deleting the pending-approvals file and two live pid
     # files because nothing had written to them lately. File mtime is not age for current state.
-    for name in ("approvals.json", "run", "day_plan.json", "afon_session.json", "health_probe.json"):
+    for name in ("approvals.json", "run", "day_plan.json", "mushegh_session.json", "health_probe.json"):
         st = I.by_name(name)
         check(f"{name} is declared while-current, not on a timer",
               st is not None and st.retention_days == I.WHILE_CURRENT,
@@ -132,7 +132,7 @@ def main() -> None:
           all(r["size_bytes"] == 0 for r in rows if not r["present"]))
 
     print("\n[6] asking costs nothing on a turn that is not about privacy")
-    from afon.brain.tools import core_tool_schemas, groups_for_text, tool_handlers
+    from mushegh.brain.tools import core_tool_schemas, groups_for_text, tool_handlers
 
     core = {s["function"]["name"] for s in core_tool_schemas()}
     check("it is not advertised on every turn", "what_you_know" not in core)
@@ -144,7 +144,7 @@ def main() -> None:
     check("an ordinary turn does not load it", "privacy" not in groups_for_text("what's the time"))
 
     print("\n[7] the presence store still honours the setting it already had")
-    pres = I.by_name("afon_presence.sqlite")
+    pres = I.by_name("mushegh_presence.sqlite")
     old = settings.presence_retention_days
     try:
         settings.presence_retention_days = 7

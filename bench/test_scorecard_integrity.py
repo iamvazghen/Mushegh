@@ -66,13 +66,13 @@ class FakeSettings:
 
 
 def _all_fields() -> set[str]:
-    from afon.config import Settings
+    from mushegh.config import Settings
     return set(Settings.model_fields)
 
 
 def main() -> int:
     import behavioral_suite as bs
-    from afon.config import Settings
+    from mushegh.config import Settings
 
     print("\n[1] the cluster had a cause, and it is arithmetic")
     src = (ROOT / "bench" / "behavioral_suite.py").read_text(encoding="utf-8")
@@ -121,7 +121,7 @@ def main() -> int:
               "google_client_id", "google_client_secret", "google_refresh_token"],
           str(bs.missing_credentials("telegram,calendar", blank)))
     # Both of these were declared as ONE field when the tool needs more. `configured()` in
-    # afon/brain/google.py is the authority: client id AND client secret AND refresh token.
+    # mushegh/brain/google.py is the authority: client id AND client secret AND refresh token.
     # Declaring only the token marked the scenario runnable on a box that could then only
     # return not_configured - a missing credential scored as a brain failure, which is the
     # exact thing this scorecard was re-specified to stop doing.

@@ -83,11 +83,11 @@ class Fingerprint:
 
 
 async def main() -> int:  # noqa: PLR0915 — one linear gate reads better than ten helpers
-    import afon.brain.executors.landing as L
-    from afon.brain.executors import Brief, Domain, Result, Tier
+    import mushegh.brain.executors.landing as L
+    from mushegh.brain.executors import Brief, Domain, Result, Tier
 
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/executors/landing.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/executors/landing.py").read_text(encoding="utf-8")
 
     # ── D-08 condition 3, in isolation: what counts as a migration ────────────────────────────
     print("\n-- condition 3: schema migrations --")
@@ -197,7 +197,7 @@ async def main() -> int:  # noqa: PLR0915 — one linear gate reads better than 
         check("it committed", got.committed, got.reason)
         check("the stage is commit", got.stage == "commit", got.stage)
         check("the branch is a dedicated one, not the working branch",
-              got.branch.startswith("afon/delegated-") and got.branch != before.branch, got.branch)
+              got.branch.startswith("mushegh/delegated-") and got.branch != before.branch, got.branch)
         second = L._branch_name()
         check("two branch names in the same second do not collide",
               second != L._branch_name(),
@@ -351,7 +351,7 @@ async def main() -> int:  # noqa: PLR0915 — one linear gate reads better than 
             def record(tool, args, result, **kw):
                 lines.append((tool, args, result, kw))
 
-        import afon.brain as _brain
+        import mushegh.brain as _brain
         real_audit = _brain.audit
         _brain.audit = FakeAudit  # type: ignore[assignment]
         L.dispatch = stub_dispatch({"src/thing.py": "VALUE = 3\n"})  # type: ignore[assignment]
@@ -363,7 +363,7 @@ async def main() -> int:  # noqa: PLR0915 — one linear gate reads better than 
             check("the line names the rule it was permitted under",
                   "D-08" in kw.get("rule", ""), kw.get("rule", ""))
             check("the line is attributed to the delegation, not the owner",
-                  kw.get("actor") == "afon:delegate_coding", str(kw.get("actor")))
+                  kw.get("actor") == "mushegh:delegate_coding", str(kw.get("actor")))
             check("the line names the branch and the executor",
                   args.get("branch") == got.branch and args.get("executor") == "claude-code")
             check("the line names which files changed",
@@ -426,7 +426,7 @@ def _raises(fn, exc) -> bool:
 
 
 async def _refuses(L, brief) -> bool:
-    from afon.brain.executors import BriefRefused
+    from mushegh.brain.executors import BriefRefused
 
     try:
         await L.delegate_coding(brief)

@@ -11,7 +11,7 @@ anywhere said it was a truncated answer to a bigger question.
 
 What this asserts:
 
-  * every page Afon really retrieves is recorded, and the plumbing that fetched it is not;
+  * every page Mushegh really retrieves is recorded, and the plumbing that fetched it is not;
   * a URL in a reply whose host he never retrieved is named as his own, not as a source;
   * the ledger is per-turn, so yesterday's reading cannot vouch for today's claim;
   * an obstructed page is never citable — he could not read what was behind the wall;
@@ -57,8 +57,8 @@ class _Resp:
 
 
 async def main() -> None:
-    from afon.brain import citations as C
-    from afon.brain.tools import web
+    from mushegh.brain import citations as C
+    from mushegh.brain.tools import web
 
     print("[1] a page he really opened is recorded; the reader that fetched it is not")
     C.start()
@@ -80,10 +80,27 @@ async def main() -> None:
     C.start()
     web._scrape_jina = lambda url: _wrap("Subscribe to continue reading. " * 3)
     web._scrape_firecrawl = lambda url: _wrap("Subscribe to continue reading. " * 3)
-    out = await web.scrape_url({"url": "https://paywalled.example/story"})
-    check("he says he couldn't read it", "couldn't read" in out, out[:120])
-    check("...and nothing is citable from behind the wall",
+    # `.example` is reserved by RFC 2606 and must never resolve, so on any machine with a working
+    # resolver the SSRF guard refuses this host BEFORE the mocked scrapers run. That refusal is the
+    # right answer, but it is a different question from the one this section asks, so it is asserted
+    # in its own right instead of quietly standing in for the paywall.
+    real_guard = web.guard_url
+    out_unreachable = await web.scrape_url({"url": "https://paywalled.example/story"})
+    check("an unresolvable host is refused before anything is fetched",
+          "won't open" in out_unreachable or "couldn't read" in out_unreachable,
+          out_unreachable[:120])
+    check("...and nothing is citable from a host that was never opened",
           C.hosts() == set(), C.hosts())
+
+    # Now the scenario the section is actually about: the fetch happens and the BODY is a wall.
+    web.guard_url = lambda url: None
+    try:
+        out = await web.scrape_url({"url": "https://paywalled.example/story"})
+        check("he says he couldn't read it", "couldn't read" in out, out[:120])
+        check("...and nothing is citable from behind the wall",
+              C.hosts() == set(), C.hosts())
+    finally:
+        web.guard_url = real_guard
 
     print("\n[3] a reply that names a page he never opened says so")
     C.start()
@@ -108,7 +125,7 @@ async def main() -> None:
           C.unsupported("https://reuters.com/x") == ["reuters.com"])
 
     print("\n[5] the reply path actually applies it")
-    from afon.brain.agent import _own_sources
+    from mushegh.brain.agent import _own_sources
 
     C.start()
     C.record("https://www.reuters.com/a", via="scrape_url")
@@ -135,7 +152,7 @@ async def main() -> None:
     check("junk in the ledger is ignored, not raised", True)
 
     print("\n[7] 45.R2 — the answer says where it came from, in short form")
-    from afon.brain.agent import _own_sources as _honesty, _speak_attribution
+    from mushegh.brain.agent import _own_sources as _honesty, _speak_attribution
 
     C.start()
     check("SILENCE is the default: nothing read, nothing said",
@@ -176,16 +193,16 @@ async def main() -> None:
     # The claim is WHERE the logic lives: the ledger owns provenance, the reply path owns speech.
     # A first draft of this assertion searched for "def caveat()" and failed, because caveat takes
     # a text argument — a string-shape test proving nothing about the thing it names.
-    cit_src = (Path(__file__).resolve().parents[1] / "src" / "afon" / "brain"
+    cit_src = (Path(__file__).resolve().parents[1] / "src" / "mushegh" / "brain"
                / "citations.py").read_text(encoding="utf-8")
     check("the ledger owns the attribution, beside the honesty caveat it composes with",
           "def spoken()" in cit_src and "def caveat(" in cit_src)
     check("...and the reply path adds no attribution logic of its own, only a call",
-          "citations.spoken()" in (Path(__file__).resolve().parents[1] / "src" / "afon" / "brain"
+          "citations.spoken()" in (Path(__file__).resolve().parents[1] / "src" / "mushegh" / "brain"
                                   / "agent.py").read_text(encoding="utf-8"))
 
     print("\n[8] 41.F3 — a task states its budget and says when it stopped early")
-    from afon.brain.worker import TaskWorker
+    from mushegh.brain.worker import TaskWorker
     said: list[str] = []
     llm = _LoopLLM(["use a tool", "use a tool", "Here is what I found."])
     w = TaskWorker(llm, {"t": _noop_tool}, tools=[], max_steps=2)

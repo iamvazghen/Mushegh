@@ -30,7 +30,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.protocols.backup import (  # noqa: E402
+from mushegh.protocols.backup import (  # noqa: E402
     MAX_BACKUP_AGE_S,
     last_drill,
     latest_backup,
@@ -96,12 +96,12 @@ def main() -> int:
         # Scoped to THIS call, deliberately. Globbing the shared temp dir picks up leftovers from any
         # earlier run — including a previous falsification of this very check — so the check would
         # fail for reasons that have nothing to do with the code under test.
-        scratch = set(Path(tempfile.gettempdir()).glob("afon-restore-drill-*"))
+        scratch = set(Path(tempfile.gettempdir()).glob("mushegh-restore-drill-*"))
         res = verify_backup(archive)
         check(f"a good archive verifies ({res['files']} files, {res['bytes']} bytes, {res['ms']}ms)",
               res["ok"] and res["files"] == 2 and res["bytes"] > 0, str(res))
         check("a fresh backup is not flagged stale", res.get("stale") is False)
-        left = set(Path(tempfile.gettempdir()).glob("afon-restore-drill-*")) - scratch
+        left = set(Path(tempfile.gettempdir()).glob("mushegh-restore-drill-*")) - scratch
         check("the drill leaves no scratch directory behind", not left,
               f"a daily drill that leaks a restore per run fills the disk it protects: {left}")
 
@@ -157,7 +157,7 @@ def main() -> int:
         first = make_backup(memory, backups)
         # The stamp is second-resolution, so a same-second second backup would collide. Name it
         # explicitly rather than sleeping a second in a test.
-        second = backups / "afon-memory-29991231-235959.zip"
+        second = backups / "mushegh-memory-29991231-235959.zip"
         shutil.copy(first, second)
         check("latest_backup picks the newest stamp, not the first found",
               latest_backup(backups) == second, str(latest_backup(backups)))
@@ -177,17 +177,17 @@ def main() -> int:
               "a drill that restores into live memory is a disaster wearing a checklist")
 
     print("\n[6] it is actually scheduled — 22.F4 says 'on a schedule', not 'on request'")
-    from afon.brain import loops
-    from afon.brain.scheduler import _fire_restore_drill  # noqa: F401 — importable = schedulable
+    from mushegh.brain import loops
+    from mushegh.brain.scheduler import _fire_restore_drill  # noqa: F401 — importable = schedulable
 
     check("the drill is a declared background loop with a period and a budget",
           "daily-restore-drill" in loops.BY_NAME
           and loops.BY_NAME["daily-restore-drill"].period_s == 86_400
           and loops.BY_NAME["daily-restore-drill"].budget_ms > 0)
-    sched_src = (ROOT / "src" / "afon" / "brain" / "scheduler.py").read_text(encoding="utf-8")
+    sched_src = (ROOT / "src" / "mushegh" / "brain" / "scheduler.py").read_text(encoding="utf-8")
     check("the scheduler registers it under a fixed job id",
           'id="daily-restore-drill"' in sched_src and "_fire_restore_drill" in sched_src)
-    server_src = (ROOT / "src" / "afon" / "brain" / "server.py").read_text(encoding="utf-8")
+    server_src = (ROOT / "src" / "mushegh" / "brain" / "server.py").read_text(encoding="utf-8")
     check("and the brain calls that registration at start-up",
           "schedule_restore_drill()" in server_src,
           "a scheduling method nobody calls is the exact shape of the dead-cron bug this closes")
@@ -201,7 +201,7 @@ def main() -> int:
     # two drills therefore sit side by side and fail for different reasons.
     import tempfile as _tf
 
-    from afon.protocols import portable as _P
+    from mushegh.protocols import portable as _P
 
     with _tf.TemporaryDirectory(ignore_cleanup_errors=True) as _d:
         _state = Path(_d) / "state"
@@ -221,7 +221,7 @@ def main() -> int:
         # The point of a DRILL: it must not verify the directory a previous run left behind.
         _stale = Path(_d) / "stale-export"
         _stale.mkdir()
-        (_stale / "MANIFEST.json").write_text('{"format": "afon-portable-1", "files": []}',
+        (_stale / "MANIFEST.json").write_text('{"format": "mushegh-portable-1", "files": []}',
                                               encoding="utf-8")
         check("an export with no README does not verify",
               not _P.verify(_stale)["ok"], _P.verify(_stale))
@@ -229,14 +229,14 @@ def main() -> int:
               "README" in _P.verify(_stale).get("error", ""), _P.verify(_stale))
         _wrong = Path(_d) / "old-format"
         _wrong.mkdir()
-        (_wrong / "MANIFEST.json").write_text('{"format": "afon-portable-0", "files": []}',
+        (_wrong / "MANIFEST.json").write_text('{"format": "mushegh-portable-0", "files": []}',
                                               encoding="utf-8")
         check("an export in an older format is refused rather than half-read",
               not _P.verify(_wrong)["ok"] and "expected" in _P.verify(_wrong).get("error", ""),
               _P.verify(_wrong))
 
     _sched_src = (Path(__file__).resolve().parents[1]
-                  / "src/afon/brain/scheduler.py").read_text(encoding="utf-8")
+                  / "src/mushegh/brain/scheduler.py").read_text(encoding="utf-8")
     check("the portable drill has a scheduled job of its own", "_fire_portable_drill" in _sched_src)
     check("...which the brain starts", "schedule_portable_drill()" in server_src,
           "a scheduling method nobody calls is the dead-cron bug this file already closed once")

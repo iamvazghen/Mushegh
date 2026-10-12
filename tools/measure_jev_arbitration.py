@@ -29,18 +29,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.judgment import Arbitration, JudgmentService  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain.judgment import Arbitration, JudgmentService  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 #: Deliberately ambiguous utterances, each offered two deterministic candidate groups so
 #: arbitration has something real to choose between. These are NOT model-authored options:
 #: in the real turn the candidates come from the lazy-group trigger match in code.
 PROBES = [
-    ("what's on today", ("afon.brain.tools.calendar", "afon.brain.tasks")),
-    ("remind me about the thing", ("afon.brain.tasks", "afon.brain.reminders")),
-    ("how are we doing", ("afon.brain.health", "afon.brain.goal_deviation")),
-    ("what's new", ("afon.brain.delivery", "afon.brain.presence")),
-    ("catch me up", ("afon.brain.recall", "afon.brain.docstore")),
+    ("what's on today", ("mushegh.brain.tools.calendar", "mushegh.brain.tasks")),
+    ("remind me about the thing", ("mushegh.brain.tasks", "mushegh.brain.reminders")),
+    ("how are we doing", ("mushegh.brain.health", "mushegh.brain.goal_deviation")),
+    ("what's new", ("mushegh.brain.delivery", "mushegh.brain.presence")),
+    ("catch me up", ("mushegh.brain.recall", "mushegh.brain.docstore")),
 ]
 
 

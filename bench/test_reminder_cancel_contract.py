@@ -41,10 +41,10 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain import scheduler as sched_mod
-    from afon.brain.tools import notion as notion_mod
-    from afon.brain.tools import tasks as tasks_mod
-    from afon.config import settings
+    from mushegh.brain import scheduler as sched_mod
+    from mushegh.brain.tools import notion as notion_mod
+    from mushegh.brain.tools import tasks as tasks_mod
+    from mushegh.config import settings
 
     settings.ticker_url = "https://ticker.example/"     # so the ticker leg is live, not skipped
     settings.ticker_token = ""

@@ -1,4 +1,4 @@
-"""Read the structured error journal from a terminal — the CLI behind ``afon-errors``.
+"""Read the structured error journal from a terminal — the CLI behind ``mushegh-errors``.
 
 Runs identically on the laptop and on the VPS, so the same command answers "what broke?" on either
 side of the system. Prints nothing dramatic when all is well, because that is the common case.
@@ -17,11 +17,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.shared import errors as err  # noqa: E402
+from mushegh.shared import errors as err  # noqa: E402
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Afon error journal")
+    p = argparse.ArgumentParser(description="Mushegh error journal")
     p.add_argument("--minutes", type=int, default=60)
     p.add_argument("--limit", type=int, default=40)
     p.add_argument("--subsystem", default="")
@@ -48,7 +48,7 @@ def main() -> int:
         print("  by subsystem:")
         for k, v in s["by_subsystem"].items():
             print(f"    {v:5d}  {k}")
-        # Operations carry a duration, so the slowest failures are worth surfacing here: "Afon is
+        # Operations carry a duration, so the slowest failures are worth surfacing here: "Mushegh is
         # slow" is a complaint that otherwise has nowhere to land.
         timed = [(e["context"]["duration_ms"], e["subsystem"], e.get("message", ""))
                  for e in err.read(limit=2000, since_minutes=a.minutes)

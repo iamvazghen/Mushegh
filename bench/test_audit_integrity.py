@@ -40,8 +40,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-_TMP = tempfile.mkdtemp(prefix="afon-audit-")
-os.environ["AFON_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
+_TMP = tempfile.mkdtemp(prefix="mushegh-audit-")
+os.environ["MUSHEGH_AUDIT_LOG_DIR"] = str(Path(_TMP) / "audit")
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(ROOT / "src"))
@@ -61,7 +61,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def make_file(lines: list[dict], name: str = "2026-10-04.jsonl") -> Path:
     """Write a chained file the way `record()` does, so the fixture cannot drift from reality."""
-    from afon.brain.audit_verify import GENESIS, _HASH_FIELD, _PREV_FIELD, line_hash
+    from mushegh.brain.audit_verify import GENESIS, _HASH_FIELD, _PREV_FIELD, line_hash
 
     prev = GENESIS
     out = []
@@ -82,7 +82,7 @@ SAMPLE = [{"tool": "remember", "args": {"text": "the garage remote is in the dra
 
 
 def main() -> int:
-    from afon.brain.audit_verify import (BROKEN, CHAINED, GAP, GENESIS, LEGACY, canonical, line_hash, verify_text)
+    from mushegh.brain.audit_verify import (BROKEN, CHAINED, GAP, GENESIS, LEGACY, canonical, line_hash, verify_text)
 
     print("\n[1] a clean file verifies")
     p = make_file(SAMPLE)
@@ -144,7 +144,7 @@ def main() -> int:
 
     print("\n[7] the reader needs no framework")
     proc = subprocess.run(
-        [sys.executable, "-m", "afon.brain.audit_verify", "--verify", str(p)],
+        [sys.executable, "-m", "mushegh.brain.audit_verify", "--verify", str(p)],
         cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
         env={**os.environ, "PYTHONPATH": str(ROOT / "src")}, timeout=120)
     check("the CLI runs and reports VERIFIED", proc.returncode == 0 and "VERIFIED" in proc.stdout,
@@ -153,7 +153,7 @@ def main() -> int:
     bad = Path(_TMP) / "bad.jsonl"
     bad.write_text("\n".join(edited) + "\n", encoding="utf-8")
     proc2 = subprocess.run(
-        [sys.executable, "-m", "afon.brain.audit_verify", "--verify", str(bad)],
+        [sys.executable, "-m", "mushegh.brain.audit_verify", "--verify", str(bad)],
         cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
         env={**os.environ, "PYTHONPATH": str(ROOT / "src")}, timeout=120)
     check("a tampered file exits NON-ZERO", proc2.returncode == 1, f"exit={proc2.returncode}")
@@ -166,9 +166,9 @@ def main() -> int:
     check("...while a clean file's verdict line is exactly VERIFIED",
           proc.stdout.strip().splitlines()[-1] == "VERIFIED",
           proc.stdout.strip().splitlines()[-1])
-    src = (ROOT / "src" / "afon" / "brain" / "audit_verify.py").read_text(encoding="utf-8")
-    check("the verifier imports nothing from afon (it must not trust the writer)",
-          "from afon" not in src and "import afon" not in src)
+    src = (ROOT / "src" / "mushegh" / "brain" / "audit_verify.py").read_text(encoding="utf-8")
+    check("the verifier imports nothing from mushegh (it must not trust the writer)",
+          "from mushegh" not in src and "import mushegh" not in src)
 
     print("\n[8] legacy lines are the past, not tampering")
     legacy = Path(_TMP) / "legacy.jsonl"
@@ -176,7 +176,7 @@ def main() -> int:
     rep = verify_text(legacy.read_text(encoding="utf-8"))
     check("unchained lines verify as legacy", rep["ok"] and rep["counts"][LEGACY] == 3, str(rep["counts"]))
     proc3 = subprocess.run(
-        [sys.executable, "-m", "afon.brain.audit_verify", "--verify", str(legacy)],
+        [sys.executable, "-m", "mushegh.brain.audit_verify", "--verify", str(legacy)],
         cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace",
         env={**os.environ, "PYTHONPATH": str(ROOT / "src")}, timeout=120)
     check("and a legacy file still exits zero", proc3.returncode == 0, f"exit={proc3.returncode}")
@@ -229,7 +229,7 @@ def main() -> int:
           "я" in canonical({"a": "я"}))
 
     print("\n[12] the write path still honours 'auditing never breaks a turn'")
-    from afon.brain import audit
+    from mushegh.brain import audit
     d = Path(_TMP) / "live"
     d.mkdir(exist_ok=True)
     saved_audit_dir = audit._audit_dir
@@ -243,10 +243,10 @@ def main() -> int:
         # in Europe/Berlin those disagree, and the whole of that window's activity used to land in
         # yesterday's file — found on 2026-10-10 when this line failed at 00:47 local, after
         # surviving every earlier run because it can only fail for two hours a night.
-        from afon.brain.audit import _owner_day
+        from mushegh.brain.audit import _owner_day
         import datetime as _dt
         from zoneinfo import ZoneInfo
-        from afon.config import settings as _s
+        from mushegh.config import settings as _s
 
         def _day_at(hour: int, minute: int, tz: str) -> str:
             local = _dt.datetime(2026, 10, 10, hour, minute, tzinfo=ZoneInfo(tz))
@@ -270,7 +270,7 @@ def main() -> int:
         check("...and the file verifies end to end", verify_text(out.read_text(encoding="utf-8"))["ok"],
               str(verify_text(out.read_text(encoding="utf-8"))["problems"]))
         # A chain failure must cost the CHAIN, never the line.
-        import afon.brain.audit_verify as av
+        import mushegh.brain.audit_verify as av
         real = av.line_hash
         av.line_hash = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
         try:

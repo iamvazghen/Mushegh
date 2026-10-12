@@ -43,9 +43,9 @@ Housing: wire hutches off the ground keep the colony clean and reduce disease.
 
 
 def main() -> None:
-    from afon.brain.docstore import DocStore
+    from mushegh.brain.docstore import DocStore
 
-    tmp = Path(tempfile.mkdtemp(prefix="afon-docs-"))
+    tmp = Path(tempfile.mkdtemp(prefix="mushegh-docs-"))
     doc_path = tmp / "rabbits.md"
     doc_path.write_text(DOC, encoding="utf-8")
 
@@ -80,9 +80,9 @@ def main() -> None:
     check("unknown type -> clear note", not typ_ok and "don't know how to read" in typ_msg.lower(), typ_msg)
 
     print("\n[5] tools: registered, lazy-grouped, degrade when no doc open")
-    import afon.brain.docstore as ds
-    from afon.brain.tools import groups_for_text, tool_names
-    from afon.brain.tools.documents import ask_document, read_document
+    import mushegh.brain.docstore as ds
+    from mushegh.brain.tools import groups_for_text, tool_names
+    from mushegh.brain.tools.documents import ask_document, read_document
 
     ds.STORE = DocStore()  # fresh, nothing open
     for name in ("read_document", "ask_document", "close_document"):

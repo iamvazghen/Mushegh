@@ -28,7 +28,7 @@ for extra in (str(ROOT / "bench"), str(ROOT / "src")):
     if extra not in sys.path:
         sys.path.insert(0, extra)
 
-from afon.brain import audit  # noqa: E402
+from mushegh.brain import audit  # noqa: E402
 
 _CAPTURED: list[dict] = []
 _ORIGINAL = audit.record
@@ -40,10 +40,10 @@ def _patched(tool, args, result, ok=True, **kw):  # noqa: ANN001, ANN202
 
 
 async def _ask(prompt: str) -> tuple[str, list[str]]:
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
     _CAPTURED.clear()
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._self_improve = False
     reply = await agent.respond(prompt)
     return reply, sorted({c["tool"] for c in _CAPTURED})
@@ -62,7 +62,10 @@ async def main() -> int:
         print(f"  self-check ok: 'What's the weather in Berlin' fired {probe_tools}\n")
 
         import behavioral_suite as bs
-        from afon.shared.uncertainty import calibration
+        # 6.3b (2026-10-11): this probe runs REAL turns and forgets facts in the live memory
+        # store, exactly like the suite. Same guard, same override.
+        bs.guard_live_state("--allow-live-state" in sys.argv)
+        from mushegh.shared.uncertainty import calibration
 
         prompts = [s.turns[0].say for s in bs.scenarios() if s.id.startswith("unknowable_")]
 

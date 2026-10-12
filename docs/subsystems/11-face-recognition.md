@@ -30,7 +30,7 @@ and is learned to be ignored.
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/tools/camera.py` | The whole camera surface: `look_around` (vision model, local frame), `visual_presence` (OpenCV haar cascade face count, local, yes/no + count), heavy calls in a thread so the loop keeps breathing |
+| `src/mushegh/brain/tools/camera.py` | The whole camera surface: `look_around` (vision model, local frame), `visual_presence` (OpenCV haar cascade face count, local, yes/no + count), heavy calls in a thread so the loop keeps breathing |
 | `bench/test_security_hardening.py` | Where 11.R3 is to be asserted: frames never persisted |
 
 This is a **brain** module, not an edge one. The camera is opened on demand, handed to the
@@ -77,7 +77,7 @@ at all). Both are B1 and neither has been run on this machine's camera — see o
 **The fallback backend engages.** ArcFace unavailable, LBP loads, an ArcFace profile is
 compared against an LBP reference, and the result is a non-match every time. The owner sees a
 confirm gate that never opens and no explanation of why. Diagnose: `journalctl -u
-openafon-brain -n 200 | grep -i arcface`, then `uv run python
+openmushegh-brain -n 200 | grep -i arcface`, then `uv run python
 bench/test_face_arcface_backend.py`, then `uv run python bench/test_face_recognition.py`.
 
 **Lighting.** A backlit window inverts the face and the count returns nothing. The owner sees

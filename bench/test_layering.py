@@ -28,11 +28,11 @@ Four rules, each one describing what is true today:
   R3  every edge<->brain import is a DECLARED seam. There are 16, and each is one of three
       deliberate arrangements (local-brain mode, PC_LINK handlers, shared brain helpers reused on
       the laptop). A seventeenth appearing without a decision is what this catches.
-  R4  no module-level import cycle among afon modules. Lazy imports inside functions are excluded
+  R4  no module-level import cycle among mushegh modules. Lazy imports inside functions are excluded
       on purpose: they are the documented technique this codebase uses to keep the graph acyclic,
       and counting them would report a cycle for code that imports fine.
 
-Hermetic: pure AST over src/afon. Nothing is imported, so it runs on a machine with no audio stack.
+Hermetic: pure AST over src/mushegh. Nothing is imported, so it runs on a machine with no audio stack.
 
     uv run python bench/test_layering.py
 """
@@ -45,7 +45,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
-PKG = ROOT / "src" / "afon"
+PKG = ROOT / "src" / "mushegh"
 
 BASE = ("shared", "protocols")
 ROOT_MODULES = ("config", "bench_metrics", "setup_wizard", "__init__")
@@ -98,7 +98,7 @@ def layer_of(module: str) -> str:
 
 
 def imports(path: Path) -> list[tuple[str, int, bool]]:
-    """(imported afon module, line, is_module_level) for every intra-package import."""
+    """(imported mushegh module, line, is_module_level) for every intra-package import."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     top = {id(n) for n in tree.body}          # statements directly in the module body
     found = []
@@ -109,8 +109,8 @@ def imports(path: Path) -> list[tuple[str, int, bool]]:
         elif isinstance(node, ast.Import):
             names = [a.name for a in node.names]
         for name in names:
-            if name.startswith("afon."):
-                found.append((name[len("afon."):], node.lineno, id(node) in top))
+            if name.startswith("mushegh."):
+                found.append((name[len("mushegh."):], node.lineno, id(node) in top))
     return found
 
 
@@ -228,7 +228,7 @@ def main() -> None:
 def recall_facade() -> None:
     import ast
 
-    root = Path(__file__).resolve().parents[1] / "src" / "afon"
+    root = Path(__file__).resolve().parents[1] / "src" / "mushegh"
     OWNER = "brain/dbconn.py"
 
     print("\n[30.F2] one module opens memory databases")
@@ -280,7 +280,7 @@ def recall_facade() -> None:
     # rule — and a store that is gone cannot own a state root.
     stores = ["coaching", "presence", "semantic", "tasks"]
     routed = [s for s in stores
-              if "from afon.brain.dbconn import connect"
+              if "from mushegh.brain.dbconn import connect"
               in (root / "brain" / f"{s}.py").read_text(encoding="utf-8")]
     check(len(routed) == len(stores),
           f"all {len(stores)} memory stores open through it ({', '.join(routed)})",

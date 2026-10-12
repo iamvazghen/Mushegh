@@ -45,7 +45,7 @@ def status(code: int) -> httpx.HTTPStatusError:
 
 
 def main() -> None:
-    from afon.brain.tools.base import (ErrorKind, ToolResult, classify_error, is_not_configured,
+    from mushegh.brain.tools.base import (ErrorKind, ToolResult, classify_error, is_not_configured,
                                        kind_of, not_configured, tool_error, tool_failed)
 
     print("[1] a typed result is still, in every way, a string")
@@ -114,12 +114,12 @@ def main() -> None:
 
     print("\n[6] it reaches REAL tools, not just the helper")
     # A taxonomy only the helper knows about would be decoration.
-    from afon.config import settings
+    from mushegh.config import settings
 
     saved = settings.tavily_api_key, settings.brave_api_key
     try:
         settings.tavily_api_key = settings.brave_api_key = None
-        from afon.brain.tools.web import web_search
+        from mushegh.brain.tools.web import web_search
 
         out = asyncio.run(web_search({"query": "anything"}))
         # Keyless providers may still answer; only assert the KIND when it actually declined.
@@ -131,7 +131,7 @@ def main() -> None:
     finally:
         settings.tavily_api_key, settings.brave_api_key = saved
 
-    calendar = __import__("afon.brain.tools.calendar", fromlist=["x"])
+    calendar = __import__("mushegh.brain.tools.calendar", fromlist=["x"])
     src = Path(calendar.__file__).read_text(encoding="utf-8")
     check("not_configured(" in src or "tool_error(" in src,
           "a representative tool module routes failures through the shared helpers")
@@ -141,7 +141,7 @@ def main() -> None:
     # raises on a non-2xx, so define_word's graceful branch was unreachable and every call ended
     # in tool_error(). "Define the word 'laconic'" then scored 85.0 on three runs out of three,
     # with the owner hearing "(HTTPStatusError). I'll let the owner know."
-    from afon.brain.tools.utility import define_word
+    from mushegh.brain.tools.utility import define_word
 
     out = asyncio.run(define_word({"word": "laconic"}))
     check("a blocked keyless upstream degrades instead of raising",

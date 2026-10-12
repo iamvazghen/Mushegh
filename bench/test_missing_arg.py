@@ -38,7 +38,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def is_error(s: str) -> bool:
-    from afon.brain.tools.base import tool_failed
+    from mushegh.brain.tools.base import tool_failed
     return tool_failed(s)
 
 
@@ -47,9 +47,9 @@ def is_question(s: str) -> bool:
 
 
 async def main() -> None:
-    from afon.brain.tools import contacts, maps, memory, notify, objectives, reminders
-    from afon.brain.tools.base import missing_arg
-    from afon.config import settings
+    from mushegh.brain.tools import contacts, maps, memory, notify, objectives, reminders
+    from mushegh.brain.tools.base import missing_arg
+    from mushegh.config import settings
 
     settings.memory_enabled = True
 
@@ -105,7 +105,7 @@ async def main() -> None:
         got_empty = await fn({})
         # not_configured is an acceptable ASK-side outcome: a tool without credentials declines
         # before it ever inspects arguments, which is the correct order.
-        from afon.brain.tools.base import is_not_configured
+        from mushegh.brain.tools.base import is_not_configured
         ok = is_question(got_empty) or is_not_configured(got_empty)
         check(f"{name}: no args -> still asks the owner", ok, repr(got_empty[:70]))
 

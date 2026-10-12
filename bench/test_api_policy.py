@@ -47,7 +47,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 async def main() -> None:
     import httpx
 
-    from afon.brain.tools import base
+    from mushegh.brain.tools import base
 
     print("[1] the policy is one declared table, and every row is defensible")
     check("there is a stated default", base.DEFAULT_HTTP_POLICY.timeout > 0)
@@ -76,7 +76,7 @@ async def main() -> None:
 
     print("\n[3] no module opens its own client — the policy cannot be bypassed by accident")
     offenders: list[str] = []
-    for py in sorted((ROOT / "src" / "afon").rglob("*.py")):
+    for py in sorted((ROOT / "src" / "mushegh").rglob("*.py")):
         if py.name == "base.py" and py.parent.name == "tools":
             continue
         src = py.read_text(encoding="utf-8", errors="replace")
@@ -92,9 +92,9 @@ async def main() -> None:
     #     the table rather than carrying a number of its own.
     def exempt(o: str) -> bool:
         path = o.split(":")[0].replace("\\", "/")
-        if path.endswith("afon/brain/llm.py") or "/edge/" in path:
+        if path.endswith("mushegh/brain/llm.py") or "/edge/" in path:
             return True
-        if path.endswith("afon/setup_wizard.py"):
+        if path.endswith("mushegh/setup_wizard.py"):
             # The wizard imports nothing from brain/ or edge/ — test_layering enforces that,
             # because it has to run before either is configured. It cannot read the table, so its
             # one number is stated at the call site with that reason attached.

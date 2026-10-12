@@ -25,7 +25,7 @@ container runtime, no policy service, no secrets manager, and no second database
 
 ```
 ┌──────────────── EDGE — where the owner is ───────────────┐
-│  src/afon/edge/                                          │
+│  src/mushegh/edge/                                          │
 │  wake_word.py · vad_bargein.py · aec.py · audio_gate.py │
 │  stt.py · tts.py · speaker_id.py · speaker_gate.py       │
 │  brain_bridge.py (client) · latency_meter.py             │
@@ -35,13 +35,13 @@ container runtime, no policy service, no secrets manager, and no second database
                            │ bearer token, no inbound ports
 ┌──────────────────────────▼──────────────────────────────┐
 │ BRAIN — always-on host, one process, systemd             │
-│  src/afon/brain/server.py      dispatch + transport      │
-│  src/afon/brain/agent.py       the turn loop             │
-│  src/afon/brain/llm.py         model client + fallbacks  │
-│  src/afon/brain/context.py     prompt assembly           │
-│  src/afon/brain/tools/         schemas + handlers        │
-│  src/afon/brain/memory.py      six-layer store           │
-│  src/afon/brain/dbconn.py      the only DB door          │
+│  src/mushegh/brain/server.py      dispatch + transport      │
+│  src/mushegh/brain/agent.py       the turn loop             │
+│  src/mushegh/brain/llm.py         model client + fallbacks  │
+│  src/mushegh/brain/context.py     prompt assembly           │
+│  src/mushegh/brain/tools/         schemas + handlers        │
+│  src/mushegh/brain/memory.py      six-layer store           │
+│  src/mushegh/brain/dbconn.py      the only DB door          │
 └──────────────────────────┬──────────────────────────────┘
                            │
                     ┌──────▼──────┐
@@ -60,14 +60,14 @@ existing (D-01 rationale, Q14).
 
 ## Components
 
-### Transport — `src/afon/brain/server.py`, `src/afon/brain/protocols.py`, `src/afon/shared/`
+### Transport — `src/mushegh/brain/server.py`, `src/mushegh/brain/protocols.py`, `src/mushegh/shared/`
 
 One WebSocket protocol, one bearer token, carried by a tailnet. No inbound firewall
 ports exist to attack, which is the entire security argument (D-03). Protocol
-messages are defined in `src/afon/protocols/` and shared by both sides so the edge
+messages are defined in `src/mushegh/protocols/` and shared by both sides so the edge
 never guesses.
 
-### The turn loop — `src/afon/brain/agent.py`, `context.py`, `llm.py`
+### The turn loop — `src/mushegh/brain/agent.py`, `context.py`, `llm.py`
 
 `agent.py` owns the turn: intent classification, tool selection, tool execution,
 streaming the reply. `context.py` assembles the system prompt and the working context
@@ -93,7 +93,7 @@ vendor is on the other end, and it holds the fallback chain.
 The loop has to be fast and boring. The open defect in it is compound-intent handling
 at roughly half strength (S01).
 
-### The tool belt — `src/afon/brain/tools/`
+### The tool belt — `src/mushegh/brain/tools/`
 
 `__init__.py` advertises a narrowed schema group per turn rather than the whole belt,
 and maps schema names to handlers. `base.py` holds the contract every handler inherits.
@@ -117,12 +117,12 @@ file (D-22).
 
 ### Self-modification — `code_improve.py`, `approvals.py`, `audit.py`
 
-Afon reads and edits its own source, runs its own tests, and produces reversible git
+Mushegh reads and edits its own source, runs its own tests, and produces reversible git
 work. It commits only to a dedicated branch, only with a green suite, only without
 schema migrations, and only with the owner's explicit approval of the diff (D-08).
 `approvals.py` is where a confirmation is required, `audit.py` where it is recorded.
 
-**Since 2026-10-06 the code may also be written elsewhere.** `src/afon/brain/executors/` is one
+**Since 2026-10-06 the code may also be written elsewhere.** `src/mushegh/brain/executors/` is one
 typed contract over the external CLIs the owner delegates coding to (D-79, D-80, D-87), and it is a
 *proposal* layer and nothing more: an executor returns a transcript and a diff, no shell is
 invoked, and the child's environment is an allowlist built from nothing so no credential reaches
@@ -139,7 +139,7 @@ it. Three modules, three jobs:
   remembering to branch, and a refused approval leaves the owner's checkout byte-identical (D-90).
 
 **`code_improve.py` and `landing.py` are not the same path, and the difference matters.**
-`code_improve.py` is Afon editing his own source with his own tools, branching the owner's
+`code_improve.py` is Mushegh editing his own source with his own tools, branching the owner's
 checkout. That is correct for an in-house loop and wrong for an external one: a coding CLI writes
 files in its working directory and hands back no patch, so pointing one at the owner's tree would
 put the proposal there before any condition had been tested. External work therefore never touches
@@ -229,7 +229,7 @@ this file, because the blueprint is still circulating and looks authoritative.
 | PostgreSQL 16 + pgvector + Apache AGE | SQLite WAL + markdown vault | Readable in 2036 with `sqlite3` (D-02, D-54) |
 | Open Policy Agent + HashiCorp Vault | Pydantic schemas, `argcheck.py`, `.env`, git-crypt | Four moving parts replaced by a type system |
 | Temporal durable workers + workflows | `automations.py`, `scheduler.py`, `worker.py` | Checkpointing is not worth a server |
-| gVisor sandbox fleet, Claude→Codex→MCode chain | **half adopted 2026-10-06.** The sandbox fleet stays declined; the CLI chain is adopted through `src/afon/brain/executors/` | Reversible git still beats a container fleet — but the decline also assumed the CLIs were interactive, and they are not. `codex exec --json`, `claude -p` and an Agent-SDK subprocess are headless, permission-moded and schema-enforced, so D-80 can keep what the decline was protecting without refusing the capability |
+| gVisor sandbox fleet, Claude→MCode→Vibe chain | **half adopted 2026-10-06.** The sandbox fleet stays declined; the CLI chain is adopted through `src/mushegh/brain/executors/` | Reversible git still beats a container fleet — but the decline also assumed the CLIs were interactive, and they are not. `claude -p`, `mcode exec` and `vibe -p` are headless, permission-moded and (for mcode) schema-enforced, so D-80 can keep what the decline was protecting without refusing the capability. **Corrected 2026-10-11:** the chain is the owner's own order — Claude Code, mcode, Mistral Vibe — and Codex is no longer in it; see `executors.CODING_CHAIN` |
 | Redis Stack ephemeral state | SQLite | One store to inspect |
 | LiteLLM proxy router | `llm.py` with a fallback chain | The router was a second failure domain |
 | ONNX classifier cascade, Jev cloud arbitration | Direct intent routing | A calibrated classifier was needed only because the event bus was |

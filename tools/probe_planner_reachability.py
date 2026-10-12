@@ -31,10 +31,10 @@ REQUEST = ("Plan my day for me — a deep-work block at 9am for the rabbit-farm 
 
 
 async def main() -> int:
-    from afon.brain.agent import AfonAgent
-    from afon.brain.tools import groups_for_text, groups_for_text_ranked
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.tools import groups_for_text, groups_for_text_ranked
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     core = {t["function"]["name"] for t in (agent._core_tools or [])}
 
     print("Planner tools: registered, in the CORE set, and their owner group.\n")

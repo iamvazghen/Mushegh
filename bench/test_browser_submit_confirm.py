@@ -51,8 +51,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain.proactive import CONFIRM_TIER, confirm_required
-    from afon.brain.tools import browser as B
+    from mushegh.brain.proactive import CONFIRM_TIER, confirm_required
+    from mushegh.brain.tools import browser as B
 
     print("[1] the tool is still in the confirm tier at all")
     check("browser is in CONFIRM_TIER", "browser" in CONFIRM_TIER)

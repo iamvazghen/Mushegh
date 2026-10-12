@@ -1,10 +1,10 @@
-"""Emit Afon's routing tables as graph edges instead of leaving them to inference (TODO J8.2).
+"""Emit Mushegh's routing tables as graph edges instead of leaving them to inference (TODO J8.2).
 
 Three tables decide, at runtime, which function actually handles a request:
 
-    afon.edge.pc_agent.LOCAL_HANDLERS   op name    -> the laptop function that runs it
-    afon.brain.tools.tool_handlers()    tool name  -> the handler the model's call lands on
-    afon.brain.tools._LAZY_GROUPS       group name -> the modules it advertises
+    mushegh.edge.pc_agent.LOCAL_HANDLERS   op name    -> the laptop function that runs it
+    mushegh.brain.tools.tool_handlers()    tool name  -> the handler the model's call lands on
+    mushegh.brain.tools._LAZY_GROUPS       group name -> the modules it advertises
 
 All three are dict *values*, and an AST extractor cannot follow a dict value to its callee. The
 consequence is not a low-confidence edge — it is NO edge: measured on the 2026-08-15 graph,
@@ -126,8 +126,8 @@ def ops_edges(graph: dict) -> list[dict[str, str]]:
 
 def build() -> list[dict[str, str]]:
     """The routing tables, read from the live objects, as edge descriptions."""
-    from afon.brain import tools as T
-    from afon.edge import pc_agent
+    from mushegh.brain import tools as T
+    from mushegh.edge import pc_agent
 
     # `indirect_call` rather than a new `routes_to`: a dispatch through a table IS an indirect
     # call, and — the deciding reason — it is one of the relations graphify's `affected` traverses
@@ -139,7 +139,7 @@ def build() -> list[dict[str, str]]:
         edges.append({
             "source": dispatch, "target": node_id(fn), "target_file": file_id(fn),
             "relation": "indirect_call", "context": f"pc_op:{op}",
-            "table": "afon.edge.pc_agent.LOCAL_HANDLERS",
+            "table": "mushegh.edge.pc_agent.LOCAL_HANDLERS",
             "owner": pc_agent.HANDLER_OWNERS.get(op, ""),
         })
 
@@ -148,7 +148,7 @@ def build() -> list[dict[str, str]]:
         edges.append({
             "source": registry, "target": node_id(fn), "target_file": file_id(fn),
             "relation": "indirect_call", "context": f"tool:{name}",
-            "table": "afon.brain.tools.tool_handlers()", "owner": "",
+            "table": "mushegh.brain.tools.tool_handlers()", "owner": "",
         })
 
     groups = node_id(T.group_tool_schemas)
@@ -157,7 +157,7 @@ def build() -> list[dict[str, str]]:
             edges.append({
                 "source": groups, "target": node_id(mod), "target_file": file_id(mod),
                 "relation": "advertises", "context": f"group:{group}",
-                "table": "afon.brain.tools._LAZY_GROUPS", "owner": "",
+                "table": "mushegh.brain.tools._LAZY_GROUPS", "owner": "",
             })
     return edges
 

@@ -4,5 +4,8 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 *.log
+# One-shot measurement scripts used while tuning a constant. They are not part of
+# the client and importing them would drag vitest globals into `tsc -b`.
+probe-*.ts
 .env*
 !.env.example

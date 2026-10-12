@@ -65,7 +65,7 @@ class CapturingLLM:
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
     settings.memory_enabled = True
     settings.memory_autorecall_enabled = True
     settings.memory_semantic_enabled = True
@@ -73,10 +73,10 @@ async def main() -> None:
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     # Isolate the rolling-thread snapshot + disable idle-reset so the agent starts clean (not from a
-    # real leftover afon_session.json) and doesn't reset history mid-test.
+    # real leftover mushegh_session.json) and doesn't reset history mid-test.
     settings.session_persist_path = str(Path(tmp.name) / "session.json")
     settings.session_idle_reset_minutes = 0
-    import afon.brain.memory as mem
+    import mushegh.brain.memory as mem
 
     store = mem.MemoryStore(base_dir=Path(tmp.name))
     mem.STORE = store
@@ -84,9 +84,9 @@ async def main() -> None:
     store.remember("the owner prefers replies under two sentences", tags=["preference"])
     store.journal_append("Reviewed the rabbit farm irrigation schedule for next week.")
 
-    from afon.brain.agent import AfonAgent
-    from afon.brain.tools import groups_for_text
-    agent = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.tools import groups_for_text
+    agent = MusheghAgent()
     agent._llm = CapturingLLM()
 
     print("[L0] working memory — prior turns are carried forward")
@@ -128,7 +128,7 @@ async def main() -> None:
     # Inject a deterministic stub embedder so this stays hermetic (the REAL embedder — local model or
     # the Jina API — is verified separately; here we assert the wiring + the semantic floor). Concept
     # dims: [rabbit, submarine, cat]. A query and a fact score high only when they share a concept.
-    import afon.brain.semantic as semmod
+    import mushegh.brain.semantic as semmod
 
     def _stub_embed(texts):
         def vec(t):
@@ -141,7 +141,7 @@ async def main() -> None:
         return [vec(t) for t in texts]
 
     semmod.INDEX = semmod.SemanticIndex(embed_fn=_stub_embed, persist=False)
-    import afon.brain.tools.memory as memtool
+    import mushegh.brain.tools.memory as memtool
     res = await memtool.recall({"query": "what do you know about my bunnies", "layers": ["L1", "L5"]})
     check("recall surfaces the rabbit farm by MEANING (L5 semantic)", "rabbit farm" in res.lower(), res[:160])
     empty = await memtool.recall({"query": "submarine warfare tactics", "layers": ["L1", "L5"]})
@@ -170,7 +170,7 @@ async def main() -> None:
     # because the constant is also mentioned where it is used.
     import time as _time
 
-    from afon.brain.recall import recall as _recall_all
+    from mushegh.brain.recall import recall as _recall_all
 
     class _Stalled:
         async def fused_recall(self, query, limit=8, layers=None):

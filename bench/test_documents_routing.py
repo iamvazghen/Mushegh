@@ -44,9 +44,9 @@ def _tmpfile(data: bytes, suffix: str) -> Path:
 
 
 def main() -> None:
-    import afon.brain.tools.documents as docs
-    from afon.brain import docstore
-    from afon.brain.pc_link import PC_LINK
+    import mushegh.brain.tools.documents as docs
+    from mushegh.brain import docstore
+    from mushegh.brain.pc_link import PC_LINK
 
     print("[1] read_document goes to the laptop instead of the brain's filesystem")
     seen: list[tuple[str, dict]] = []
@@ -141,21 +141,21 @@ def main() -> None:
     docstore.STORE.clear()
 
     print("\n[6] pc_agent wires doc_read up")
-    import afon.edge.pc_agent as agent
+    import mushegh.edge.pc_agent as agent
     check("pc_agent executes 'doc_read'", "doc_read" in agent.LOCAL_HANDLERS,
           str(sorted(agent.LOCAL_HANDLERS)))
     check("executor is not the tool entry point (no brain->laptop->brain loop)",
           docs.LOCAL_HANDLERS["doc_read"] is not docs.HANDLERS["read_document"])
 
-    print("\n[7] 06.F3 — a document Afon wrote is addressable afterwards")
+    print("\n[7] 06.F3 — a document Mushegh wrote is addressable afterwards")
     # "The note you wrote yesterday about the farm" is not a vault search: search_vault covers
-    # everything the OWNER wrote too, and it has no idea which notes were Afon's or when. Before
+    # everything the OWNER wrote too, and it has no idea which notes were Mushegh's or when. Before
     # this, nothing recorded what he had created, so a document he had just written became
     # anonymous the moment the turn ended — and for Notion it was worse than anonymous, because
     # the create call threw the page id away and there was no way back to the page at all.
-    from afon.brain import documents as D
-    from afon.brain.tools.documents import find_document
-    from afon.config import settings
+    from mushegh.brain import documents as D
+    from mushegh.brain.tools.documents import find_document
+    from mushegh.config import settings
 
     real_state = settings.state_dir
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as root:

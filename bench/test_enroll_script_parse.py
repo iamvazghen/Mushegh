@@ -149,7 +149,7 @@ def main() -> None:
 # one. The cost surfaced as a threshold that could not be placed (`separation_verdict` above),
 # weeks after the five minutes when the owner was sitting at the mic and could have re-read it.
 def capture_quality() -> None:
-    from afon.edge.enroll_quality import (MAX_CLIPPING, MIN_SECONDS, MIN_SNR_DB, MIN_VARIETY,
+    from mushegh.edge.enroll_quality import (MAX_CLIPPING, MIN_SECONDS, MIN_SNR_DB, MIN_VARIETY,
                                           score_pcm, _synth)
 
     print("\n[08.F2] a usable clip passes")
@@ -207,7 +207,7 @@ def capture_quality() -> None:
     # site is inside a mic loop that cannot run in a test.
     src = (Path(__file__).resolve().parents[1] / "bench" / "enroll_voice.py").read_text(
         encoding="utf-8")
-    check("enroll_voice imports the scorer", "from afon.edge.enroll_quality import score_pcm" in src)
+    check("enroll_voice imports the scorer", "from mushegh.edge.enroll_quality import score_pcm" in src)
     # Counting >= 1 was not enough: deleting the FIRST call left the retry-path call in place, so the
     # check passed while every clip went in unscored. Both the capture and the retry must score, and
     # the scoring must happen BEFORE the embedding — after it, the clip is already in the profile.

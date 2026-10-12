@@ -28,7 +28,7 @@ for extra in (str(ROOT / "bench"), str(ROOT / "src")):
     if extra not in sys.path:
         sys.path.insert(0, extra)
 
-from afon.brain.judgment import JudgmentService, clarity_question  # noqa: E402
+from mushegh.brain.judgment import JudgmentService, clarity_question  # noqa: E402
 
 CANNED = clarity_question()
 CLEAR = "Plan my day for me — two deep-work blocks and some admin, nothing past six."

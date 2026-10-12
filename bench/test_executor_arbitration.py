@@ -1,7 +1,8 @@
 """M45 — Jev picks the executor, and cannot widen what code offered (D-73, D-76, D-81).
 
-Three coding CLIs are installed and all three are permitted to receive the same brief, so
-something has to choose. The thing that makes a paid model safe on that path is not the quality of
+Several executors can be permitted to receive the same brief, so something has to choose.
+(Coding is the exception since 2026-10-11 and section [6] holds it: the owner declared that
+chain's order, so it is deterministic and costs no call.) The thing that makes a paid model safe on that path is not the quality of
 its pick — it is that **the ballot is built by code and a silent failure keeps the deterministic
 answer**. This gate holds those two, plus the one nobody thinks to test:
 
@@ -56,12 +57,12 @@ def _answer(choice: str, probs: dict[str, float]) -> dict:
 
 
 async def main() -> int:  # noqa: PLR0915
-    import afon.brain.executors as X
-    from afon.brain.executors import Brief, BriefRefused, Domain, ExecutorSpec, Tier
-    from afon.brain.judgment import ROUTE_INSTRUCTIONS, JudgmentService
+    import mushegh.brain.executors as X
+    from mushegh.brain.executors import Brief, BriefRefused, Domain, ExecutorSpec, Tier
+    from mushegh.brain.judgment import ROUTE_INSTRUCTIONS, JudgmentService
 
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/executors/__init__.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/executors/__init__.py").read_text(encoding="utf-8")
     pick_src = src.split("async def pick(")[1].split("\ndef ")[0]
     repo = str(Path(__file__).resolve().parents[1])
 
@@ -87,15 +88,20 @@ async def main() -> int:  # noqa: PLR0915
 
         # Three installed coding executors, and one that is not installed. `sys.executable` always
         # exists; the fourth binary never does, so `available()` is being measured, not asserted.
+        # BUSINESS, not CODING, since 2026-10-11: coding is exempt from arbitration because
+        # the owner declared its order, and `pick()` returns the deterministic first candidate for
+        # it without spending a call. Section [6] below is what holds that. Everything this gate
+        # exists to prove about arbitration is domain-independent, so it runs where it still runs.
         def spec(name: str, argv0: str) -> ExecutorSpec:
-            return ExecutorSpec(name=name, domains=(Domain.CODING,), tiers=(Tier.CORPORATE,),
+            return ExecutorSpec(name=name, domains=(Domain.BUSINESS,), tiers=(Tier.CORPORATE,),
                                 argv=(argv0, "exec", "{task}"))
 
         three = (spec("alpha", sys.executable), spec("beta", sys.executable),
-                 spec("gamma", sys.executable), spec("ghost", "afon-no-such-binary-xyz"))
+                 spec("gamma", sys.executable), spec("ghost", "mushegh-no-such-binary-xyz"))
         X.SPECS = three
-        brief = Brief(domain=Domain.CODING, task="fix the off-by-one in the paging helper",
-                      acceptance="the paging test passes", tier=Tier.CORPORATE, repo=repo)
+        brief = Brief(domain=Domain.BUSINESS, task="draft the vendor renewal comparison",
+                      acceptance="a table with the three prices and a recommendation",
+                      tier=Tier.CORPORATE)
 
         try:
             print("\n[1] the ballot is built by code, and an uninstalled executor is not on it")
@@ -217,12 +223,34 @@ async def main() -> int:  # noqa: PLR0915
             check("a single candidate is returned with no call",
                   got.name == "only" and arb is None and calls["n"] == 0, str(calls))
 
-            X.SPECS = (spec("ghost", "afon-no-such-binary-xyz"),)
+            X.SPECS = (spec("ghost", "mushegh-no-such-binary-xyz"),)
             check("no installed candidate is REFUSED, not arbitrated",
                   await _refuses(X, brief, Counting()))
             check("...and still no call was made", calls["n"] == 0, str(calls))
         finally:
             X.SPECS = original
+
+            print("\n[6] coding is EXEMPT - the owner declared its order, so nothing arbitrates")
+            # The one assertion in this file that is about coding, and it is about NOT arbitrating.
+            # If a later change re-enables arbitration here, the owner's "Claude Code is the main
+            # tool" becomes a preference the model may overrule, and he would never see it happen
+            # (D-34: an executor choice is not reported to him).
+            calls: list[object] = []
+
+            class _Counting:
+                async def arbitrate(self, *a, **k):
+                    calls.append(a)
+                    return None
+
+            coding = Brief(domain=Domain.CODING, task="fix the off-by-one in the paging helper",
+                           acceptance="the paging test passes", tier=Tier.CORPORATE, repo=repo)
+            chosen, arb = await X.pick(coding, service=_Counting())
+            check("a coding brief costs NO arbitration call", calls == [], str(calls))
+            check("...and takes the first name in the owner's chain",
+                  chosen.name == X.CODING_CHAIN[0], chosen.name)
+            check("...with no arbitration reported", arb is None, repr(arb))
+            check("the chain is still his order",
+                  X.CODING_CHAIN == ("claude-code", "mcode", "vibe"), str(X.CODING_CHAIN))
 
     print("\n[6] the owner never hears that an arbitration happened (D-34)")
     for word in ("sir", "speak", "say(", "notify", "announce", "tts"):
@@ -256,7 +284,7 @@ def _raises(fn, exc) -> bool:
 
 
 async def _refuses(X, brief, service) -> bool:
-    from afon.brain.executors import BriefRefused
+    from mushegh.brain.executors import BriefRefused
 
     try:
         await X.pick(brief, service=service)

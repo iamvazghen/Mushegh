@@ -24,7 +24,7 @@ every probe in this file, and the owner finds out from the barge-in defect inste
 milestone carries it.
 
 If this is absent: a brain failure is a silence. There is no way to tell degraded from
-dead, and `src/afon/edge/degraded_answers.py` has no accurate picture to fall back on.
+dead, and `src/mushegh/edge/degraded_answers.py` has no accurate picture to fall back on.
 
 ## Structure
 
@@ -32,32 +32,32 @@ Four health surfaces asserted to **agree** (31.F1, done,
 `bench/test_health_agreement.py`): a structural check, a functional probe, the HUD, and
 the runtime mode. A disagreement means one of them is lying, and the test fails.
 
-- `src/afon/brain/health.py` — the structural check: `_check_vault`, `_check_ticker`,
+- `src/mushegh/brain/health.py` — the structural check: `_check_vault`, `_check_ticker`,
   `_check_pc_link`, `_check_cache`, `_check_task_queue`, then `check()`,
   `summarize(snapshot)` (one spoken line), `mode_from(snapshot)` (which declared mode
-  this host is in — `src/afon/shared/degraded.py` holds `FULL`, `BRAIN_DOWN`,
+  this host is in — `src/mushegh/shared/degraded.py` holds `FULL`, `BRAIN_DOWN`,
   `EDGE_DOWN`), `degraded_signals()` and `health_signals()`.
-- `src/afon/brain/reliability.py` — the functional probe. `safe_call` wraps any
+- `src/mushegh/brain/reliability.py` — the functional probe. `safe_call` wraps any
   awaitable so an exception becomes a short speakable error instead of a dead brain;
   `health_probe()` runs the real dependency checks; `attempt_repair_and_escalate()` is
   the repair path with an escalation latch in `health_escalation.json` (31.R2,
   `bench/test_self_repair.py`).
-- `src/afon/brain/hud.py` — `hud_snapshot()` renders the same data for the React HUD in
+- `src/mushegh/brain/hud.py` — `hud_snapshot()` renders the same data for the React HUD in
   `clients/hud-spatial/src/`. Optional; the system is complete without it.
-- `src/afon/brain/loops.py` — the background loop registry: `ticks(name)`,
+- `src/mushegh/brain/loops.py` — the background loop registry: `ticks(name)`,
   `snapshot(now)`, `problems(now)`, and `set_period` declaring each loop's period so a
   loop that stopped ticking is visible (31.F4, done, `bench/test_loop_registry.py`).
-- `src/afon/brain/tool_reliability.py` — reads the audit trail and reports which tools
+- `src/mushegh/brain/tool_reliability.py` — reads the audit trail and reports which tools
   have been flaky: `reliability(days)`, `reliability_summary(limit)`, `flaky_note()`
   (31.F3, done, `bench/test_tool_reliability.py`).
-- `src/afon/brain/metrics.py` — 64 lines. Counters plus a rolling 200-sample latency
+- `src/mushegh/brain/metrics.py` — 64 lines. Counters plus a rolling 200-sample latency
   window behind the `METRICS` singleton. Deliberately not Prometheus (D-01).
-  `src/afon/brain/turn_trace.py` — one row per turn: tools fired, stage timings, sources
+  `src/mushegh/brain/turn_trace.py` — one row per turn: tools fired, stage timings, sources
   read. **In-process `METRICS` does not survive a restart; this does**, which is why it
   is the only viable substrate for trend detection.
-- `src/afon/brain/data_classes.py` and `src/afon/shared/errors.py` — the typed error
+- `src/mushegh/brain/data_classes.py` and `src/mushegh/shared/errors.py` — the typed error
   taxonomy and turn correlation (31.F2, done, `bench/test_error_taxonomy.py`).
-  `src/afon/edge/audio_watchdog.py` and `src/afon/edge/voice_health.py` — the edge-side
+  `src/mushegh/edge/audio_watchdog.py` and `src/mushegh/edge/voice_health.py` — the edge-side
   counterpart, for the device rather than the brain.
 - `deploy/uptime_watch.py` — the outside-in complement, and the only surface that can
   report the brain down, because the brain cannot report itself down (M37, which is
@@ -122,16 +122,16 @@ one; its absence is the failure.
 
 **Health says green and the system is degraded.** Find the surface that is wrong:
 
-    python -c "from afon.brain.health import check, summarize; print(summarize(check()))"
-    python -c "from afon.brain.reliability import health_probe; print(health_probe())"
-    python -c "from afon.brain.loops import problems; print(problems())"
+    python -c "from mushegh.brain.health import check, summarize; print(summarize(check()))"
+    python -c "from mushegh.brain.reliability import health_probe; print(health_probe())"
+    python -c "from mushegh.brain.loops import problems; print(problems())"
 
 **A background loop stopped ticking, or a tool has been quietly flaky.** `loops.problems()`
 names the first; `tool_reliability` reads the audit trail for the second:
 
-    python -c "from afon.brain.loops import snapshot; print(snapshot())"
-    python -m afon.brain.tool_reliability
-    journalctl -u openafon-brain --since "24h" | grep -ciE "tool.*(fail|error)"
+    python -c "from mushegh.brain.loops import snapshot; print(snapshot())"
+    python -m mushegh.brain.tool_reliability
+    journalctl -u openmushegh-brain --since "24h" | grep -ciE "tool.*(fail|error)"
 
 **Escalation pages repeat.** The latch lives in `health_escalation.json`; a repeated page
 means the latch was not written, and the page itself is the defect.
@@ -147,7 +147,7 @@ every probe is a point sample. It surfaces as an unrelated symptom — barge-in 
    p95 that already exists is useless across a restart — and the answer changes what a
    "trend window" even means.
 2. Should a governor breach be a signal or a hard stop? `31.R5` says the budgets act.
-   Acting on a p95 breach means shedding load, and the only load Afon can shed is the
+   Acting on a p95 breach means shedding load, and the only load Mushegh can shed is the
    owner's own turns.
 3. What is the top-five recurring failure list, and who refreshes it? `31.R2` derives it
    from the journal, so the repair surface grows with whatever has been breaking rather

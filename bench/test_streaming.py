@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 class _OfflineJudgments:
     async def assess_turn(self, _text, *, groups=(), arbitrate=True, ask_clarity=True,
                           correlation_id=""):
-        from afon.brain.judgment import TurnSignals
+        from mushegh.brain.judgment import TurnSignals
         return TurnSignals(candidates=(), group=None, urgency=None, tone=None, clarity=None,
                            outcome="disabled", latency_ms=0.0)
 
@@ -40,7 +40,7 @@ class _OfflineJudgments:
 
 
 def _make_hermetic() -> None:
-    from afon.brain import agent as _agent
+    from mushegh.brain import agent as _agent
     _agent.JUDGMENTS = _OfflineJudgments()
 
 
@@ -75,9 +75,9 @@ class FakeLLM:
 
 async def test_plain_answer() -> None:
     print("[1] plain answer streams sentence-by-sentence")
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._llm = FakeLLM([[("text", "I am well, Sir. "), ("text", "All systems green.")]])
     out = [s async for s in agent.respond_stream("how are you")]
     check("yielded two sentences in order", out == ["I am well, Sir.", "All systems green."], repr(out))
@@ -88,9 +88,9 @@ async def test_plain_answer() -> None:
 
 async def test_tool_then_stream() -> None:
     print("\n[2] a NON-speakable tool call is resolved, then the final answer streams (two-pass)")
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     ran = {"n": 0}
 
     async def fake_tool(_args: dict) -> str:
@@ -112,7 +112,7 @@ async def test_tool_then_stream() -> None:
 
 async def test_no_double_failover_midstream() -> None:
     print("\n[3] mid-stream provider break does not double-speak (fails over only before 1st token)")
-    from afon.brain.llm import LLMClient
+    from mushegh.brain.llm import LLMClient
 
     llm = LLMClient()
     llm._chain = ["a", "b"]
@@ -146,9 +146,9 @@ def _chunk(content):
 
 async def test_cancelled_stream_no_dangling_user() -> None:
     print("\n[4] a cancelled stream still records an assistant turn (no dangling user msg, AUDIT #7)")
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._llm = FakeLLM([[("text", "First sentence. "), ("text", "Second. "), ("text", "Third.")]])
     gen = agent.respond_stream("tell me a long story")
     first = await gen.__anext__()      # consume one chunk…
@@ -175,7 +175,7 @@ async def test_midstream_break_is_continued() -> None:
     from openai import APITimeoutError
     from types import SimpleNamespace
 
-    from afon.brain.llm import LLMClient, _drop_overlap
+    from mushegh.brain.llm import LLMClient, _drop_overlap
 
     # The de-overlap rule on its own: a model told not to repeat itself still often echoes the last
     # few words, and the owner hears that as a stutter.
@@ -280,12 +280,12 @@ async def test_interrupted_turn_resumes() -> None:
     """07.R3 — "carry on" finishes the answer a barge-in cut off.
 
     An interrupted turn used to be recorded as the bare word "(interrupted)", which throws away
-    both halves of what a resume needs: what he asked for, and how far the answer got. Asking Afon
+    both halves of what a resume needs: what he asked for, and how far the answer got. Asking Mushegh
     to carry on then produced either a fresh answer to nothing, or a confident restatement of
     something he had already heard.
     """
     print("\n[6] 07.R3 — an interrupted turn is held, and 'carry on' finishes it")
-    from afon.brain.agent import _NOTHING_TO_RESUME, _RESUME_RE, AfonAgent
+    from mushegh.brain.agent import _NOTHING_TO_RESUME, _RESUME_RE, MusheghAgent
 
     for phrase in ("carry on", "go on", "continue", "keep going", "finish that",
                    "you were saying", "and then?"):
@@ -299,7 +299,7 @@ async def test_interrupted_turn_resumes() -> None:
 
     # A deliberately tool-free utterance: this is testing the interruption path, and a request that
     # routes to a real tool would answer from the owner's actual data instead of the script.
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._llm = FakeLLM([[("text", "The first thing is the boiler. "),
                            ("text", "The second is the letter. "),
                            ("text", "The third is…")]])
@@ -337,7 +337,7 @@ async def test_interrupted_turn_resumes() -> None:
     check("one resume per interruption — the slot is cleared", agent._interrupted is None)
 
     # Carrying on with nothing held must not invent a thread to continue.
-    agent2 = AfonAgent()
+    agent2 = MusheghAgent()
     agent2._interrupted = None
     plan = await agent2._prepare_turn("carry on")
     check("'carry on' with nothing interrupted asks him what to pick up",

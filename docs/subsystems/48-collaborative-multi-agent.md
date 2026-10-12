@@ -17,8 +17,8 @@ nothing in the plan says why. This document describes the registry as it is.
 
 The blueprint specified a Redis-backed blackboard where several agents negotiate over shared
 work: optimistic locking, peer hand-off, capability assignment. What exists instead is
-`src/afon/brain/coordination.py` — a table of work units that a single owner claims, and
-`src/afon/brain/delegation.py` — which posts a brief to an **external** router and checks what
+`src/mushegh/brain/coordination.py` — a table of work units that a single owner claims, and
+`src/mushegh/brain/delegation.py` — which posts a brief to an **external** router and checks what
 comes back.
 
 That is the whole system, and the gap is deliberate rather than unfinished. The external
@@ -37,7 +37,7 @@ whom, or whether an answer came back.
 
 ## Structure
 
-- `src/afon/brain/coordination.py` — the shared work record (48.F1–F3). `post` writes units
+- `src/mushegh/brain/coordination.py` — the shared work record (48.F1–F3). `post` writes units
   with an id, a brief, a sequence number and a deadline; `claim` takes the next open unit
   through a conditional `UPDATE ... WHERE state='open'` and returns `None` when it lost the
   race; `finish` and `fail` write the result slot only for the holder. The store is
@@ -48,14 +48,14 @@ whom, or whether an answer came back.
   come back with different answers, both are kept and the brief is listed as a conflict.
   Nothing is averaged, nothing is picked: averaging two answers produces a third answer
   nobody gave. `Merged.spoken()` is the one owner-facing line.
-- `src/afon/brain/delegation.py` — 39.F2/F3. Opens a unit on that record with a deadline,
+- `src/mushegh/brain/delegation.py` — 39.F2/F3. Opens a unit on that record with a deadline,
   closes it with the answer **and a verdict on that answer**. An open unit past its deadline is
   the fire-and-forget detector: a runner went away without writing back.
-- `src/afon/brain/fleet.py` — the OpenClaw gateway transport. One tool among many
+- `src/mushegh/brain/fleet.py` — the OpenClaw gateway transport. One tool among many
   (`delegate_to_fleet`), not an identity.
-- `src/afon/brain/worker.py` — `TaskWorker`, Afon doing bounded work itself. It is the
+- `src/mushegh/brain/worker.py` — `TaskWorker`, Mushegh doing bounded work itself. It is the
   *other* kind of multi-agent: local, budgeted twice, and audited with an explicit non-owner
-  actor. It is bounded by the shared ledger in `src/afon/brain/governor.py`.
+  actor. It is bounded by the shared ledger in `src/mushegh/brain/governor.py`.
 
 Ownership: the brain process, one SQLite file. There is no second store, no lock server, no
 message bus, and no agent-to-agent channel.
@@ -103,31 +103,31 @@ message bus, and no agent-to-agent channel.
 
 **A unit is stuck `held` — a runner died.** This is the fire-and-forget detector working:
 
-    sqlite3 "$AFON_STATE_DIR"/afon_work.sqlite "select id,job,owner,state,claimed_at,deadline_at from units where state='held' order by claimed_at;"
-    python -c "from afon.brain.coordination import unfinished; print([(u.id,u.owner) for u in unfinished()])"
-    journalctl -u openafon-brain --since "24h" | grep -iE "delegat|unit|fleet"
+    sqlite3 "$MUSHEGH_STATE_DIR"/mushegh_work.sqlite "select id,job,owner,state,claimed_at,deadline_at from units where state='held' order by claimed_at;"
+    python -c "from mushegh.brain.coordination import unfinished; print([(u.id,u.owner) for u in unfinished()])"
+    journalctl -u openmushegh-brain --since "24h" | grep -iE "delegat|unit|fleet"
 
 **A disagreement was averaged away.** If two answers became one, `merge` was bypassed — a
 caller string-concatenating its own results:
 
-    python -c "from afon.brain.coordination import merge; m=merge('j'); print(m.conflicts, m.agreed, m.missing)"
-    sqlite3 "$AFON_STATE_DIR"/afon_work.sqlite "select job,count(*) from units group by job;"
+    python -c "from mushegh.brain.coordination import merge; m=merge('j'); print(m.conflicts, m.agreed, m.missing)"
+    sqlite3 "$MUSHEGH_STATE_DIR"/mushegh_work.sqlite "select job,count(*) from units group by job;"
 
 **The fleet's answer was passed on unchecked.** The anti-fabrication verdict is the marker;
-`rejected` means the answer was an admission of inability or an assertion Afon cannot stand
+`rejected` means the answer was an admission of inability or an assertion Mushegh cannot stand
 behind:
 
-    sqlite3 "$AFON_STATE_DIR"/afon_work.sqlite "select verdict,count(*) from units where state='done' group by verdict;"
-    journalctl -u openafon-brain --since "7d" | grep -iE "delegat|rejected|verdict"
+    sqlite3 "$MUSHEGH_STATE_DIR"/mushegh_work.sqlite "select verdict,count(*) from units where state='done' group by verdict;"
+    journalctl -u openmushegh-brain --since "7d" | grep -iE "delegat|rejected|verdict"
 
 **The thin layer starts growing a coordination protocol.** The tell is a second store, a
 lock server, or a message passing between workers rather than to the owner:
 
-    ls src/afon/brain/ | grep -iE "blackboard|consensus|leader|raft"
+    ls src/mushegh/brain/ | grep -iE "blackboard|consensus|leader|raft"
     python scripts/systems_plan.py check
-    grep -rn "peer\|negotiat" src/afon/brain/ | head
+    grep -rn "peer\|negotiat" src/mushegh/brain/ | head
 
-**A job needed a peer and Afon delegated to one router anyway.** Honest failure rather than
+**A job needed a peer and Mushegh delegated to one router anyway.** Honest failure rather than
 a bug: with one external router, "ask another agent" is a second opinion at best. The
 diagnosis is a job with a long `held` tail and no capability routing.
 

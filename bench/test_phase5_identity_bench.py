@@ -7,6 +7,7 @@ Verifies the gate DECISION logic, the verifier's graceful degradation, the Speak
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -30,10 +31,10 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
 
     print("[1] speaker gate decision logic (pure)")
-    from afon.edge.speaker_id import cosine, should_accept
+    from mushegh.edge.speaker_id import cosine, should_accept
 
     check("accepts when feature OFF", should_accept(0.0, 0.25, True, False) is True)
     check("accepts when no profile", should_accept(0.0, 0.25, False, True) is True)
@@ -44,7 +45,7 @@ async def main() -> None:
     check("cosine orthogonal = 0.0", abs(cosine(v, np.array([0.0, 1.0, 0.0], dtype=np.float32))) < 1e-6)
 
     print("\n[2] SpeakerVerifier degradation (no backend / no profile)")
-    from afon.edge.speaker_id import SpeakerVerifier
+    from mushegh.edge.speaker_id import SpeakerVerifier
 
     # No profile enrolled, feature off -> always accept, score 1.0.
     settings.speaker_id_enabled = False
@@ -93,7 +94,7 @@ async def main() -> None:
     from pipecat.processors.frame_processor import FrameDirection
     from pipecat.utils.time import time_now_iso8601
 
-    from afon.edge.speaker_gate import SpeakerGate
+    from mushegh.edge.speaker_gate import SpeakerGate
 
     with tempfile.TemporaryDirectory() as d:
         settings.speaker_profile_path = str(Path(d) / "vp.json")
@@ -240,8 +241,8 @@ async def main() -> None:
 # different room, different acoustic conditions covered), so one number for all of them is a number
 # that is right for at most one of them.
 def derived_threshold() -> None:
-    from afon.config import settings
-    from afon.edge.speaker_id import (MIN_DERIVED, MIN_SEPARATION, SpeakerVerifier,
+    from mushegh.config import settings
+    from mushegh.edge.speaker_id import (MIN_DERIVED, MIN_SEPARATION, SpeakerVerifier,
                                       derive_threshold)
 
     print("\n[10.F3] the bar is computed, and lands inside the measured band")
@@ -322,7 +323,7 @@ def derived_threshold() -> None:
               after.accept_bar()[0] == 0.30, str(after.accept_bar()))
 
         print("\n[10.F3] the borderline face-check margin follows the same band")
-        from afon.edge.speaker_gate import _BORDERLINE_MARGIN, _borderline_margin
+        from mushegh.edge.speaker_gate import _BORDERLINE_MARGIN, _borderline_margin
         wide = SpeakerVerifier(embedder=lambda wav: ref.copy())
         check("no band -> the original constant margin", _borderline_margin(wide)
               == _BORDERLINE_MARGIN, str(_borderline_margin(wide)))
@@ -340,7 +341,7 @@ def derived_threshold() -> None:
     # reading deliberately, seconds after enrolling; a live turn is one word. Deriving from the 6s
     # score puts the bar above his typical turn, which is precisely the false-reject TODO I1 records
     # (0.29 rejected, the same phrase accepted at 0.36 seconds later).
-    from afon.edge.speaker_id import FLOOR_WINDOW_S
+    from mushegh.edge.speaker_id import FLOOR_WINDOW_S
     with tempfile.TemporaryDirectory() as d:
         settings.speaker_profile_path = str(Path(d) / "vp.json")
         settings.speaker_id_enabled = True
@@ -406,10 +407,23 @@ def derived_threshold() -> None:
     print("\n[10.F3] one module owns the number")
     # The constant was read in two modules independently, which is why raising it in one place on
     # 2026-07-25 left the gate's borderline check comparing against the other. Same lesson as 30.F1.
-    src = Path(__file__).resolve().parents[1] / "src" / "afon"
-    mentions = {p.name for p in src.rglob("*.py") if "speaker_threshold" in p.read_text("utf-8")}
-    check("only speaker_id.py reads the threshold setting (config.py declares it)",
-          mentions == {"config.py", "speaker_id.py"}, str(sorted(mentions)))
+    #
+    # Detection is on attribute ACCESS, not on the bare name. `subsystems.py` legitimately *names*
+    # "speaker_threshold" twice — once in the S10 registry (which settings the subsystem owns) and
+    # once in its description table for the setup wizard — without ever reading the value. Matching
+    # the bare string made this gate fail on a file that obeys the invariant exactly. That is the
+    # defect this section exists to prevent, applied to the gate itself: a check that cannot tell
+    # naming from reading cannot enforce ownership either. Verified 2026-10-10: the only READ is
+    # `speaker_id.py` (`_s.speaker_threshold` at L241/L244); `config.py` declares it.
+    src = Path(__file__).resolve().parents[1] / "src" / "mushegh"
+    sources = {p: p.read_text("utf-8") for p in src.rglob("*.py")}
+    readers = {p.name for p, text in sources.items()
+               if re.search(r"\.speaker_threshold\b", text)}
+    check("only speaker_id.py READS the threshold setting",
+          readers == {"speaker_id.py"}, str(sorted(readers)))
+    check("...and config.py is where it is declared",
+          re.search(r"^\s*speaker_threshold\s*:", sources[src / "config.py"], re.M) is not None)
+    # The invariant is still enforced in the direction that matters: a second reader fails here.
 
     settings.speaker_profile_path, settings.speaker_threshold = saved_path, saved_thr
     settings.speaker_id_enabled = saved_on

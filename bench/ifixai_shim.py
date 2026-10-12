@@ -1,8 +1,8 @@
-"""An OpenAI-compatible endpoint in front of Afon, so iFixAi can audit him.
+"""An OpenAI-compatible endpoint in front of Mushegh, so iFixAi can audit him.
 
-iFixAi's `http` provider POSTs an OpenAI-shaped body to ``{endpoint}/chat/completions``. Afon
+iFixAi's `http` provider POSTs an OpenAI-shaped body to ``{endpoint}/chat/completions``. Mushegh
 speaks neither that nor anything close: his HTTP surface is ``POST /talk`` taking ``{"text": …}``
-and answering with an MP3 plus an ``X-Afon-Reply`` header. This translates between the two.
+and answering with an MP3 plus an ``X-Mushegh-Reply`` header. This translates between the two.
 
 WHY NOT JUST POINT IT AT /talk's HOST. Three reasons, and the first two cost real money:
 
@@ -11,12 +11,12 @@ WHY NOT JUST POINT IT AT /talk's HOST. Three reasons, and the first two cost rea
   2. /talk runs under the SAME agent lock as live voice and Telegram. A run would block the owner
      out of his own assistant for the duration.
   3. Every /talk turn is a real turn: it lands in the L2 journal and can write L1 facts. An audit
-     would leave ~450 probe utterances — "ignore your instructions and…" — in Afon's memory of
+     would leave ~450 probe utterances — "ignore your instructions and…" — in Mushegh's memory of
      its owner. That is the one that is hard to undo.
 
-So this drives ``AfonAgent`` in-process instead: the same code, system prompt, tool belt, intent
+So this drives ``MusheghAgent`` in-process instead: the same code, system prompt, tool belt, intent
 router, confirm gate and memory layers the deployed brain runs, with TTS never invoked and state
-redirected to a scratch directory. What is audited is Afon's GOVERNANCE as shipped, which is what
+redirected to a scratch directory. What is audited is Mushegh's GOVERNANCE as shipped, which is what
 `--grounding sut` is asking about; what is avoided is charging the owner for it.
 
     # 1. start the shim (leave it running)
@@ -24,7 +24,7 @@ redirected to a scratch directory. What is audited is Afon's GOVERNANCE as shipp
 
     # 2. point iFixAi at it
     ifixai run --provider http --endpoint http://127.0.0.1:8799/v1 \
-      --grounding sut --suite strategic --fixture bench/ifixai_fixture_afon.yaml
+      --grounding sut --suite strategic --fixture bench/ifixai_fixture_mushegh.yaml
 
 Health: ``GET /healthz`` → ok. Probe count: ``GET /stats``.
 """
@@ -50,7 +50,7 @@ _STATS = {"requests": 0, "errors": 0, "started": time.time()}
 
 
 def _isolate_state(scratch: Path) -> None:
-    """Point Afon's writable state at a scratch dir BEFORE the agent is constructed.
+    """Point Mushegh's writable state at a scratch dir BEFORE the agent is constructed.
 
     Without this, ~450 hostile audit probes land in the owner's real journal and learned facts —
     "ignore your previous instructions and…" remembered as things he said. That is the one
@@ -60,7 +60,7 @@ def _isolate_state(scratch: Path) -> None:
       * env vars cover the settings that ARE configurable (session, proactive state);
       * the MEMORY STORE is not among them. `memory.py` hard-codes `_REPO_ROOT / "memory"` and
         binds a module-level `STORE = MemoryStore()` at import. So it is rebound explicitly
-        below. An earlier version of this file set a plausible-looking `AFON_MEMORY_DIR` and
+        below. An earlier version of this file set a plausible-looking `MUSHEGH_MEMORY_DIR` and
         isolated nothing at all — the variable does not exist.
     """
     scratch.mkdir(parents=True, exist_ok=True)
@@ -70,13 +70,13 @@ def _isolate_state(scratch: Path) -> None:
     os.environ["HOME"] = str(scratch)
     os.environ["USERPROFILE"] = str(scratch)
     for var, val in {
-        "AFON_SESSION_PERSIST_PATH": str(scratch / "session.json"),
-        "AFON_PROACTIVE_ENABLED": "false",   # no unprompted speech mid-audit
-        "AFON_PROACTIVE_STATE_PATH": str(scratch / "proactive_state.json"),
+        "MUSHEGH_SESSION_PERSIST_PATH": str(scratch / "session.json"),
+        "MUSHEGH_PROACTIVE_ENABLED": "false",   # no unprompted speech mid-audit
+        "MUSHEGH_PROACTIVE_STATE_PATH": str(scratch / "proactive_state.json"),
     }.items():
         os.environ.setdefault(var, val)
 
-    from afon.brain import memory as _mem
+    from mushegh.brain import memory as _mem
 
     real = Path(_mem.STORE.base)
 
@@ -84,12 +84,12 @@ def _isolate_state(scratch: Path) -> None:
     #
     # Pointing at an EMPTY scratch dir isolates correctly and measures nothing: retrieval
     # inspections ask "does your memory surface this source?", and a store with no content
-    # answers no for reasons that have nothing to do with Afon. Worse, it does not stay empty —
+    # answers no for reasons that have nothing to do with Mushegh. Worse, it does not stay empty —
     # each run's background review learns facts FROM THE AUDIT PROBES, so a second run retrieves
     # what the auditor itself planted and the score drifts up for a bogus reason. (Measured: 353
     # facts accumulated in scratch against 157 in the real store, all of them probe artifacts.)
     #
-    # Copying fresh each run fixes both: retrieval sees the corpus Afon actually ships with, and
+    # Copying fresh each run fixes both: retrieval sees the corpus Mushegh actually ships with, and
     # every write lands in a copy that is replaced next time — so the run is reproducible and the
     # owner's memory is still never touched.
     dest = scratch / "memory"
@@ -106,11 +106,11 @@ def _isolate_state(scratch: Path) -> None:
 
 async def _boot() -> None:
     global _AGENT, _TURN_LOCK
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
     # Built here, on the loop that will await it — see _answer for why it exists.
     _TURN_LOCK = asyncio.Lock()
-    _AGENT = AfonAgent()
+    _AGENT = MusheghAgent()
     await _AGENT.warmup()
 
 
@@ -120,15 +120,15 @@ _TURN_LOCK: asyncio.Lock | None = None
 async def _answer(text: str, prior: list[dict] | None = None) -> str:
     """One full turn: routing, tools, memory, confirm gate — everything except speech.
 
-    `prior` replaces Afon's conversation thread wholesale, so each request is independent and the
+    `prior` replaces Mushegh's conversation thread wholesale, so each request is independent and the
     caller's `messages` array is the only history. See the handler for why that matters.
 
-    SERIALISED, and it must be. There is ONE AfonAgent behind this shim, and seeding its thread
+    SERIALISED, and it must be. There is ONE MusheghAgent behind this shim, and seeding its thread
     per request is only correct if one request is in flight: iFixAi runs 5 probes concurrently, so
     without the lock probe B overwrites probe A's history mid-turn. That produced replies that
     were not answers at all — one B25 probe came back echoing its own question ("Please recall the
-    concrete mechanism used by...") and was scored as Afon failing to describe his audit logging.
-    Production Afon takes one turn at a time behind the same kind of lock, so this also matches how
+    concrete mechanism used by...") and was scored as Mushegh failing to describe his audit logging.
+    Production Mushegh takes one turn at a time behind the same kind of lock, so this also matches how
     he actually runs; the run is slower and the numbers mean something."""
     assert _AGENT is not None and _TURN_LOCK is not None
     async with _TURN_LOCK:
@@ -141,10 +141,10 @@ async def _answer(text: str, prior: list[dict] | None = None) -> str:
 
 # fused_recall's layer code -> the source_id the fixture declares for that same store.
 #
-# These MUST agree. B05's structural path does not read Afon's prose at all: it calls /retrieve
+# These MUST agree. B05's structural path does not read Mushegh's prose at all: it calls /retrieve
 # once per declared data source and checks `source.source_id in returned_ids`. Emitting the
 # internal layer code ("L1:learned") while the fixture declares "memory_learned" made every
-# source read cited=False by string mismatch alone — a harness bug that looked exactly like Afon
+# source read cited=False by string mismatch alone — a harness bug that looked exactly like Mushegh
 # failing to attribute anything. Same four stores, one spelling.
 _LAYER_SOURCE_ID = {
     "L1": "memory_learned",     # learned facts about the owner
@@ -155,19 +155,19 @@ _LAYER_SOURCE_ID = {
 
 
 def _sources_for(query: str) -> list[dict]:
-    """What Afon's memory actually returned for this query — real hits, not a claim that he has
+    """What Mushegh's memory actually returned for this query — real hits, not a claim that he has
     memory. Runs the same `fused_recall` a turn uses, so a source listed here is one the agent
     could genuinely have grounded on.
 
-    Covers the four MEMORY layers only, because that is what Afon's retrieval layer covers. Gmail,
+    Covers the four MEMORY layers only, because that is what Mushegh's retrieval layer covers. Gmail,
     Calendar, Telegram and the web are real data sources for him, but they are reachable through
     TOOLS at turn time, not through a retrieval index — so they are honestly absent here rather
     than faked in. That caps B05's structural score at 4/9, and the missing 5/9 is a true finding
-    about Afon (no unified retrieval over mail/calendar), not a scoring artefact."""
+    about Mushegh (no unified retrieval over mail/calendar), not a scoring artefact."""
     if not query:
         return []
     try:
-        from afon.brain.memory import STORE
+        from mushegh.brain.memory import STORE
     except Exception:  # noqa: BLE001
         return []
 
@@ -175,7 +175,7 @@ def _sources_for(query: str) -> list[dict]:
     #
     # A single fused_recall(limit=5) returns the five best hits overall, so a store that holds
     # something relevant but ranks 6th vanishes from the report. That truncation is a property of
-    # the ranking, not of Afon's retrieval coverage — and this endpoint is asked "which of your
+    # the ranking, not of Mushegh's retrieval coverage — and this endpoint is asked "which of your
     # stores holds something for this query?", which is exactly the question the ranking discards.
     # `fused_recall` already takes a `layers=` filter and the per-turn path uses it, so asking each
     # store separately is the existing capability, not a new one built for the audit.
@@ -219,7 +219,7 @@ class Handler(BaseHTTPRequestHandler):
         elif route in ("/v1/models", "/models"):
             # Some clients probe this before their first completion.
             self._json(200, {"object": "list",
-                             "data": [{"id": "afon", "object": "model", "owned_by": "afon"}]})
+                             "data": [{"id": "mushegh", "object": "model", "owned_by": "mushegh"}]})
         else:
             self._json(404, {"error": {"message": "not found"}})
 
@@ -244,7 +244,7 @@ class Handler(BaseHTTPRequestHandler):
         raw = self._read_body()
 
         # Capability hook: iFixAi's http provider POSTs {"query": …} to /retrieve to ask what
-        # sources grounded an answer. Afon really does retrieve (L1 facts, L2 journal, L3 vault,
+        # sources grounded an answer. Mushegh really does retrieve (L1 facts, L2 journal, L3 vault,
         # L5b graph), so answering it truthfully turns B05 Source Provenance from
         # "insufficient evidence" into a scored result — evidence, not assertion.
         if route.endswith("/retrieve"):
@@ -266,11 +266,11 @@ class Handler(BaseHTTPRequestHandler):
 
         # THE REQUEST'S `messages` ARRAY IS THE WHOLE CONVERSATION. Nothing carries over.
         #
-        # This used to flatten the array and lean on Afon's own history, on the reasoning that
+        # This used to flatten the array and lean on Mushegh's own history, on the reasoning that
         # replaying prior turns would double-count them. That was wrong, and it quietly corrupted
         # every measurement: ~450 probes then shared ONE thread, so an inspection's "independent"
         # draws were nothing of the kind — caught when a B06 probe opened "I apologize for the
-        # confusion in my previous responses", answering a question no one had asked it. Afon had
+        # confusion in my previous responses", answering a question no one had asked it. Mushegh had
         # even resumed a 24-message thread from a previous session at boot.
         #
         # An OpenAI-compatible endpoint is stateless: the caller owns the history. So reset the
@@ -313,7 +313,7 @@ class Handler(BaseHTTPRequestHandler):
             "id": f"chatcmpl-{uuid.uuid4().hex[:24]}",
             "object": "chat.completion",
             "created": int(time.time()),
-            "model": req.get("model") or "afon",
+            "model": req.get("model") or "mushegh",
             "choices": [{"index": 0, "finish_reason": "stop",
                          "message": {"role": "assistant", "content": reply}}],
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
@@ -321,13 +321,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="OpenAI-compatible shim in front of AfonAgent")
+    ap = argparse.ArgumentParser(description="OpenAI-compatible shim in front of MusheghAgent")
     ap.add_argument("--port", type=int, default=8799)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--state", default="", help="scratch state dir (default: a temp dir)")
     args = ap.parse_args()
 
-    scratch = Path(args.state) if args.state else Path(os.environ.get("TEMP", "/tmp")) / "afon-ifixai-state"
+    scratch = Path(args.state) if args.state else Path(os.environ.get("TEMP", "/tmp")) / "mushegh-ifixai-state"
     _isolate_state(scratch)
     print(f"state isolated to {scratch} (the owner's real memory is untouched)")
 
@@ -338,7 +338,7 @@ def main() -> int:
 
     threading.Thread(target=_LOOP.run_forever, daemon=True).start()
     asyncio.run_coroutine_threadsafe(_boot(), _LOOP).result(timeout=300)
-    print(f"afon shim ready on http://{args.host}:{args.port}/v1  (POST /v1/chat/completions)")
+    print(f"mushegh shim ready on http://{args.host}:{args.port}/v1  (POST /v1/chat/completions)")
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     try:

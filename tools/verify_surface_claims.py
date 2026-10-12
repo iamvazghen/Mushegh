@@ -1,7 +1,7 @@
 """Verify that every module a system document calls a "surface" is actually wired.
 
 Rule 1 of subsystems/README.md is that a cited path must exist. A path can exist and
-still be a lie: ``src/afon/brain/mynews.py`` was on disk, listed as S41's surface, and
+still be a lie: ``src/mushegh/brain/mynews.py`` was on disk, listed as S41's surface, and
 nothing in the brain imported it. That is worse than a phantom path, because a phantom
 path fails loudly on first read while an unwired module looks like a finished system.
 
@@ -38,7 +38,7 @@ PATH_RE = re.compile(r"`([A-Za-z0-9_./-]+)`")
 
 
 def _module_name(rel_path: str) -> str:
-    """`src/afon/brain/mynews.py` -> `afon.brain.mynews`."""
+    """`src/mushegh/brain/mynews.py` -> `mushegh.brain.mynews`."""
     p = rel_path.removeprefix("src/").removesuffix(".py")
     return p.replace("/", ".")
 
@@ -84,7 +84,7 @@ def collect_string_literals() -> set[str]:
 
     ``protocols.py`` launches its recovery scripts as detached subprocesses by path
     (``subprocess.Popen([sys.executable, _SCRIPT_DIR / proto["script"], ...])``) so they
-    survive Afon being killed. Nothing imports them and nothing should.
+    survive Mushegh being killed. Nothing imports them and nothing should.
 
     This parses string CONSTANTS rather than grepping, which is what separates a genuine
     dynamic reference from prose. A comment mentioning ``mynews.py`` is not a dispatch;
@@ -115,8 +115,8 @@ SCRIPT_LAUNCH_RE = re.compile(r"python[0-9.]*w?\s+[\"']?([A-Za-z0-9_./\\-]+\.py)
 def collect_launchers() -> tuple[set[str], set[str]]:
     """Modules and scripts started by a launcher rather than imported.
 
-    ``run.sh`` does ``exec uv run python -m afon.edge.edge_lite`` and the scheduled
-    task does ``pythonw -m afon.edge.pc_agent``. Those are real, deliberate entry
+    ``run.sh`` does ``exec uv run python -m mushegh.edge.edge_lite`` and the scheduled
+    task does ``pythonw -m mushegh.edge.pc_agent``. Those are real, deliberate entry
     points that no import statement will ever mention, so import-graph reasoning alone
     would report them dead. The launcher files are the source of truth for them.
     """
@@ -141,9 +141,9 @@ def make_reachable(imports: set[str], literals: set[str],
 
     def reachable(rel_path: str) -> bool:
         mod = _module_name(rel_path)
-        # An exact import target. `from afon.brain import mynews` already contributes
-        # "afon.brain.mynews", so no ancestor-package fallback is used here: importing
-        # `afon` proves nothing about `afon.brain.mynews`, and pretending otherwise
+        # An exact import target. `from mushegh.brain import mynews` already contributes
+        # "mushegh.brain.mynews", so no ancestor-package fallback is used here: importing
+        # `mushegh` proves nothing about `mushegh.brain.mynews`, and pretending otherwise
         # makes every module under src/ reachable at once.
         if mod in imports:
             return True
@@ -174,7 +174,7 @@ def surface_claims(text: str) -> tuple[list[tuple[str, int]], int]:
         tail = text[match.end() : match.end() + 400]
         block = re.split(r"\n\s*\n", tail, maxsplit=1)[0]
         for raw in PATH_RE.findall(match.group(1) + block):
-            if not (raw.startswith("src/afon") and raw.endswith(".py")):
+            if not (raw.startswith("src/mushegh") and raw.endswith(".py")):
                 continue
             idx = tail.find(raw)
             window = tail[idx + len(raw) : idx + len(raw) + 70] if idx >= 0 else ""
@@ -189,16 +189,16 @@ def surface_claims(text: str) -> tuple[list[tuple[str, int]], int]:
 
 #: Control cases. A checker that cannot fail is worse than no checker, and this one was
 #: vacuous twice while being written - once by counting a file that merely exists as
-#: "imported", once by letting `afon` being imported vouch for everything beneath it.
+#: "imported", once by letting `mushegh` being imported vouch for everything beneath it.
 #: So the teeth are asserted on every run rather than assumed.
 CONTROLS = [
-    ("src/afon/brain/daily_digest.py", True, "imported by scheduler.py and server.py"),
-    ("src/afon/brain/mynews.py", False,
+    ("src/mushegh/brain/daily_digest.py", True, "imported by scheduler.py and server.py"),
+    ("src/mushegh/brain/mynews.py", False,
      "the real defect: on disk, named as two systems' surface, imported by nothing"),
-    ("src/afon/protocols/phoenix.py", True,
+    ("src/mushegh/protocols/phoenix.py", True,
      'never imported; dispatched by path from protocols.py\'s "script" key'),
-    ("src/afon/edge/edge_lite.py", True, "started as `python -m afon.edge.edge_lite` by run.sh"),
-    ("src/afon/brain/no_such_module_xyz.py", False, "a path that does not exist"),
+    ("src/mushegh/edge/edge_lite.py", True, "started as `python -m mushegh.edge.edge_lite` by run.sh"),
+    ("src/mushegh/brain/no_such_module_xyz.py", False, "a path that does not exist"),
 ]
 
 

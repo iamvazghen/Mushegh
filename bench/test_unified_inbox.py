@@ -1,6 +1,6 @@
 """38.F2/38.F3 — one answer to "what's waiting", and nothing sent on a paraphrase.
 
-Afon could read mail, read Telegram, and list the actions autonomous work had deferred. Three
+Mushegh could read mail, read Telegram, and list the actions autonomous work had deferred. Three
 surfaces, three turns, three shapes — and the owner held the join in his head, which is the same as
 not having the answer, because the reason to ask is to find the thing you had forgotten.
 
@@ -42,8 +42,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 async def main() -> None:
-    from afon.brain.tools import inbox as ib
-    from afon.brain.proactive import CONFIRM_TIER, DRAFTED, confirm_required, draft_preview
+    from mushegh.brain.tools import inbox as ib
+    from mushegh.brain.proactive import CONFIRM_TIER, DRAFTED, confirm_required, draft_preview
 
     now = time.time()
 
@@ -140,7 +140,7 @@ async def main() -> None:
     ib.SOURCES.update(real)
 
     print("\n[8] the whole thing is one tool the model can reach")
-    from afon.brain.tools import core_tool_schemas, tool_handlers
+    from mushegh.brain.tools import core_tool_schemas, tool_handlers
 
     names = {s["function"]["name"] for s in core_tool_schemas()}
     check("whats_waiting is advertised on every turn, not behind a keyword",
@@ -172,13 +172,13 @@ async def main() -> None:
 
     print("\n[10] the gate hands the model the draft, and tells it not to improve it")
     src = (Path(__file__).resolve().parents[1]
-           / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+           / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     check("the confirm gate builds a draft preview", "draft_preview(name, args)" in src)
     check("...and demands it be read back verbatim", "WORD FOR WORD" in src)
     check("...forbidding a summary", "not summarise or improve it" in src)
 
     print("\n[11] a DEFERRED send is approved on its words too")
-    from afon.brain.approvals import ApprovalQueue
+    from mushegh.brain.approvals import ApprovalQueue
 
     q = ApprovalQueue(Path(tempfile.mkdtemp()) / "approvals.json")
     q.enqueue("send_email", {"to": "bank@x.com", "subject": "Late payment",

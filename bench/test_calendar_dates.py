@@ -16,8 +16,8 @@ import re
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import afon.brain.tools.calendar as cal
-from afon.config import settings
+import mushegh.brain.tools.calendar as cal
+from mushegh.config import settings
 
 PASS = FAIL = 0
 

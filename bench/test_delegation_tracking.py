@@ -9,8 +9,8 @@ whom, or whether an answer ever came back.
 
 **Unchecked.** Whatever the team lead returned went straight on: into the model's context, or into
 `server._announce_task`, which reads `t.result` out loud. "I don't have access to that" therefore
-reached the owner as Afon's own finished answer, and a figure the fleet invented reached him in
-Afon's voice with nothing marking it as somebody else's claim.
+reached the owner as Mushegh's own finished answer, and a figure the fleet invented reached him in
+Mushegh's voice with nothing marking it as somebody else's claim.
 
   [tracking]     every delegation opens a unit with a deadline and closes it — answered or failed;
                  a unit still open past its deadline is the fire-and-forget detector.
@@ -50,8 +50,8 @@ BRIEF = "find out what rabbit feed costs at the Lpstrak farm this season"
 
 
 def main() -> None:
-    from afon.brain import coordination as C
-    from afon.brain import delegation as D
+    from mushegh.brain import coordination as C
+    from mushegh.brain import delegation as D
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         db = Path(d) / "work.sqlite"
@@ -161,7 +161,7 @@ def main() -> None:
         "Do NOT invent", "do NOT invent"), rejected)
     attributed = D.for_model(D.check(BRIEF, figures), figures)
     check("an attributed answer carries the words themselves", figures in attributed)
-    check("...marked as the team lead's, not Afon's",
+    check("...marked as the team lead's, not Mushegh's",
           "[attributed]" in attributed and "not your own" in attributed, attributed[:120])
     check("...with an instruction not to restate a figure as checked",
           "restate a number" in attributed, attributed)
@@ -182,7 +182,7 @@ def main() -> None:
 
     print("\n[tracking] every delegation path in the agent goes through it")
     agent_src = (Path(__file__).resolve().parents[1]
-                 / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+                 / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     check("the blocking path is tracked",
           agent_src.count("delegation.tracked(") >= 3, agent_src.count("delegation.tracked("))
     raw = [ln.strip() for ln in agent_src.splitlines()

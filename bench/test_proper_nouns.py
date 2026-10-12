@@ -17,9 +17,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import afon.brain.contacts as contacts_mod  # noqa: E402
-from afon.config import settings  # noqa: E402
-from afon.edge import proper_nouns  # noqa: E402
+import mushegh.brain.contacts as contacts_mod  # noqa: E402
+from mushegh.config import settings  # noqa: E402
+from mushegh.edge import proper_nouns  # noqa: E402
 
 passed = failed = 0
 
@@ -52,7 +52,7 @@ def main() -> None:
              settings.user_address, contacts_mod.BOOK)
     try:
         settings.stt_hotwords = "Yerevan, Cologne, Rently; Party Map"
-        settings.assistant_name = "Afon"
+        settings.assistant_name = "Mushegh"
         settings.user_name = "Alex"
         settings.user_address = "sir"
         contacts_mod.BOOK = _FakeBook(["Anush", "John Smith"])
@@ -61,17 +61,17 @@ def main() -> None:
         print("[1] list merges config + identity + contacts")
         lst = proper_nouns.hotwords_list()
         low = [t.lower() for t in lst]
-        for term in ["yerevan", "cologne", "rently", "party map", "afon", "alex", "sir",
+        for term in ["yerevan", "cologne", "rently", "party map", "mushegh", "alex", "sir",
                      "anush", "john smith"]:
             check(f"'{term}' present", term in low, repr(lst))
 
         print("\n[2] semicolons split, case-insensitive dedup")
-        settings.stt_hotwords = "Rently, rently, RENTLY, Afon"  # dupes + collides with assistant name
+        settings.stt_hotwords = "Rently, rently, RENTLY, Mushegh"  # dupes + collides with assistant name
         proper_nouns.hotwords_str.cache_clear()
         lst = proper_nouns.hotwords_list()
         low = [t.lower() for t in lst]
         check("'rently' appears exactly once", low.count("rently") == 1, repr(lst))
-        check("'afon' appears exactly once despite config+identity", low.count("afon") == 1, repr(lst))
+        check("'mushegh' appears exactly once despite config+identity", low.count("mushegh") == 1, repr(lst))
 
         print("\n[3] cap bounds the list")
         settings.stt_hotwords = ", ".join(f"term{i}" for i in range(200))
@@ -90,7 +90,7 @@ def main() -> None:
         proper_nouns.hotwords_str.cache_clear()
         if settings.deepgram_api_key:
             try:
-                from afon.edge.stt import _build_deepgram
+                from mushegh.edge.stt import _build_deepgram
                 svc = _build_deepgram()
                 check("Deepgram STT service built (keyterm applied or safely dropped)", svc is not None)
             except Exception as e:  # noqa: BLE001
@@ -100,13 +100,13 @@ def main() -> None:
 
         print("\n[6] empty config + no contacts -> just identity terms, never raises")
         settings.stt_hotwords = ""
-        settings.assistant_name = "Afon"
+        settings.assistant_name = "Mushegh"
         settings.user_name = ""
         settings.user_address = ""
         contacts_mod.BOOK = _FakeBook([])
         proper_nouns.hotwords_str.cache_clear()
         lst = proper_nouns.hotwords_list()
-        check("degrades to the assistant name alone", [t.lower() for t in lst] == ["afon"], repr(lst))
+        check("degrades to the assistant name alone", [t.lower() for t in lst] == ["mushegh"], repr(lst))
     finally:
         (settings.stt_hotwords, settings.assistant_name, settings.user_name,
          settings.user_address, contacts_mod.BOOK) = saved
@@ -120,7 +120,7 @@ def main() -> None:
 
 
 # ── 24.F1: the names STT hands over resolve to the person the facts are under ──────────────────
-# This file's subject is the names Afon biases the recogniser toward. The other end of that wire
+# This file's subject is the names Mushegh biases the recogniser toward. The other end of that wire
 # is what happens once STT returns one: a proper noun that arrives transliterated ("Вазген") must
 # reach the same person, or biasing the recogniser toward a name only makes it better at missing.
 #
@@ -152,9 +152,9 @@ def main() -> None:
 def one_node_per_person() -> None:
     import tempfile
 
-    from afon.brain.contacts import ContactBook
-    from afon.brain.memory import MemoryStore
-    from afon.shared.entities import canonical, same_entity
+    from mushegh.brain.contacts import ContactBook
+    from mushegh.brain.memory import MemoryStore
+    from mushegh.shared.entities import canonical, same_entity
 
     print("\n[24.F1] a transliterated proper noun reaches the person, not a near-miss match")
 

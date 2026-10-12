@@ -16,7 +16,7 @@ honest description is a finished export nobody has decided is worth anything.
 
 Preservation that outlives the program. Not a backup — a backup is a tar of this program's
 private layout, with sqlite schemas living in the code and a JSONL whose fields are named in
-a dataclass, and restoring it needs Afon. That is the opposite of preservation.
+a dataclass, and restoring it needs Mushegh. That is the opposite of preservation.
 
 The requirement is **boring formats** (D-54): every store must be legible to `sqlite3` and
 readable in a text editor in 2036, with no framework, no migration tool and no person who
@@ -35,7 +35,7 @@ is left with a tar of someone else's private layout.
 
 ## Structure
 
-- `src/afon/protocols/portable.py` — 50.F1/F2. `export(dest)` writes memory, journal,
+- `src/mushegh/protocols/portable.py` — 50.F1/F2. `export(dest)` writes memory, journal,
   documents and an audit **summary** as markdown or JSON, plus a README in plain language
   and a MANIFEST carrying a sha256 per file. Three properties, in order: readable without
   the codebase (no pickles, no sqlite, no field that means something only because a class
@@ -44,22 +44,22 @@ is left with a tar of someone else's private layout.
   memory); verified on a schedule. `verify(root)` re-checks the hashes, `run_export_drill()`
   performs the restore drill and `last_drill()` reads the last record.
   The load-bearing check is in `bench/test_portable_export.py`: a **fresh interpreter with
-  `afon` removed from the path** re-reads the export end to end. Asserting readability from
+  `mushegh` removed from the path** re-reads the export end to end. Asserting readability from
   inside a process that has already imported the package proves nothing.
-- `src/afon/brain/memory.py` — the L1 learned notes and L2 journal as one markdown file per
+- `src/mushegh/brain/memory.py` — the L1 learned notes and L2 journal as one markdown file per
   fact. This is the substrate that makes the export readable: the store is already text.
-- `src/afon/brain/tools/vault.py` — 50.F3. The vault-write rule is enforced in code, not only
+- `src/mushegh/brain/tools/vault.py` — 50.F3. The vault-write rule is enforced in code, not only
   in a document: `replica_reason(root)` recognises a local copy from the sync marker, and
-  `VaultIsReplica` makes `write_note` refuse even when `AFON_VAULT_WRITABLE` says yes. The
+  `VaultIsReplica` makes `write_note` refuse even when `MUSHEGH_VAULT_WRITABLE` says yes. The
   directory wins over the flag, because the directory is the thing that will lose the note at
   the next pull.
-- `src/afon/brain/inventory.py` and `src/afon/brain/maintenance.py` — declared retention per
+- `src/mushegh/brain/inventory.py` and `src/mushegh/brain/maintenance.py` — declared retention per
   store and the job that enforces it. `sweep_retention` is what D-21 means in practice; it is
   also what will eventually delete something worth keeping if curation is never defined.
 - `scripts/merge_memory.py` — the human half of 30.F1. It does not choose between two hosts'
   learned notes; it **unions** them, because a fact only one host was ever told is not stale,
   it is the only copy.
-- `src/afon/protocols/` alongside it — the export shares the protocols layer, which is where
+- `src/mushegh/protocols/` alongside it — the export shares the protocols layer, which is where
   the rest of this program's own backups live.
 
 Ownership: the brain process writes the export; the vault remains the authority; `restic`
@@ -68,7 +68,7 @@ owns the off-site copy and is not duplicated here.
 ## Goals
 
 1. The export is readable by a person with no codebase, proved by reading it in a process
-   that never imports `afon` (50.F1, D-54).
+   that never imports `mushegh` (50.F1, D-54).
 2. The export is restored on a schedule into an empty environment, and the drill is
    recorded (50.F2).
 3. The vault-write rule is enforced in code, so a note can never be written to a copy that
@@ -82,11 +82,11 @@ owns the off-site copy and is not duplicated here.
 ## Benchmarks
 
 1. **B1 (50.F1)** — `bench/test_portable_export.py`. Threshold: the export is written, and
-   re-read end to end by a fresh interpreter with `afon` off the path; every file in the
+   re-read end to end by a fresh interpreter with `mushegh` off the path; every file in the
    manifest has a matching sha256; an absent store is listed as absent. Registry records
    50.F1 `done` as of 2026-10-03. Last field measurement: `not yet measured`.
 2. **B1 (50.F2)** — `bench/test_backup_restore.py` and the drill in
-   `src/afon/protocols/portable.py`. Threshold: a restore into an empty environment returns
+   `src/mushegh/protocols/portable.py`. Threshold: a restore into an empty environment returns
    both the vault and the database legible to `sqlite3` (D-54). Registry records 50.F2
    `done`; the *drill* on a schedule is what M32 lands. Last measurement: `not yet measured`.
 3. **B1 (50.F3)** — `bench/test_vault_search.py [50.F3]`. Threshold: a replica refuses the
@@ -100,7 +100,7 @@ owns the off-site copy and is not duplicated here.
 6. **B1 planned (`50.R3`)** — the `[migration]` case: a format change has a documented, tested
    path forward. Last measurement: `not yet measured`.
 7. **B2 (`50.E1`)** — the cold-start drill: a new machine, the export, and nothing else, and
-   a working Afon is rebuilt from it. Threshold: no access to the original host, no import of
+   a working Mushegh is rebuilt from it. Threshold: no access to the original host, no import of
    this framework's internals. Last measurement: `not yet measured` — this is the benchmark
    that would settle whether the system is worth anything, and it has never been run.
 8. **B3** — seven consecutive days of real use with no manual patching (D-43) applies to the
@@ -108,39 +108,39 @@ owns the off-site copy and is not duplicated here.
 
 ## Failure modes
 
-**The export needs Afon to read.** The one failure the whole system exists to prevent, and
+**The export needs Mushegh to read.** The one failure the whole system exists to prevent, and
 the one that is invisible from inside the framework:
 
-    python -c "from afon.protocols.portable import verify; from afon.shared.paths import state_dir; print(verify(state_dir()/'export'))"
-    ls -la "$AFON_STATE_DIR"/export/ 2>/dev/null || python -c "from afon.protocols.portable import last_drill; print(last_drill())"
-    journalctl -u openafon-brain --since "30d" | grep -iE "export|drill|manifest"
+    python -c "from mushegh.protocols.portable import verify; from mushegh.shared.paths import state_dir; print(verify(state_dir()/'export'))"
+    ls -la "$MUSHEGH_STATE_DIR"/export/ 2>/dev/null || python -c "from mushegh.protocols.portable import last_drill; print(last_drill())"
+    journalctl -u openmushegh-brain --since "30d" | grep -iE "export|drill|manifest"
 
 **An export silently omits half the memory.** The manifest is the check — a store listed
 under `absent` is honest, a store missing from `files` is a lie:
 
-    python -c "import json;from afon.shared.paths import state_dir;m=json.loads((state_dir()/'export'/'MANIFEST.json').read_text());print(len(m['files']), m['absent'])"
-    python -c "from afon.brain.inventory import undeclared; print(undeclared())"
+    python -c "import json;from mushegh.shared.paths import state_dir;m=json.loads((state_dir()/'export'/'MANIFEST.json').read_text());print(len(m['files']), m['absent'])"
+    python -c "from mushegh.brain.inventory import undeclared; print(undeclared())"
 
 **A note was written to the vault replica and lost at the next pull.** `replica_reason` is
 the diagnosis, and the sync marker is the evidence:
 
-    python -c "from afon.brain.tools.vault import replica_reason; from afon.config import settings; print(replica_reason(settings.vault_path))"
-    journalctl -u openafon-brain --since "7d" | grep -iE "vault|replica|writable"
+    python -c "from mushegh.brain.tools.vault import replica_reason; from mushegh.config import settings; print(replica_reason(settings.vault_path))"
+    journalctl -u openmushegh-brain --since "7d" | grep -iE "vault|replica|writable"
     ls -la "$VAULT_PATH"/.vps-sync.ps1 2>/dev/null
 
 **A retention sweep removed something worth keeping.** The dry run is the diagnosis, and it
 is the reason curation is the open question rather than a nice-to-have:
 
-    python -c "from afon.brain.maintenance import sweep_retention; print(sweep_retention(dry_run=True))"
-    python -c "from afon.brain.inventory import report; print(report())"
-    journalctl -u openafon-brain --since "48h" | grep -i maintenance
+    python -c "from mushegh.brain.maintenance import sweep_retention; print(sweep_retention(dry_run=True))"
+    python -c "from mushegh.brain.inventory import report; print(report())"
+    journalctl -u openmushegh-brain --since "48h" | grep -i maintenance
 
 **Two hosts' memories are merged and something is chosen rather than unioned.** The merge
 direction is the whole argument: a fact only one host was told is not stale, it is the only
 copy. Choosing between hosts silently deletes something the owner said:
 
     python scripts/merge_memory.py            # prints its own usage
-    journalctl -u openafon-brain --since "7d" | grep -iE "merge|memory"
+    journalctl -u openmushegh-brain --since "7d" | grep -iE "merge|memory"
 
 ## Open questions
 

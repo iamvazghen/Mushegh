@@ -52,9 +52,9 @@ async def main() -> None:
     from pipecat.processors.frame_processor import FrameDirection
     from pipecat.utils.time import time_now_iso8601
 
-    from afon.config import settings
-    from afon.edge.speaker_gate import SpeakerGate
-    from afon.edge.speaker_id import SpeakerVerifier
+    from mushegh.config import settings
+    from mushegh.edge.speaker_gate import SpeakerGate
+    from mushegh.edge.speaker_id import SpeakerVerifier
 
     SR = 16000
     ref = np.array([1.0, 0.0, 0.0] + [0.0] * 189, dtype=np.float32)

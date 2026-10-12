@@ -1,6 +1,6 @@
 # S37 — Privacy & Data Governance
 
-> **One line:** what Afon is allowed to keep, what it must refuse to keep, and the proof
+> **One line:** what Mushegh is allowed to keep, what it must refuse to keep, and the proof
 > that it did not keep it.
 > **Status:** built, unproven by use — hygiene real, policy now enforced at the write boundary · **Registry:** S37 · 3/3 floor, 1/5 raise, 0/1 elite
 > **Milestones:** M27 · **Decisions:** D-24, D-21, D-25, D-22
@@ -10,7 +10,7 @@
 The hygiene half is real and was built first: every store is inventoried, retention is
 per store and enforced by a job rather than by intention, and `forget` removes a thing
 from every store and then re-queries to prove it is gone. The audit trail is
-**append-only and best-effort, not tamper-evident**: `src/afon/brain/audit.py` appends
+**append-only and best-effort, not tamper-evident**: `src/mushegh/brain/audit.py` appends
 one JSON line per action with no hash chain and no signature, and wraps every write so a
 failure is dropped rather than raised. So the trail records what happened; it does not
 prove that nothing was taken out of it. `45.R10` now tracks making that check verifiable
@@ -20,11 +20,11 @@ exist, the registry calls this half-built rather than missing, and it is not wro
 The policy half now exists, and it was the half that mattered. The store classification landed
 (37.R4) and the hard part was still prose: the D-24 never-store set — plaintext passwords, raw
 biometric sensor feeds, banking credentials, unfiltered health-crisis journaling — appeared nowhere
-in `src/afon/`, and a grep for `D-24`, `never store` and `NEVER_STORE` across the package returned
+in `src/mushegh/`, and a grep for `D-24`, `never store` and `NEVER_STORE` across the package returned
 nothing. Those four categories are **not retention questions**. A TTL cannot fix data that should
 never have arrived; a 30-day expiry on a plaintext password is a slower leak, not a policy.
 
-`37.R5` built it at the write boundary. `src/afon/brain/never_store.py` names the four classes and
+`37.R5` built it at the write boundary. `src/mushegh/brain/never_store.py` names the four classes and
 screens text against them; `MemoryStore.remember()` and `journal_append()` refuse rather than store;
 and `ErrorKind.REFUSED` is its own outcome, so a refusal is reported as a refusal instead of filed
 as an error. The gate is `bench/test_never_store.py` (50/50).
@@ -93,16 +93,16 @@ you have on me, and where?") now has a mechanism behind it and no measurement in
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/brain/data_classes.py` | brain | 37.R4 — four classes (biometric, medical, financial, ordinary), one declaration per store, `leaves_host`, and the discovery walk `unclassified()` |
-| `src/afon/brain/maintenance.py` | brain | The hygiene job — dedup, per-store TTL, the work that makes D-21's 30 days real rather than aspirational |
-| `src/afon/brain/forget.py` | brain | 37.F3 — remove from every store, then go back and check |
-| `src/afon/brain/memory.py` | brain | The learned and journal layers the TTLs act on |
-| `src/afon/brain/dbconn.py` | brain | The one DB door; the surface an inventory has to walk to be complete |
-| `src/afon/brain/audit.py` | brain | Append-only, best-effort trail — where a forget, a refusal and a policy decision are recorded. It **withholds** a D-24 payload rather than writing it. No integrity check a reader can run today, and a failed write is dropped; that gap is `45.R10` |
-| `src/afon/brain/never_store.py` | brain | 37.R5 — the D-24 set as code: four classes, pattern detectors, a payload-free verdict, and a fingerprint that is an HMAC under a random per-process key |
-| `src/afon/shared/redact.py` | shared | 26.R5's counterpart for frames — a frame is not a secret, so the credential scrubbers can never see it; one media rule shared by the error journal, the audit trail and the detector ingress |
-| `src/afon/brain/tools/privacy.py` | brain | 37.F1 — answers "what do you know about me" out loud, from the inventory |
-| `src/afon/brain/tools/` | brain | The typed boundary (D-04), which is where a pre-ingest never-store guard was considered and rejected in favour of the store's own content seam |
+| `src/mushegh/brain/data_classes.py` | brain | 37.R4 — four classes (biometric, medical, financial, ordinary), one declaration per store, `leaves_host`, and the discovery walk `unclassified()` |
+| `src/mushegh/brain/maintenance.py` | brain | The hygiene job — dedup, per-store TTL, the work that makes D-21's 30 days real rather than aspirational |
+| `src/mushegh/brain/forget.py` | brain | 37.F3 — remove from every store, then go back and check |
+| `src/mushegh/brain/memory.py` | brain | The learned and journal layers the TTLs act on |
+| `src/mushegh/brain/dbconn.py` | brain | The one DB door; the surface an inventory has to walk to be complete |
+| `src/mushegh/brain/audit.py` | brain | Append-only, best-effort trail — where a forget, a refusal and a policy decision are recorded. It **withholds** a D-24 payload rather than writing it. No integrity check a reader can run today, and a failed write is dropped; that gap is `45.R10` |
+| `src/mushegh/brain/never_store.py` | brain | 37.R5 — the D-24 set as code: four classes, pattern detectors, a payload-free verdict, and a fingerprint that is an HMAC under a random per-process key |
+| `src/mushegh/shared/redact.py` | shared | 26.R5's counterpart for frames — a frame is not a secret, so the credential scrubbers can never see it; one media rule shared by the error journal, the audit trail and the detector ingress |
+| `src/mushegh/brain/tools/privacy.py` | brain | 37.F1 — answers "what do you know about me" out loud, from the inventory |
+| `src/mushegh/brain/tools/` | brain | The typed boundary (D-04), which is where a pre-ingest never-store guard was considered and rejected in favour of the store's own content seam |
 
 **Data flow.** The brain process runs the hygiene job on a schedule: it reads the
 declarations in `data_classes.py`, applies the per-store rules in `maintenance.py`, and
@@ -149,7 +149,7 @@ one test each) and lands in S36, S03 and S37. The store-side half — goal 5 —
 milestone: M29 (S30, S37) names the assertion that each never-store class is refused at
 the write boundary, under D-21 and D-24. What was missing was the code, not the
 milestone. On 2026-10-03 a grep for `D-24`, `NEVER_STORE` and `never_store` across
-`src/afon/` returned nothing, so no registry task enforced the set and goal 5 had no
+`src/mushegh/` returned nothing, so no registry task enforced the set and goal 5 had no
 test; `37.R5` landed it on 2026-10-04 with `bench/test_never_store.py`.
 
 ## Failure modes
@@ -175,8 +175,8 @@ should not have.
 **Classification drifts silently.** A new store is created beside the declared ones and
 nothing fails, because a gate that only compares declarations to each other passes
 forever. That is the exact failure `unclassified()` exists to catch. Diagnose:
-`python -m afon.brain.data_classes` — it prints the undeclared list — then
-`journalctl -u openafon-brain -n 100 | grep -i class`.
+`python -m mushegh.brain.data_classes` — it prints the undeclared list — then
+`journalctl -u openmushegh-brain -n 100 | grep -i class`.
 
 **`forget` clears SQLite and the vault keeps it.** Markdown is authoritative (D-22), so
 a forget that only touched the runtime cache leaves the real copy in place, and the
@@ -186,7 +186,7 @@ string.
 
 **Retention is a policy with no job behind it.** TTLs exist in prose and
 `maintenance.py` never runs, so nothing expires and the owner assumes it does.
-Diagnose: `journalctl -u openafon-brain -n 200 | grep -i hygiene` — an empty result is
+Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i hygiene` — an empty result is
 the finding — then compare the oldest row against the declared TTL.
 
 ## Open questions

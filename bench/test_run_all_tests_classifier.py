@@ -198,6 +198,13 @@ def main() -> int:
         "test_client_endpoints.py": "compares HTML clients against the server's routes as text",
         "test_enroll_script_parse.py": "parses the markdown enrolment script",
         "test_run_all_tests_classifier.py": "this file — asserts the runner's contract",
+        "test_latency_method.py": "asserts M13's measurement protocol and its corpus; its subject "
+                                  "is docs/LATENCY-METHOD.md and bench/latency_corpus.json, and the "
+                                  "end-to-end number it stands behind needs a live voice loop, not "
+                                  "an import",
+        "test_rss_ceiling.py": "asserts against a recorded measurement plus its own constants; the "
+                               "figure it checks was taken by tools/measure_brain_rss.py, and the "
+                               "gate itself imports nothing the repo ships",
     }
     import ast as _ast
 
@@ -220,7 +227,7 @@ def main() -> int:
                 mods = [a.name for a in node.names]
             for mod in mods:
                 head = mod.split(".")[0]
-                if head in ("afon", "deploy") or any((r / f"{head}.py").exists() for r in shipped_roots):
+                if head in ("mushegh", "deploy") or any((r / f"{head}.py").exists() for r in shipped_roots):
                     touches = True
         if not touches:
             stub_only.append(name)

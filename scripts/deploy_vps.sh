@@ -2,7 +2,7 @@
 # Deploy the brain to the VPS — but ONLY if the test suite is green. Codifies the safe deploy:
 # no more scp-then-discover-it-was-broken. Run from the repo root: scripts/deploy_vps.sh
 #
-# REQUIRED: set AFON_VPS (e.g. "openclaw@<host>") in your shell or a personal gitignored
+# REQUIRED: set MUSHEGH_VPS (e.g. "openclaw@<host>") in your shell or a personal gitignored
 # `deploy_vps.env` next to this script. The framework never hardcodes a host — that would leak
 # the deployment topology into a public repo.
 set -euo pipefail
@@ -12,9 +12,9 @@ if [[ -f "$(dirname "$0")/deploy_vps.env" ]]; then
   source "$(dirname "$0")/deploy_vps.env"
 fi
 
-: "${AFON_VPS:?Set AFON_VPS in your env (e.g. export AFON_VPS=openclaw@<your-host>) — see deploy_vps.env.example}"
-VPS="$AFON_VPS"
-REMOTE="${AFON_VPS_DIR:-/home/openclaw/afon}"
+: "${MUSHEGH_VPS:?Set MUSHEGH_VPS in your env (e.g. export MUSHEGH_VPS=openclaw@<your-host>) — see deploy_vps.env.example}"
+VPS="$MUSHEGH_VPS"
+REMOTE="${MUSHEGH_VPS_DIR:-/home/openclaw/mushegh}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -28,20 +28,20 @@ for arg in "$@"; do
 done
 
 # The brain's systemd unit. Overridable for the same reason REMOTE is: the rename left this
-# script pointing at `afon-brain` while the VPS still ran `jarvis-brain`, and a deploy cannot
+# script pointing at `mushegh-brain` while the VPS still ran `jarvis-brain`, and a deploy cannot
 # succeed against a unit that does not exist.
-SERVICE="${AFON_VPS_SERVICE:-afon-brain}"
+SERVICE="${MUSHEGH_VPS_SERVICE:-mushegh-brain}"
 
 echo "==> preflight: machine invariants (TODO K7)"
 # Runs the standalone checker so the deploy and a manual `bash scripts/preflight.sh --remote`
 # assert exactly the same things. The env-prefix check in particular is the one that matters:
 # a mismatch there deploys a brain that starts, passes /healthz, and reads no configuration.
-AFON_VPS_DIR="$REMOTE" AFON_VPS_SERVICE="$SERVICE" bash scripts/preflight.sh --remote || {
+MUSHEGH_VPS_DIR="$REMOTE" MUSHEGH_VPS_SERVICE="$SERVICE" bash scripts/preflight.sh --remote || {
   echo "PREFLIGHT FAILED — not deploying."; exit 1; }
 
 echo "==> preflight: does the target actually exist?"
 # WHY THIS EXISTS: on 2026-08-08 both the remote directory and the service name were wrong
-# after the Watari/Jarvis -> Afon rename, and the only symptom was `tar: Cannot open` from a
+# after the Watari/Jarvis -> Mushegh rename, and the only symptom was `tar: Cannot open` from a
 # remote shell three steps into the deploy. `set -e` did stop it, so nothing was half-deployed
 # — but the message named neither the cause nor the fix, and the same failure looks identical
 # to a network problem or a full disk. Checking first turns a confusing abort into a sentence
@@ -49,15 +49,15 @@ echo "==> preflight: does the target actually exist?"
 if ! ssh "$VPS" "test -d '$REMOTE'"; then
   echo "FATAL: $VPS:$REMOTE does not exist."
   echo "  Either create it, or point this deploy at the real directory:"
-  echo "    echo 'AFON_VPS_DIR=/home/openclaw/<dir>' >> scripts/deploy_vps.env"
-  ssh "$VPS" "ls -d ~/afon ~/jarvis 2>/dev/null" | sed 's/^/  candidate: /' || true
+  echo "    echo 'MUSHEGH_VPS_DIR=/home/openclaw/<dir>' >> scripts/deploy_vps.env"
+  ssh "$VPS" "ls -d ~/mushegh ~/jarvis 2>/dev/null" | sed 's/^/  candidate: /' || true
   exit 1
 fi
 if ! ssh "$VPS" "systemctl --user cat '$SERVICE' >/dev/null 2>&1"; then
   echo "FATAL: systemd --user unit '$SERVICE' does not exist on $VPS."
   echo "  Point this deploy at the real unit:"
-  echo "    echo 'AFON_VPS_SERVICE=<name>' >> scripts/deploy_vps.env"
-  ssh "$VPS" "systemctl --user list-units --type=service --no-pager 2>/dev/null | grep -iE 'afon|jarvis' | awk '{print \$1}'" | sed 's/^/  candidate: /' || true
+  echo "    echo 'MUSHEGH_VPS_SERVICE=<name>' >> scripts/deploy_vps.env"
+  ssh "$VPS" "systemctl --user list-units --type=service --no-pager 2>/dev/null | grep -iE 'mushegh|jarvis' | awk '{print \$1}'" | sed 's/^/  candidate: /' || true
   exit 1
 fi
 
@@ -66,12 +66,12 @@ echo "==> running the full verification suite (deploy gate)"
 # collects none of the main()-only ones). Subprocess exit codes + PASS/FAIL/SKIP classification.
 .venv/Scripts/python.exe bench/run_all_tests.py || { echo "TESTS FAILED — not deploying."; exit 1; }
 
-echo "==> syncing src/afon + skills + clients + personality -> $VPS:$REMOTE (excludes pycache; never touches .env/secrets)"
+echo "==> syncing src/mushegh + skills + clients + personality -> $VPS:$REMOTE (excludes pycache; never touches .env/secrets)"
 # scp the source tree + skill playbooks + web clients (iphone/hud served by the brain's HTTP sidecar)
 # + the persona files. personality/ was missing here, so every persona edit stayed on the laptop and
 # the VPS brain answered with a months-stale prompt — invisible while the edge ran its own local
 # brain, and wrong the moment it routes to the VPS. .env, voiceprint, sessions live only on the target.
-tar --exclude='__pycache__' --exclude='node_modules' -czf - src/afon skills clients personality | ssh "$VPS" "tar -xzf - -C '$REMOTE'"
+tar --exclude='__pycache__' --exclude='node_modules' -czf - src/mushegh skills clients personality | ssh "$VPS" "tar -xzf - -C '$REMOTE'"
 
 echo "==> verifying the VPS matches local, by content (J4.1)"
 # `verify_vps_sync.sh` existed for weeks and was called from NOWHERE. A verifier nobody runs is
@@ -110,7 +110,7 @@ if ! REMOTE="$REMOTE" DRIFT_OUT="$DRIFT" bash scripts/verify_vps_sync.sh; then
     if (( stale_n > 25 || (remote_n > 0 && stale_n * 4 > remote_n) )); then
       echo
       echo "REFUSING TO PRUNE: $stale_n of $remote_n remote files look stale."
-      echo "  That is too much of the tree to be a refactor. Check AFON_VPS_DIR points at the"
+      echo "  That is too much of the tree to be a refactor. Check MUSHEGH_VPS_DIR points at the"
       echo "  brain's directory and that the local trees enumerated correctly, then prune by hand."
       exit 1
     fi

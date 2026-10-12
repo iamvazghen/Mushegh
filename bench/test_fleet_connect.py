@@ -1,15 +1,21 @@
-"""Fleet live test (MASTER 3.10) — verify brain -> ispir end-to-end, GATED on authorization.
+"""Fleet live test — brain -> each of the eighteen, end to end, GATED on authorization.
 
 The fleet touches shared VPS infra, so this only RUNS when the operator has armed it
-(``AFON_FLEET_AUTHORIZED=true``) and a gateway token is configured. Otherwise it self-skips with
-a clear sentinel — the aggregate runner treats that as SKIP, not FAIL, so a default checkout stays
-green without a live gateway.
+(``MUSHEGH_FLEET_AUTHORIZED=true``). Otherwise it self-skips with a clear sentinel — the
+aggregate runner treats that as SKIP, not FAIL, so a default checkout stays green without a
+gateway.
 
-When armed it does a real WS connect to the gateway, sends ``agents.list``, and asserts the router
-agent (``ispir``) is present — proving the brain can reach its team lead. Network failures (gateway
-down / tunnel closed) are reported as a skip condition, not a hard failure.
+**It used to assert that one agent existed, and that was the weaker claim.** The old version
+opened an operator WebSocket, sent ``agents.list`` and checked that the router ``ispir`` was in
+the reply. ``ispir`` is gone, the WebSocket path is gone, and listing an agent never proved it
+could answer anyway: a liveness check is not a survival check, and this fleet has twice shipped
+a unit that reported healthy with its files deleted. So this asks each agent to say its own name
+back, over whichever transport its framework actually speaks, and counts the ones that do.
 
-    AFON_FLEET_AUTHORIZED=true uv run python bench/test_fleet_connect.py
+Network failures are reported as a skip condition rather than a hard failure; an agent that is
+reachable and answers *wrongly* is a real failure.
+
+    MUSHEGH_FLEET_AUTHORIZED=true uv run python bench/test_fleet_connect.py
 """
 
 from __future__ import annotations
@@ -17,7 +23,7 @@ from __future__ import annotations
 import asyncio
 import sys
 
-from afon.config import settings
+from mushegh.config import settings
 
 # Sentinels the aggregate runner greps for.
 SKIP_SENTINEL = "fleet live test skipped"
@@ -31,41 +37,41 @@ def _skip(reason: str) -> None:
 
 async def main() -> None:
     if not settings.fleet_authorized:
-        _skip("AFON_FLEET_AUTHORIZED is not true (fleet consult disarmed by default)")
-    if not settings.openclaw_token or not settings.openclaw_gateway_url:
-        _skip("no gateway token/url configured (CLI-only or unconfigured deployment)")
+        _skip("MUSHEGH_FLEET_AUTHORIZED is not true (fleet consult disarmed by default)")
 
-    # Exercise the REAL delegation path the brain uses in production: delegate_to_fleet() tries the
-    # WS gateway first and TRANSPARENTLY falls back to the CLI/SSH path when the WS connect is
-    # rejected (e.g. the gateway's device-identity policy for non-localhost origins). That fallback
-    # is exactly how the 24/7 deployment reaches ispir, so verifying it — not a raw WS handshake — is
-    # what proves "brain -> ispir end-to-end".
-    from afon.brain.fleet import FleetUnavailable, delegate_to_fleet
+    from mushegh.brain import a2a, roster
 
-    router = settings.openclaw_router_agent
-    ping = "Reply with exactly the word PONG and nothing else."
-    # Generous budget: the WS gateway can time out (a known reasoning-lane wedge) and fall back to
-    # the embedded/CLI path, which for a slow reasoning router can take a couple of minutes. This is
-    # a gated LIVE test, so a slow-but-successful round-trip is fine; a true timeout just skips.
-    print(f"delegating a ping to '{router}' via delegate_to_fleet (WS -> CLI fallback)…")
-    try:
-        answer = await asyncio.wait_for(delegate_to_fleet(ping, timeout_s=150), timeout=210)
-    except FleetUnavailable as e:
-        _skip(f"fleet unreachable via WS and CLI ({e})")
-    except (OSError, asyncio.TimeoutError) as e:
-        _skip(f"fleet transport/timeout ({type(e).__name__}: {e})")
-    except Exception as e:  # noqa: BLE001 — any transport error = skip, not a code failure
-        _skip(f"delegation transport error ({type(e).__name__}: {e})")
+    drift = roster.drift()
+    if drift:
+        print(f"  note: {drift}")
 
-    text = (answer or "").strip()
-    print(f"  ispir answered: {text[:120]!r}")
-    ok = bool(text)   # a non-empty synthesized answer proves the round-trip
-    mark = "[PASS]" if ok else "[FAIL]"
-    print(f"  {mark} brain reached '{router}' and got a synthesized answer back")
-    if not ok:
-        print(f"  the delegation returned empty — '{router}' round-trip failed")
+    names = roster.names()
+    unconfigured = [n for n in names if not a2a.configured(n)]
+    if len(unconfigured) == len(names):
+        _skip("no agent has a configured route (no A2A base url/tokens and no SSH target)")
+    if unconfigured:
+        print(f"  not configured, so not probed: {', '.join(unconfigured)}")
+
+    probed: list[tuple[str, bool, str]] = []
+    for name in names:
+        if name in unconfigured:
+            continue
+        try:
+            ok, detail = await asyncio.wait_for(a2a.ping(name, timeout_s=180), timeout=240)
+        except (OSError, asyncio.TimeoutError) as e:
+            print(f"  [SKIP] {name}: transport ({type(e).__name__})")
+            continue
+        probed.append((name, ok, detail))
+        print(f"  [{'PASS' if ok else 'FAIL'}] {name} ({roster.transport(name)}) -> {detail[:60]!r}")
+
+    if not probed:
+        _skip("every configured agent failed at the transport level")
+    bad = [n for n, ok, _ in probed if not ok]
+    print(f"\n  {len(probed) - len(bad)}/{len(names)} of the eighteen answered with their own name")
+    if bad:
+        print(f"  reachable but answered wrongly: {', '.join(bad)}")
         sys.exit(1)
-    print(f"\n=== {PASS_SENTINEL}: brain -> {router} verified ===")
+    print(f"\n=== {PASS_SENTINEL}: brain -> {len(probed)} agents verified ===")
 
 
 if __name__ == "__main__":

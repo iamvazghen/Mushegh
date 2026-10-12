@@ -7,7 +7,7 @@ purpose, and then does the part that actually matters.
 
 **The important half is [3].** `store_migration.py` was not only migration scaffolding: it
 held a read-only inventory and guarded, verifiable SQLite snapshots. Deleting it is only
-safe because `afon.protocols.backup` provides the real thing. So this gate does a full
+safe because `mushegh.protocols.backup` provides the real thing. So this gate does a full
 backup → verify → restore → drill round trip on a temp directory. A test that only checked
 the scaffolding was removed would have been satisfied by a machine that cannot back up at
 all, which is the failure this is written against.
@@ -18,7 +18,7 @@ Also asserted here, because each was a live reference to code that no longer exi
   * `Settings` has no `postgres_dsn` — a credential that cannot select a backend is one
     that only looks like an option;
   * `pyproject.toml` has no `postgres` extra and `uv.lock` no longer resolves psycopg;
-  * `.env.example` no longer advertises `AFON_POSTGRES_DSN`;
+  * `.env.example` no longer advertises `MUSHEGH_POSTGRES_DSN`;
   * **the `!postgres` data-classification rule was deliberately KEPT** and is asserted here,
     because a future tidy-up that removes it would silently drop a privacy classification
     for a directory that may still exist on someone's disk;
@@ -53,8 +53,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
         print(f"  [FAIL] {name}  {detail}")
 
 
-GONE_MODULES = ("afon/brain/postgres_client.py", "afon/brain/postgres_vectors.py",
-                "afon/brain/store_migration.py", "afon/brain/sql/postgres_vectors.sql")
+GONE_MODULES = ("mushegh/brain/postgres_client.py", "mushegh/brain/postgres_vectors.py",
+                "mushegh/brain/store_migration.py", "mushegh/brain/sql/postgres_vectors.sql")
 GONE_TESTS = ("test_postgres_vectors.py", "test_store_migration_snapshot.py")
 
 
@@ -65,8 +65,8 @@ def main() -> int:
     for name in GONE_TESTS:
         check(f"bench/{name} is not on disk", not (ROOT / "bench" / name).exists())
     check("the now-empty sql/ directory went with it",
-          not (ROOT / "src" / "afon" / "brain" / "sql").exists()
-          or not any((ROOT / "src" / "afon" / "brain" / "sql").iterdir()))
+          not (ROOT / "src" / "mushegh" / "brain" / "sql").exists()
+          or not any((ROOT / "src" / "mushegh" / "brain" / "sql").iterdir()))
 
     print("\n[2] nothing left references it")
     offenders: list[str] = []
@@ -85,10 +85,10 @@ def main() -> int:
     check("the test runner has no entry for the removed tests", not stale, str(stale))
 
     print("\n[3] what replaced the snapshot helper actually works")
-    from afon.brain.memory import MemoryStore
-    from afon.protocols import backup
+    from mushegh.brain.memory import MemoryStore
+    from mushegh.protocols import backup
 
-    with tempfile.TemporaryDirectory(prefix="afon-m02-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-m02-") as td:
         base = Path(td)
         memory = base / "memory"
         (memory / "learned").mkdir(parents=True)
@@ -114,7 +114,7 @@ def main() -> int:
 
         # `record_to` is passed EXPLICITLY. Left at its default it writes the drill record into
         # the real state root — which is right for the owner and wrong for a test, and the
-        # first version of this gate did exactly that and left a `restore_drill.json` in ~/.afon.
+        # first version of this gate did exactly that and left a `restore_drill.json` in ~/.mushegh.
         # A test that touches the owner's state is not a hermetic test, it is a bug with a
         # green checkmark.
         drill = backup.run_restore_drill(backups=base / "backups",
@@ -125,16 +125,16 @@ def main() -> int:
               (base / "restore_drill.json").exists(), str(base))
 
     print("\n[4] the store is still SQLite, proven rather than asserted in a comment")
-    with tempfile.TemporaryDirectory(prefix="afon-m02-sqlite-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-m02-sqlite-") as td:
         store = MemoryStore(base_dir=Path(td))
         store.remember("SQLite holds this", source="owner")
         check("a fact round-trips through the real store", store.recall("SQLite"), "")
-        from afon.config import Settings
+        from mushegh.config import Settings
         check("Settings has no postgres_dsn to select a backend",
               "postgres_dsn" not in Settings.model_fields)
 
     print("\n[5] the privacy rule for a legacy Postgres directory was kept on purpose")
-    from afon.brain import data_classes as dc
+    from mushegh.brain import data_classes as dc
     rule = next((s for s in dc.STORES if s.name == "!postgres"), None)
     check("the !postgres classification still exists", rule is not None)
     check("...and still carries the classes a database of owner data would hold",
@@ -158,7 +158,7 @@ def main() -> int:
     lock = (ROOT / "uv.lock").read_text(encoding="utf-8", errors="ignore")
     check("the lockfile no longer resolves psycopg", "psycopg" not in lock)
     env = (ROOT / ".env.example").read_text(encoding="utf-8", errors="ignore")
-    check(".env.example no longer advertises AFON_POSTGRES_DSN", "AFON_POSTGRES_DSN=" not in env)
+    check(".env.example no longer advertises MUSHEGH_POSTGRES_DSN", "MUSHEGH_POSTGRES_DSN=" not in env)
 
     print(f"\n=== {passed + failed} checks: {passed} passed, {failed} failed ===")
     if not failed:

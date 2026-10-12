@@ -29,10 +29,10 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import audit                        # noqa: E402
-from afon.brain import turn_trace as T              # noqa: E402
-from afon.shared import errors as _err              # noqa: E402
-from afon.shared.protocol import Utterance          # noqa: E402
+from mushegh.brain import audit                        # noqa: E402
+from mushegh.brain import turn_trace as T              # noqa: E402
+from mushegh.shared import errors as _err              # noqa: E402
+from mushegh.shared.protocol import Utterance          # noqa: E402
 
 passed = failed = 0
 
@@ -131,8 +131,8 @@ def main() -> int:
         print("\n[6] an unattended run is correlated too - it mints its own")
         for f in audit_dir.glob("*.jsonl"):
             f.unlink()
-        from afon.brain import worker as worker_mod
-        from afon.brain.governor import Governor
+        from mushegh.brain import worker as worker_mod
+        from mushegh.brain.governor import Governor
 
         class OneToolLLM:
             def __init__(self) -> None:
@@ -160,7 +160,7 @@ def main() -> int:
         try:
             _err._turn.set("")     # no ambient turn: the worker must create one
             w = worker_mod.TaskWorker(OneToolLLM(), {"web_search": fake_tool}, [],
-                                      max_steps=3, actor="afon:worker")
+                                      max_steps=3, actor="mushegh:worker")
             asyncio.run(w.run("look something up"))
             rows = _lines(audit_dir)
             check("the worker minted a correlation id", bool(getattr(w, "turn_id", "")),
@@ -175,7 +175,7 @@ def main() -> int:
                 f.unlink()
             asked = _err.new_turn()
             w2 = worker_mod.TaskWorker(OneToolLLM(), {"web_search": fake_tool}, [],
-                                       max_steps=3, actor="afon:worker")
+                                       max_steps=3, actor="mushegh:worker")
             asyncio.run(w2.run("look something up"))
             rows = _lines(audit_dir)
             check("a run started inside a live turn ADOPTS that turn's id",
@@ -187,14 +187,14 @@ def main() -> int:
             worker_mod.GOVERNOR = real
 
         print("\n[7] the two hops that already worked stay wired")
-        src = (ROOT / "src/afon/edge/brain_client.py").read_text(encoding="utf-8")
+        src = (ROOT / "src/mushegh/edge/brain_client.py").read_text(encoding="utf-8")
         check("the edge still mints a turn id", "new_turn()" in src)
         check("and still sends it", "turn_id=turn_id" in src)
-        src = (ROOT / "src/afon/brain/server.py").read_text(encoding="utf-8")
+        src = (ROOT / "src/mushegh/brain/server.py").read_text(encoding="utf-8")
         check("the brain still adopts the edge's id", "new_turn(utt.turn_id or None)" in src)
-        src = (ROOT / "src/afon/brain/pc_link.py").read_text(encoding="utf-8")
+        src = (ROOT / "src/mushegh/brain/pc_link.py").read_text(encoding="utf-8")
         check("the brain still forwards it to the pc agent", '"turn_id"' in src)
-        src = (ROOT / "src/afon/edge/pc_agent.py").read_text(encoding="utf-8")
+        src = (ROOT / "src/mushegh/edge/pc_agent.py").read_text(encoding="utf-8")
         check("and the pc agent still adopts it", 'data.get("turn_id")' in src)
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")

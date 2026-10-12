@@ -1,20 +1,20 @@
 """One memory origin per host — SYSTEMS.md 30.F1 (hermetic, temp dirs, no network).
 
-**What was actually broken.** Afon's durable state lived under two roots that answer to different
-questions. `afon_*.sqlite`, `memory/learned` and `memory/journal` resolved as
+**What was actually broken.** Mushegh's durable state lived under two roots that answer to different
+questions. `mushegh_*.sqlite`, `memory/learned` and `memory/journal` resolved as
 `Path(__file__).parents[3]` — *wherever this code was unpacked* — while patterns, the relationship
 model and the voiceprint resolved from the home directory. `scripts/deploy_vps.sh` untars
-`src/afon` into the brain host's own directory, so the repo root there is a different directory
+`src/mushegh` into the brain host's own directory, so the repo root there is a different directory
 from the laptop's, and the two hosts kept two sets of learned facts under one name. Neither host
 could tell: both paths resolve, both stores open, and each answers confidently from its half.
 
 So this is not a sync problem and a sync would not have fixed it. It is a store keyed on the
-location of the code. The fix is `settings.state_dir` (`AFON_STATE_DIR`, default `~/.afon`), one
+location of the code. The fix is `settings.state_dir` (`MUSHEGH_STATE_DIR`, default `~/.mushegh`), one
 root, resolved in one module.
 
 Four things have to hold, and each has failed at least once while this was being written:
 
-  1. nothing computes a state path privately — 28 modules spelled `Path.home() / ".afon"`, which
+  1. nothing computes a state path privately — 28 modules spelled `Path.home() / ".mushegh"`, which
      is 28 chances to drift and no way to point the whole brain at another disk;
   2. every store answers to the ONE setting, so "which environment" is a single answer;
   3. no legacy in-repo location still holds data — a second candidate is the bug itself;
@@ -51,22 +51,22 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 #: The one module allowed to know where state lives. Everyone else asks it.
 OWNER = "shared/paths.py"
 
-#: Store basenames that used to be resolved against the repo root. `afon_graph.sqlite` is
+#: Store basenames that used to be resolved against the repo root. `mushegh_graph.sqlite` is
 #: listed even though the relation layer is gone (D-26, M04): a host that ran the old code may
 #: still have one sitting in its repo, and the migration has to move it anyway. A file the
 #: code no longer writes is still a file the owner has.
-STORE_FILES = ("afon_graph.sqlite", "afon_vectors.sqlite", "afon_tasks.sqlite",
-               "afon_coaching.sqlite", "afon_presence.sqlite", "afon_jobs.sqlite")
+STORE_FILES = ("mushegh_graph.sqlite", "mushegh_vectors.sqlite", "mushegh_tasks.sqlite",
+               "mushegh_coaching.sqlite", "mushegh_presence.sqlite", "mushegh_jobs.sqlite")
 
 
 def private_state_roots() -> list[str]:
     """Modules that compute a state root themselves instead of asking `shared/paths`.
 
     AST, not grep: every one of these modules has a docstring saying where its file lives by
-    default, and a grep for `~/.afon` flags the sentence that documents the rule alongside the code
-    that breaks it. A `Path.home() / ".afon"` is a BinOp; a docstring is not.
+    default, and a grep for `~/.mushegh` flags the sentence that documents the rule alongside the code
+    that breaks it. A `Path.home() / ".mushegh"` is a BinOp; a docstring is not.
     """
-    src = ROOT / "src" / "afon"
+    src = ROOT / "src" / "mushegh"
     out: list[str] = []
     for p in sorted(src.rglob("*.py")):
         rel = p.relative_to(src).as_posix()
@@ -83,14 +83,14 @@ def private_state_roots() -> list[str]:
             if not (isinstance(right, ast.Constant) and isinstance(right.value, str)):
                 continue
             piece = right.value
-            if piece == ".afon" or piece in STORE_FILES:
+            if piece == ".mushegh" or piece in STORE_FILES:
                 out.append(f"{rel}:{n.lineno}  ...  / {piece!r}")
     return out
 
 
 def main() -> None:
-    from afon.config import settings
-    from afon.shared.paths import (LEGACY_STATE, REPO_ROOT, memory_dir, migrate_repo_state,
+    from mushegh.config import settings
+    from mushegh.shared.paths import (LEGACY_STATE, REPO_ROOT, memory_dir, migrate_repo_state,
                                    second_origins, state_dir, store_path)
 
     print("[1] one module knows where state lives")
@@ -105,12 +105,12 @@ def main() -> None:
     # the state root moves, and it stays behind silently — it opens a fresh, empty database and
     # answers from it. Driven rather than grepped, because the failure is in what the function
     # RETURNS, and a store can import `state_dir` and then not use it.
-    import afon.brain.coaching as coaching
-    import afon.brain.memory as memory
-    import afon.brain.presence as presence
-    import afon.brain.scheduler as scheduler
-    import afon.brain.semantic as semantic
-    import afon.brain.tasks as tasks
+    import mushegh.brain.coaching as coaching
+    import mushegh.brain.memory as memory
+    import mushegh.brain.presence as presence
+    import mushegh.brain.scheduler as scheduler
+    import mushegh.brain.semantic as semantic
+    import mushegh.brain.tasks as tasks
 
     overrides = ("state_dir", "memory_vector_db_path", "tasks_db_path",
                  "coaching_db_path", "presence_db_path", "scheduler_db_path",
@@ -132,7 +132,7 @@ def main() -> None:
             }
             for label, p in resolved.items():
                 check(f"{label} follows the state root", root in p.parents,
-                      f"{p} — moving AFON_STATE_DIR leaves this store behind, silently empty")
+                      f"{p} — moving MUSHEGH_STATE_DIR leaves this store behind, silently empty")
             check("store_path agrees with the stores it is supposed to place",
                   {store_path(n) for n in ("vectors", "tasks", "coaching", "presence")}
                   == {resolved[n] for n in ("vectors", "tasks", "coaching", "presence")})
@@ -140,7 +140,7 @@ def main() -> None:
                   memory.MemoryStore().base == memory_dir())
             # Two stores used to take their DIRECTORY from `settings.tasks_db_path`'s parent, so
             # moving the task queue to another disk moved coaching and presence with it.
-            settings.tasks_db_path = str(root / "elsewhere" / "afon_tasks.sqlite")
+            settings.tasks_db_path = str(root / "elsewhere" / "mushegh_tasks.sqlite")
             check("pointing the task queue elsewhere does not drag other stores along",
                   coaching._db_path().parent == root and presence._db_path().parent == root,
                   f"coaching={coaching._db_path()}  presence={presence._db_path()}")
@@ -151,32 +151,32 @@ def main() -> None:
     print("\n[3] no second candidate on this host")
     extra = second_origins()
     check("no legacy in-repo location still holds state", not extra,
-          f"{[str(p) for p in extra]} — run `uv run python -m afon.shared.paths --migrate`")
+          f"{[str(p) for p in extra]} — run `uv run python -m mushegh.shared.paths --migrate`")
 
     print("\n[4] the migration moves, once, and never overwrites")
     with tempfile.TemporaryDirectory() as td:
         fake_repo, fake_state = Path(td) / "repo", Path(td) / "state"
         (fake_repo / "memory" / "learned").mkdir(parents=True)
         (fake_repo / "memory" / "learned" / "a.md").write_text("fact", encoding="utf-8")
-        (fake_repo / "afon_graph.sqlite").write_text("db", encoding="utf-8")
-        (fake_repo / "afon_tasks.sqlite").write_text("", encoding="utf-8")   # empty = not state
+        (fake_repo / "mushegh_graph.sqlite").write_text("db", encoding="utf-8")
+        (fake_repo / "mushegh_tasks.sqlite").write_text("", encoding="utf-8")   # empty = not state
         (fake_repo / "memory" / "journal").mkdir()                            # empty dir = not state
         settings.state_dir = str(fake_state)
         try:
             moved = migrate_repo_state(fake_repo, dry_run=True)
             check("a dry run reports without touching anything",
-                  (fake_repo / "afon_graph.sqlite").exists() and not fake_state.exists()
+                  (fake_repo / "mushegh_graph.sqlite").exists() and not fake_state.exists()
                   and any("would move" in m for m in moved), str(moved))
             migrate_repo_state(fake_repo)
             check("the file MOVED — it is not in the repo any more",
-                  not (fake_repo / "afon_graph.sqlite").exists(),
+                  not (fake_repo / "mushegh_graph.sqlite").exists(),
                   "a copy leaves two stores, which is the bug this closes")
             check("...and it arrived intact",
-                  (fake_state / "afon_graph.sqlite").read_text(encoding="utf-8") == "db")
+                  (fake_state / "mushegh_graph.sqlite").read_text(encoding="utf-8") == "db")
             check("a learned note came with it",
                   (fake_state / "memory" / "learned" / "a.md").read_text(encoding="utf-8") == "fact")
             check("an empty leftover is not mistaken for state",
-                  (fake_repo / "afon_tasks.sqlite").exists() and not (fake_state / "afon_tasks.sqlite").exists())
+                  (fake_repo / "mushegh_tasks.sqlite").exists() and not (fake_state / "mushegh_tasks.sqlite").exists())
             check("migrating leaves no second origin behind", not second_origins(fake_repo),
                   str([str(p) for p in second_origins(fake_repo)]))
             check("it records what it did", (fake_state / "MIGRATED.txt").is_file())
@@ -188,8 +188,8 @@ def main() -> None:
             # forever, on every host that has been started. This is not hypothetical; it happened
             # on this laptop twenty minutes after the change was written.
             import sqlite3 as _sq
-            (fake_repo / "afon_presence.sqlite").write_text("real data", encoding="utf-8")
-            fresh = fake_state / "afon_presence.sqlite"
+            (fake_repo / "mushegh_presence.sqlite").write_text("real data", encoding="utf-8")
+            fresh = fake_state / "mushegh_presence.sqlite"
             _c = _sq.connect(fresh)
             _c.execute("CREATE TABLE activity (ts TEXT)")     # schema, no rows — what a boot leaves
             _c.commit()
@@ -199,14 +199,14 @@ def main() -> None:
                   fresh.read_text(encoding="utf-8", errors="ignore") == "real data",
                   "the store the brain created on startup is an artifact, not a store")
             check("...and the source is gone, so there is still only one",
-                  not (fake_repo / "afon_presence.sqlite").exists())
+                  not (fake_repo / "mushegh_presence.sqlite").exists())
 
             # Both sides populated: the case that actually happens on a host that ran the old code
             # after a partial migration. Overwriting here would delete weeks of the winner's facts.
-            (fake_repo / "afon_graph.sqlite").write_text("older", encoding="utf-8")
+            (fake_repo / "mushegh_graph.sqlite").write_text("older", encoding="utf-8")
             report = migrate_repo_state(fake_repo)
             check("a destination that already exists is never overwritten",
-                  (fake_state / "afon_graph.sqlite").read_text(encoding="utf-8") == "db",
+                  (fake_state / "mushegh_graph.sqlite").read_text(encoding="utf-8") == "db",
                   "the in-repo copy is the STALE one; clobbering the state root loses the live store")
             check("...and the collision is reported rather than swallowed",
                   any("KEPT BOTH" in m for m in report), str(report))
@@ -239,7 +239,7 @@ def main() -> None:
 # discarded — they regenerate. Learned facts are not derived: a fact only one host was ever told
 # is not stale, it is the only copy, and "newest wins" would delete it. So the notes are UNIONED.
 # These checks hold `scripts/merge_memory.py` to that, because the difference between a union and
-# an overwrite is invisible until the day someone notices Afon has forgotten something.
+# an overwrite is invisible until the day someone notices Mushegh has forgotten something.
 def merge_is_a_union() -> None:
     import importlib.util
 
@@ -247,7 +247,7 @@ def merge_is_a_union() -> None:
     mm = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mm)
 
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.memory import MemoryStore
 
     print("\n[30.F1] merging two hosts' memories adds, never replaces")
     with tempfile.TemporaryDirectory() as td:

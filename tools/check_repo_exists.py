@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 
 UA = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) afon-utility-research",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) mushegh-utility-research",
 }
 
 

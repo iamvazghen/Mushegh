@@ -29,18 +29,18 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def degrades(out: str) -> bool:
-    from afon.brain.tools.base import is_not_configured
+    from mushegh.brain.tools.base import is_not_configured
     return isinstance(out, str) and is_not_configured(out)
 
 
 def main() -> None:
-    import afon.brain.tools.calendar as cal
-    import afon.brain.tools.gmail as gmail
-    import afon.brain.tools.smarthome as ha
-    from afon.brain.google import access_token, configured
-    from afon.brain.proactive import confirm_required
-    from afon.brain.tools import tool_names
-    from afon.config import settings
+    import mushegh.brain.tools.calendar as cal
+    import mushegh.brain.tools.gmail as gmail
+    import mushegh.brain.tools.smarthome as ha
+    from mushegh.brain.google import access_token, configured
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.brain.tools import tool_names
+    from mushegh.config import settings
 
     # Force the UNCONFIGURED state so the degradation contract is verified regardless of whether a
     # real .env has these set (this is a hermetic test of graceful-degradation, not of live creds —

@@ -56,14 +56,14 @@ class CapturingLLM:
 
 
 def _fresh_store(tmp: str):
-    import afon.brain.memory as mem
+    import mushegh.brain.memory as mem
     store = mem.MemoryStore(base_dir=Path(tmp))
     mem.STORE = store          # _recall_note + context._learned_digest resolve the module global
     return store
 
 
 async def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
     settings.memory_enabled = True
     settings.memory_autorecall_enabled = True
     settings.memory_autorecall_min_words = 3
@@ -74,8 +74,8 @@ async def main() -> None:
     store.remember("the owner prefers replies under two sentences", tags=["preference"])
     store.journal_append("Discussed the rabbit farm irrigation plan.")
 
-    from afon.brain.agent import AfonAgent
-    agent = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    agent = MusheghAgent()
 
     print("[1] Fix #1 — _recall_note grounds a substantive turn, skips trivial ones")
     note = await agent._recall_note("how is the rabbit farm doing these days?")
@@ -104,7 +104,7 @@ async def main() -> None:
 
     print("\n[3] Fix #2 — the learned digest un-freezes (rebuilds every N turns)")
     settings.memory_digest_refresh_every_turns = 3
-    agent2 = AfonAgent()
+    agent2 = MusheghAgent()
     base_prompt = agent2._system["content"]
     check("startup digest already contains an existing fact", "rabbit farm" in base_prompt, base_prompt[-200:])
     store.remember("the owner adopted a cat named Milo", tags=["personal"])

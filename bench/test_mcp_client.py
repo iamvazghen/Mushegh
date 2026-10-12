@@ -1,6 +1,6 @@
 """MCP client — Phase 4.6 (hermetic: spawns a real local echo MCP server over stdio, no network).
 
-Verifies the acceptance directly: a local MCP server's tools appear in Afon's registry and are
+Verifies the acceptance directly: a local MCP server's tools appear in Mushegh's registry and are
 callable; schema conversion is correct; no config -> zero tools; a bad/missing server degrades cleanly
 without crashing startup.
 
@@ -20,7 +20,7 @@ from pathlib import Path
 # The run() function imports the public names again locally; that duplication is harmless and
 # keeps the existing body untouched.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from afon.brain.mcp_client import _load_config  # noqa: E402
+from mushegh.brain.mcp_client import _load_config  # noqa: E402
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -71,8 +71,8 @@ for line in sys.stdin:
 
 
 async def run() -> None:
-    from afon.brain.mcp_client import MCPRegistry, to_openai_schema, _load_config
-    from afon.config import settings
+    from mushegh.brain.mcp_client import MCPRegistry, to_openai_schema, _load_config
+    from mushegh.config import settings
 
     print("[1] schema conversion (pure)")
     schema = to_openai_schema("demo", {"name": "echo", "description": "Echo text",
@@ -90,7 +90,7 @@ async def run() -> None:
     check("no MCP config -> 0 tools", n0 == 0 and reg0.handlers == {})
 
     print("\n[3] a real local MCP server exposes a callable tool through the registry")
-    tmp = Path(tempfile.mkdtemp(prefix="afon-mcp-")) / "echo_server.py"
+    tmp = Path(tempfile.mkdtemp(prefix="mushegh-mcp-")) / "echo_server.py"
     tmp.write_text(_ECHO_SERVER, encoding="utf-8")
     settings.mcp_servers = json.dumps({"demo": {"command": sys.executable, "args": [str(tmp)]}})
     reg = MCPRegistry()
@@ -127,14 +127,14 @@ async def run() -> None:
 
     # The bearer token is referenced BY NAME in the config. A secret pasted into a config string
     # is a secret that ends up in a log, a diff and an issue.
-    os.environ["AFON_TEST_MCP_TOKEN"] = "s3cr3t"
-    settings.mcp_servers = '{"t": {"url": "https://x.invalid", "headers": {"Authorization": "Bearer ${AFON_TEST_MCP_TOKEN}"}}}'
+    os.environ["MUSHEGH_TEST_MCP_TOKEN"] = "s3cr3t"
+    settings.mcp_servers = '{"t": {"url": "https://x.invalid", "headers": {"Authorization": "Bearer ${MUSHEGH_TEST_MCP_TOKEN}"}}}'
     cfg = _load_config()
     check("${VAR} in a header expands from the environment",
           cfg["t"]["headers"]["Authorization"] == "Bearer s3cr3t",
           str(cfg["t"]["headers"]))
-    os.environ.pop("AFON_TEST_MCP_TOKEN", None)
-    settings.mcp_servers = '{"t": {"url": "https://x.invalid", "headers": {"Authorization": "Bearer ${AFON_NOT_SET_ANYWHERE}"}}}'
+    os.environ.pop("MUSHEGH_TEST_MCP_TOKEN", None)
+    settings.mcp_servers = '{"t": {"url": "https://x.invalid", "headers": {"Authorization": "Bearer ${MUSHEGH_NOT_SET_ANYWHERE}"}}}'
     cfg2 = _load_config()
     check("...and an unresolvable one is DROPPED, not sent as an empty credential",
           "Authorization" not in (cfg2["t"].get("headers") or {}), str(cfg2["t"].get("headers")))

@@ -20,7 +20,7 @@ ran in the afternoon from the same machine as the person reading it.
     uv run python bench/check_date_robustness.py 2026-03-29 # plus a date of your own
 
 Dates are faked by `bench/_faketime/sitecustomize.py`, which CPython imports at startup — before
-any test binds `date` — so no test needs to know this exists. Timezones move `AFON_USER_TZ`, which
+any test binds `date` — so no test needs to know this exists. Timezones move `MUSHEGH_USER_TZ`, which
 is the only clock the brain is entitled to read: the process timezone belongs to whichever host it
 happens to be running on, and that is exactly the assumption being tested.
 
@@ -94,12 +94,12 @@ CLOCKS: list[tuple[str, str]] = [
 def run(test: str, when: str = "", zone: str = "", clock: str = "") -> tuple[bool, str]:
     env = dict(os.environ)
     if when or clock:
-        env["AFON_FAKE_TODAY"] = when or DATES[0][0]
+        env["MUSHEGH_FAKE_TODAY"] = when or DATES[0][0]
         env["PYTHONPATH"] = str(FAKETIME) + os.pathsep + env.get("PYTHONPATH", "")
     if clock:
-        env["AFON_FAKE_CLOCK"] = clock
+        env["MUSHEGH_FAKE_CLOCK"] = clock
     if zone:
-        env["AFON_USER_TZ"] = zone
+        env["MUSHEGH_USER_TZ"] = zone
     try:
         p = subprocess.run([sys.executable, str(ROOT / "bench" / test)],
                            cwd=ROOT, env=env, capture_output=True, text=True, timeout=240)

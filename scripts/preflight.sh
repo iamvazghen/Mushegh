@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Assert the invariants that actually broke — the ones no unit test can see (TODO K7 / J4.4).
 #
-# On 2026-08-08 the Watari/Jarvis -> Afon rename produced THREE silent failures in one day, and
+# On 2026-08-08 the Watari/Jarvis -> Mushegh rename produced THREE silent failures in one day, and
 # the hermetic suite passed 118/118 through every one of them:
 #
-#   1. Enrolled face refs stayed at ~/.jarvis/faces/owner.npy while the code read ~/.afon/...
+#   1. Enrolled face refs stayed at ~/.jarvis/faces/owner.npy while the code read ~/.mushegh/...
 #      `_owner_refs()` returned None, so owner checks answered "not enrolled" — a correct-LOOKING
 #      answer, which is why it went unnoticed for weeks.
-#   2. deploy_vps.sh targeted /home/openclaw/afon + unit afon-brain; the VPS has ~/jarvis and
+#   2. deploy_vps.sh targeted /home/openclaw/mushegh + unit mushegh-brain; the VPS has ~/jarvis and
 #      jarvis-brain. Loud (set -e + remote tar exit 2) but the message named neither cause nor fix.
-#   3. The VPS .env holds 108 JARVIS_-prefixed vars while config.py declares env_prefix="AFON_".
+#   3. The VPS .env holds 108 JARVIS_-prefixed vars while config.py declares env_prefix="MUSHEGH_".
 #      This is the dangerous one: pydantic-settings has extra="ignore", so deploying the renamed
 #      code would leave the brain reading ZERO configuration — no keys, no tokens, no model
 #      choices — and it would start healthy and pass its health check. Silent.
@@ -18,7 +18,7 @@
 # statements about the machines the code runs on. This script makes those statements checkable.
 #
 #   bash scripts/preflight.sh            # local checks only
-#   bash scripts/preflight.sh --remote   # also checks the VPS (needs AFON_VPS)
+#   bash scripts/preflight.sh --remote   # also checks the VPS (needs MUSHEGH_VPS)
 #   bash scripts/preflight.sh --unpark   # ...plus the Wave-0 floor checklist (SYSTEMS.md 23.F4)
 #
 # --unpark answers a different question from the rest of this script. The invariants above ask
@@ -52,7 +52,7 @@ PYBIN=$([[ -x .venv/Scripts/python.exe ]] && echo .venv/Scripts/python.exe || ec
 # was present. A preflight that disagrees with the code about where to look is worse than none.
 # tr -d: python.exe prints CRLF on Windows, and command substitution strips the trailing
 # newline but leaves the carriage return - which turned every derived path into
-# "C:/Users/iamva<CR>/.afon" and reported a missing state dir that was plainly there.
+# "C:/Users/iamva<CR>/.mushegh" and reported a missing state dir that was plainly there.
 HOME_DIR=$("$PYBIN" -c "from pathlib import Path; print(Path.home().as_posix())" 2>/dev/null | tr -d '\r' || echo "$HOME")
 
 fails=0
@@ -68,12 +68,12 @@ echo "== preflight =="
 # sed, not `grep -oP`: Git Bash ships a grep whose -P refuses to run outside a unibyte or
 # UTF-8 locale, and the failure mode was this check silently reporting "could not read" —
 # which then SKIPPED the remote prefix check, the single most valuable assertion here.
-PREFIX=$(sed -n 's/.*env_prefix="\([A-Z_]*\)".*/\1/p' src/afon/config.py | head -1)
+PREFIX=$(sed -n 's/.*env_prefix="\([A-Z_]*\)".*/\1/p' src/mushegh/config.py | head -1)
 # Guard the guard: an empty OR implausibly long capture means the parse itself broke. A check
 # that quietly "passes" on a bad value is precisely the failure mode this script exists to end
 # — the first version of this line did exactly that and reported prefix "" as ok.
 if [[ -z "$PREFIX" || ${#PREFIX} -gt 20 ]]; then
-  fail "could not parse env_prefix from src/afon/config.py (got: '${PREFIX}')"
+  fail "could not parse env_prefix from src/mushegh/config.py (got: '${PREFIX}')"
 else
   pass "config.py expects env prefix ${PREFIX}"
   if [[ -f .env ]]; then
@@ -95,13 +95,13 @@ fi
 # Lives here rather than in TESTS because it validates TESTS — registering it inside the
 # list it checks would be circular. 13 files were silently unregistered when it was written.
 if command -v python >/dev/null 2>&1 || [[ -x .venv/Scripts/python.exe ]]; then
-  if "$PYBIN" bench/test_registry_complete.py >/tmp/afon_registry.$$ 2>&1; then
+  if "$PYBIN" bench/test_registry_complete.py >/tmp/mushegh_registry.$$ 2>&1; then
     pass "test registry complete (no silently-skipped tests)"
   else
-    fail "test registry incomplete" "$(grep -E '^  FAILED' /tmp/afon_registry.$$ | head -3 | tr '
+    fail "test registry incomplete" "$(grep -E '^  FAILED' /tmp/mushegh_registry.$$ | head -3 | tr '
 ' ' ')"
   fi
-  rm -f /tmp/afon_registry.$$
+  rm -f /tmp/mushegh_registry.$$
 fi
 
 # ── 1c. shell scripts have LF endings ─────────────────────────────────────
@@ -137,7 +137,7 @@ fi
 # interpreter and the old checkout — and a task whose executable is missing fails SILENTLY, so the
 # edge simply never starts and nothing says why.
 # Found 2026-08-09: WatariPcAgent and WatariEdgeRefresh were still registered against C:\Jarvis,
-# a directory that no longer exists, while AfonEdgeGuard — the watchdog whose entire job is to
+# a directory that no longer exists, while MusheghEdgeGuard — the watchdog whose entire job is to
 # notice a dead edge — was Disabled. No edge was running and nothing would have started one.
 # Windows-only and advisory: this is a laptop-edge invariant, and the brain host has no Task
 # Scheduler, so a missing powershell.exe is a skip rather than a failure.
@@ -146,7 +146,7 @@ if command -v powershell.exe >/dev/null 2>&1; then
     $bad = @()
     $off = @()
     Get-ScheduledTask -ErrorAction SilentlyContinue |
-      Where-Object { $_.TaskName -match "Afon|Watari|Jarvis" } |
+      Where-Object { $_.TaskName -match "Mushegh|Watari|Jarvis" } |
       ForEach-Object {
         $t = $_
         foreach ($a in $t.Actions) {
@@ -164,7 +164,7 @@ if command -v powershell.exe >/dev/null 2>&1; then
         }
         # Reported separately from a broken path, because they are different events with opposite
         # responses. A missing exe is a silent breakage nobody chose. A DISABLED task is a state
-        # somebody chose — deliberately, when Afon is taken out of production, which is exactly
+        # somebody chose — deliberately, when Mushegh is taken out of production, which is exactly
         # what happened on 2026-08-13. Failing the code gate on an operator decision teaches
         # people to ignore the gate, and an ignored gate protects nothing.
         if ($t.State -eq "Disabled") { $off += $t.TaskName }
@@ -180,13 +180,13 @@ if command -v powershell.exe >/dev/null 2>&1; then
   fi
   if [[ -n "${off_tasks// /}" ]]; then
     warn "scheduled task(s) DISABLED: ${off_tasks}" \
-         "the edge will not start or self-restart. Deliberate while Afon is out of production; otherwise: Enable-ScheduledTask -TaskName <name>"
+         "the edge will not start or self-restart. Deliberate while Mushegh is out of production; otherwise: Enable-ScheduledTask -TaskName <name>"
   fi
 fi
 
 # ── 2. state directories are where the code looks ─────────────────────────
 # The code derives these from Path.home(); a rename moves the code, never the data.
-STATE_DIR="$HOME_DIR/.afon"
+STATE_DIR="$HOME_DIR/.mushegh"
 if [[ -d "$STATE_DIR" ]]; then
   pass "state dir $STATE_DIR exists"
 else
@@ -228,42 +228,42 @@ fi
 
 # ── 4. the remote the deploy will actually talk to ────────────────────────
 if [[ "$REMOTE_CHECKS" -eq 1 ]]; then
-  if [[ -z "${AFON_VPS:-}" ]]; then
-    fail "AFON_VPS is not set" "set it in scripts/deploy_vps.env to run remote checks"
+  if [[ -z "${MUSHEGH_VPS:-}" ]]; then
+    fail "MUSHEGH_VPS is not set" "set it in scripts/deploy_vps.env to run remote checks"
   else
-    REMOTE="${AFON_VPS_DIR:-/home/openclaw/afon}"
-    SERVICE="${AFON_VPS_SERVICE:-afon-brain}"
+    REMOTE="${MUSHEGH_VPS_DIR:-/home/openclaw/mushegh}"
+    SERVICE="${MUSHEGH_VPS_SERVICE:-mushegh-brain}"
 
-    if ssh -o ConnectTimeout=10 "$AFON_VPS" "test -d '$REMOTE'" 2>/dev/null; then
+    if ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" "test -d '$REMOTE'" 2>/dev/null; then
       pass "remote dir $REMOTE exists"
     else
-      cands=$(ssh -o ConnectTimeout=10 "$AFON_VPS" "ls -d ~/afon ~/jarvis 2>/dev/null" 2>/dev/null | tr '\n' ' ')
-      fail "remote dir $REMOTE does not exist" "candidates: ${cands:-none}; set AFON_VPS_DIR"
+      cands=$(ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" "ls -d ~/mushegh ~/jarvis 2>/dev/null" 2>/dev/null | tr '\n' ' ')
+      fail "remote dir $REMOTE does not exist" "candidates: ${cands:-none}; set MUSHEGH_VPS_DIR"
     fi
 
-    if ssh -o ConnectTimeout=10 "$AFON_VPS" "systemctl --user cat '$SERVICE' >/dev/null 2>&1" 2>/dev/null; then
+    if ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" "systemctl --user cat '$SERVICE' >/dev/null 2>&1" 2>/dev/null; then
       pass "remote unit $SERVICE exists"
     else
-      cands=$(ssh -o ConnectTimeout=10 "$AFON_VPS" \
-        "systemctl --user list-units --type=service --no-pager 2>/dev/null | grep -iE 'afon|jarvis' | awk '{print \$1}'" 2>/dev/null | tr '\n' ' ')
-      fail "remote unit $SERVICE does not exist" "candidates: ${cands:-none}; set AFON_VPS_SERVICE"
+      cands=$(ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" \
+        "systemctl --user list-units --type=service --no-pager 2>/dev/null | grep -iE 'mushegh|jarvis' | awk '{print \$1}'" 2>/dev/null | tr '\n' ' ')
+      fail "remote unit $SERVICE does not exist" "candidates: ${cands:-none}; set MUSHEGH_VPS_SERVICE"
     fi
 
     # REMOTE stranded state — the same check §2 runs locally, on the machine that actually
     # matters. Added 2026-08-09 after the rename deploy CAUSED this: switching the brain to the
-    # afon package moved its state dir from ~/.jarvis to ~/.afon, and ten files stayed behind —
+    # mushegh package moved its state dir from ~/.jarvis to ~/.mushegh, and ten files stayed behind —
     # routines.json, macros.json, objectives.json, relationship.json, patterns.jsonl,
     # approvals.json, world_model.json and three more. The brain started, answered /healthz and
     # held a normal conversation while silently having no routines, no macros and no relationship
     # history. Nothing errored; it simply behaved like a fresh install.
     # The local half of this check existed for months. The remote half did not, which is why the
     # deploy could introduce exactly the failure the script was written to prevent.
-    rstranded=$(ssh -o ConnectTimeout=10 "$AFON_VPS" \
-      'test -d ~/.jarvis && cd ~/.jarvis && find . -maxdepth 2 -type d -name run -prune -o -type f \( -name "*.json" -o -name "*.jsonl" -o -name "*.npy" -o -name "*.sqlite" \) -print 2>/dev/null | while read f; do [ -e "$HOME/.afon/${f#./}" ] || echo "${f#./}"; done | head -12' \
+    rstranded=$(ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" \
+      'test -d ~/.jarvis && cd ~/.jarvis && find . -maxdepth 2 -type d -name run -prune -o -type f \( -name "*.json" -o -name "*.jsonl" -o -name "*.npy" -o -name "*.sqlite" \) -print 2>/dev/null | while read f; do [ -e "$HOME/.mushegh/${f#./}" ] || echo "${f#./}"; done | head -12' \
       2>/dev/null | tr '\n' ' ')
     if [[ -n "${rstranded// /}" ]]; then
-      fail "state stranded on the VPS (in ~/.jarvis, absent from ~/.afon): ${rstranded}" \
-           "the brain reads ~/.afon — it will behave like a fresh install for these, without erroring"
+      fail "state stranded on the VPS (in ~/.jarvis, absent from ~/.mushegh): ${rstranded}" \
+           "the brain reads ~/.mushegh — it will behave like a fresh install for these, without erroring"
     else
       pass "no stranded state on the VPS"
     fi
@@ -275,8 +275,8 @@ if [[ "$REMOTE_CHECKS" -eq 1 ]]; then
       # and [[ ]] then dies with a syntax error mid-script — which surfaced as "could not read
       # .env" and skipped the single most important assertion here. Take the first line and
       # keep digits only.
-      n_new=$(ssh -o ConnectTimeout=10 "$AFON_VPS" "grep -c '^${PREFIX}' '$REMOTE/.env' 2>/dev/null" 2>/dev/null | head -1 | tr -dc '0-9')
-      n_old=$(ssh -o ConnectTimeout=10 "$AFON_VPS" "grep -cE '^(JARVIS|WATARI)_' '$REMOTE/.env' 2>/dev/null" 2>/dev/null | head -1 | tr -dc '0-9')
+      n_new=$(ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" "grep -c '^${PREFIX}' '$REMOTE/.env' 2>/dev/null" 2>/dev/null | head -1 | tr -dc '0-9')
+      n_old=$(ssh -o ConnectTimeout=10 "$MUSHEGH_VPS" "grep -cE '^(JARVIS|WATARI)_' '$REMOTE/.env' 2>/dev/null" 2>/dev/null | head -1 | tr -dc '0-9')
       n_new=${n_new:-0}; n_old=${n_old:-0}
       if [[ "$n_old" -gt 0 && "$n_new" -eq 0 ]]; then
         fail "remote .env has ${n_old} legacy-prefixed vars (JARVIS_/WATARI_) and 0 ${PREFIX} vars" \

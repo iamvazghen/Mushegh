@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.tools import macros  # noqa: E402
+from mushegh.brain.tools import macros  # noqa: E402
 
 _ok = 0
 _fail = 0
@@ -51,7 +51,7 @@ async def main() -> None:
     async def _has_mail(_args):
         return "You have 2 new emails, sir: one from the bank."
 
-    import afon.brain.tools.gmail as gmail
+    import mushegh.brain.tools.gmail as gmail
     saved = gmail.read_email
     gmail.read_email = _has_mail
     try:

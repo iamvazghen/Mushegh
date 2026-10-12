@@ -2,23 +2,23 @@
 
 A full outage of the primary and the first fallback was journalled — `llm.py` records
 `agentic/llm_chain_exhausted` with every model's error attached, and the comment beside it names
-what the owner experiences: "Afon going mute or apologising" — and never said. Meanwhile the server
+what the owner experiences: "Mushegh going mute or apologising" — and never said. Meanwhile the server
 answered EVERY failure with one sentence, "I'm having trouble reaching my reasoning right now", which
 is a claim about the models, and which the owner also heard when a `KeyError` in a tool took the turn
 down. Two consequences, the second serious:
 
   * he was told to "give me a moment" for a bug a moment will never fix, and
-  * he was sent to the model chain when the fault was in Afon's own code.
+  * he was sent to the model chain when the fault was in Mushegh's own code.
 
 So what is asserted here is that the sentence is CHOSEN FROM THE CAUSE:
 
   * the chain exhausted → it says the models are down, and that nothing is lost
   * one model timed out → it says that, and not that the chain is gone
-  * **anything else → it says it is Afon's own fault and NOT the network.** This is the one that
+  * **anything else → it says it is Mushegh's own fault and NOT the network.** This is the one that
     matters: an assistant that cannot tell its own bug from an outage sends the person trying to fix
     it in the wrong direction, and a wrong direction at 3am costs hours.
   * an UNKNOWN exception classifies as internal, deliberately — a failure nobody recognised is far
-    more likely to be a bug in Afon than an unrecognised outage, and "I broke" is the sentence that
+    more likely to be a bug in Mushegh than an unrecognised outage, and "I broke" is the sentence that
     points at the right log.
   * the classifier is total and never raises, because a classifier that breaks must not cost the
     sentence that is supposed to explain the breakage
@@ -56,8 +56,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain.llm import ChainExhausted
-    from afon.brain.outage import INTERNAL, MODEL_QUIET, MODELS_DOWN, classify, spoken_for
+    from mushegh.brain.llm import ChainExhausted
+    from mushegh.brain.outage import INTERNAL, MODEL_QUIET, MODELS_DOWN, classify, spoken_for
 
     print("\n[1] the three failures are told apart")
     check("an exhausted chain is MODELS_DOWN", classify(ChainExhausted("all LLM models failed"))
@@ -73,9 +73,9 @@ def main() -> int:
         check(f"{what} is INTERNAL, not blamed on the models", classify(exc) == INTERNAL,
               f"got {classify(exc)}")
 
-    print("\n[2] a bug in Afon is never reported as an outage")
+    print("\n[2] a bug in Mushegh is never reported as an outage")
     bug = spoken_for(KeyError("turn_tools"))
-    check("the sentence says it is Afon's own fault", "my own fault" in bug, bug)
+    check("the sentence says it is Mushegh's own fault", "my own fault" in bug, bug)
     check("...and explicitly NOT the network", "not the network" in bug, bug)
     check("...and does not mention models or reasoning at all",
           "model" not in bug.casefold() and "reasoning" not in bug.casefold(), bug)
@@ -92,7 +92,7 @@ def main() -> int:
           "every model" in down, down)
     check("...and that the work will be there", "nothing is lost" in down.casefold(), down)
     check("...and gives a moment when to retry", "in a minute" in down, down)
-    check("it does not claim Afon is at fault, because he is not",
+    check("it does not claim Mushegh is at fault, because he is not",
           "my own fault" not in down, down)
 
     print("\n[4] one model going quiet is not a full outage")
@@ -115,7 +115,7 @@ def main() -> int:
           "an empty sentence is silence, which is the defect")
 
     print("\n[6] the server actually uses it — an unused sentence is the defect 45.R2 was")
-    src = (ROOT / "src" / "afon" / "brain" / "server.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "brain" / "server.py").read_text(encoding="utf-8")
     check("the turn handler calls outage.spoken_for", "outage.spoken_for(e)" in src)
     # Assert the old sentence is gone from EXECUTABLE code, not from the file: the explanation
     # written beside the fix quotes it, and a grep for the text would therefore always match. A
@@ -135,7 +135,7 @@ def main() -> int:
           "log turn failed" in src or "/talk turn failed" in src)
 
     print("\n[7] the outage was already journalled; this only makes it audible")
-    llm_src = (ROOT / "src" / "afon" / "brain" / "llm.py").read_text(encoding="utf-8")
+    llm_src = (ROOT / "src" / "mushegh" / "brain" / "llm.py").read_text(encoding="utf-8")
     check("llm.py already records the exhausted chain as its own operation",
           "llm_chain_exhausted" in llm_src)
     check("...with every model's error attached, not just the last",

@@ -15,10 +15,10 @@ hardware is two rooms long.
 
 Bedrooms and bathrooms are air-gapped (D-38) — permanently, no exceptions, regardless of
 capability. The charter is careful that this binds at the sensor-placement layer, not the
-software layer, and the distinction matters: Afon never simulates a room, and a room with
+software layer, and the distinction matters: Mushegh never simulates a room, and a room with
 no hardware is a room it knows nothing about, rather than a room it has been told about.
 
-**What the code does today, recorded by D-69.** `src/afon/brain/presence.py` is a **laptop
+**What the code does today, recorded by D-69.** `src/mushegh/brain/presence.py` is a **laptop
 activity poller**. It asks the edge for an `activity_snapshot` — foreground app, window
 title, idle minutes — and reports "you're coding in VS Code" or "idle 12 min". It does
 **not** know which room the owner is in. It does not track the phone either, and says so
@@ -56,14 +56,14 @@ devices, and returning after a week is indistinguishable from starting over.
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/brain/presence.py` | brain | The **laptop activity poller** — foreground app, window title and idle minutes, sampled through the laptop agent's `activity_snapshot`. No room, no phone, no sensor (D-69) |
-| `src/afon/brain/perception.py` | brain | One sensing snapshot in which every fact carries its own age (26.F2, 26.F3) |
-| `src/afon/brain/situation.py` | brain | 43.F3 — the fused per-turn view: voice, face and device activity, not any single source |
-| `src/afon/brain/selfmodel.py` | brain | The derived state (Deep Work / Relaxing / Sleeping), which stays on the host (D-61) |
-| `src/afon/brain/modes.py` | brain | Runtime modes — the lightweight, non-destructive protocols |
-| `src/afon/brain/context.py` | brain | Where the migrated goal and working context are assembled, and where the transcript is deliberately left behind (D-40) |
-| `src/afon/brain/pc_link.py`, `src/afon/edge/pc_agent.py` | brain + edge | The brain executing on the laptop, and the agent that answers the presence poll |
-| `src/afon/edge/brain_client.py`, `src/afon/edge/offline_queue.py` | edge | The away-from-home phone client over the tailnet, and what it does when the brain is unreachable |
+| `src/mushegh/brain/presence.py` | brain | The **laptop activity poller** — foreground app, window title and idle minutes, sampled through the laptop agent's `activity_snapshot`. No room, no phone, no sensor (D-69) |
+| `src/mushegh/brain/perception.py` | brain | One sensing snapshot in which every fact carries its own age (26.F2, 26.F3) |
+| `src/mushegh/brain/situation.py` | brain | 43.F3 — the fused per-turn view: voice, face and device activity, not any single source |
+| `src/mushegh/brain/selfmodel.py` | brain | The derived state (Deep Work / Relaxing / Sleeping), which stays on the host (D-61) |
+| `src/mushegh/brain/modes.py` | brain | Runtime modes — the lightweight, non-destructive protocols |
+| `src/mushegh/brain/context.py` | brain | Where the migrated goal and working context are assembled, and where the transcript is deliberately left behind (D-40) |
+| `src/mushegh/brain/pc_link.py`, `src/mushegh/edge/pc_agent.py` | brain + edge | The brain executing on the laptop, and the agent that answers the presence poll |
+| `src/mushegh/edge/brain_client.py`, `src/mushegh/edge/offline_queue.py` | edge | The away-from-home phone client over the tailnet, and what it does when the brain is unreachable |
 
 **Data flow.** The edge agent answers a poll; `presence.py` samples foreground and idle
 state; `perception.py` assembles one snapshot with ages attached; `situation.py` fuses
@@ -76,8 +76,8 @@ the sensor that produced it, and everything downstream gets a signal the laptop 
 never supply.
 
 **Planned, and absent.** `bench/test_room_presence.py` is the `43.R5` gate and **does not
-exist**. Neither does any `src/afon/` module that reads mmWave occupancy — a search for
-`mmwave` under `src/afon/` returns nothing. The sensors are hardware, and every occupancy
+exist**. Neither does any `src/mushegh/` module that reads mmWave occupancy — a search for
+`mmwave` under `src/mushegh/` returns nothing. The sensors are hardware, and every occupancy
 claim in this document is a design, not a behaviour.
 
 **The honest gap.** Presence fusion exists; migration does not. 43.R1 is open and depends
@@ -120,9 +120,9 @@ under D-42, and 43.R5 is the one that replaces a poll with a fact.
 | 3 | B2 | M35 drill: walk the house, then count the instrumented rooms in the roster | office and living room detected; 0 further rooms instrumented | not yet measured |
 | 4 | B4 | count ambient devices per room from the roster the presence layer keeps | bedroom 0, bathroom 0, permanently; 0 exceptions | not yet measured — nothing enforces this in code today, it is a placement rule |
 | 5 | B2 | M34 drill: start a task on the phone, finish it at the desk | the active goal and working context are present at the desk; **0 transcript turns** present | not yet measured (43.R1 open, M34 open, blocked on S07/S12) |
-| 6 | B4 | `grep -rniE 'broadcast\|publish\|send' src/afon/brain/selfmodel.py src/afon/brain/situation.py` | 0 sends; a derived state is never written to a timeline or a log the owner did not ask for | not yet measured |
+| 6 | B4 | `grep -rniE 'broadcast\|publish\|send' src/mushegh/brain/selfmodel.py src/mushegh/brain/situation.py` | 0 sends; a derived state is never written to a timeline or a log the owner did not ask for | not yet measured |
 | 7 | B1 | `uv run python bench/test_presence.py` [long absence] | after a simulated week, the resume is a cold-context summary; 0 "as I was saying" continuations | not yet measured (43.R3 open) |
-| 8 | B1 planned | `uv run python bench/test_room_presence.py` — the `43.R5` gate, **the file does not exist** | occupancy reported per room with the producing sensor named; 0 bedroom or bathroom sensors accepted at configuration; a missing sensor holds the last verified state and guesses 0 times | not yet measured — no sensor is in the house and nothing in `src/afon/` reads occupancy |
+| 8 | B1 planned | `uv run python bench/test_room_presence.py` — the `43.R5` gate, **the file does not exist** | occupancy reported per room with the producing sensor named; 0 bedroom or bathroom sensors accepted at configuration; a missing sensor holds the last verified state and guesses 0 times | not yet measured — no sensor is in the house and nothing in `src/mushegh/` reads occupancy |
 
 Goal 4 is a B4 because it is a placement invariant rather than a behaviour: no amount of
 software correctness substitutes for the sensor not being in the room. Goal 5's threshold
@@ -137,14 +137,14 @@ one: whichever room the laptop is in, which is not a room the system knows.
 already there". D-38 has no exception clause, and this is the failure in this system that
 is hardest to notice and hardest to undo — a household's trust, once spent on a bedroom
 microphone, does not come back when the device is removed. Diagnose: the room list in
-`src/afon/brain/presence.py` and the device roster, then the vendor accounts for anything
+`src/mushegh/brain/presence.py` and the device roster, then the vendor accounts for anything
 not in it.
 
 **The laptop poll is read as presence.** The most likely failure of the next month, because
 it needs no mistake: a summary says "you're in the living room" and the truth is that a
 window title was in the foreground. Nothing in the code can produce a wrong room claim
 today — it produces no room claim at all — so the risk is entirely in the *prose* and in
-the owner's expectation. Diagnose: `journalctl -u openafon-brain -n 200 | grep -i
+the owner's expectation. Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i
 activity_snapshot`; if that is what answered, the room was inferred, not read (D-69).
 
 **A sensor drops and the house reads empty.** The hallway sensor loses power, the room
@@ -160,13 +160,13 @@ violated in the name of a good intention, and the goal was never the transcript.
 
 **The server pretends to be a body.** Away from home, the system narrates the living room
 from stale state, as though it were there. D-39 rules this out: the phone is the body and
-there is no fallback. Diagnose: `journalctl -u openafon-brain -n 200 | grep -i presence`,
+there is no fallback. Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i presence`,
 then the connected device ids — if the laptop is absent, the presence claims are
 rehearsals.
 
 **Presence flaps.** Two sources disagree and the room oscillates, so every
 context-sensitive behaviour flickers with it — attention suppression, greeting, lighting.
-Diagnose: `journalctl -u openafon-brain -n 200 | grep -i presence`, then the sample ages
+Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -i presence`, then the sample ages
 in the perception snapshot, which exist precisely so a stale reading is visible as stale.
 
 **A long absence is resumed as a short one.** The owner returns after a week and the

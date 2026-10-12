@@ -37,12 +37,12 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 async def main() -> None:
-    import afon.brain.tools.camera as CAM
-    from afon.brain.agent import AfonAgent
-    from afon.brain.proactive import confirm_required
-    from afon.config import settings
+    import mushegh.brain.tools.camera as CAM
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.config import settings
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     calls: list[int] = []
 
     def stub(verdict: dict | None, boom: bool = False):

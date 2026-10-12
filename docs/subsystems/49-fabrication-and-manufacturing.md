@@ -33,8 +33,8 @@ call. Until both are true, this stays closed.
 **The first half is now met, and D-70 recommends keeping the drop.** The owner owns a Prusa
 CORE One, a fire-suppression ball, a filament dryer and a maintenance kit — the trigger's
 first half, in full. The second half is not met, and the hardware itself supplies the reason:
-nothing in the inventory suggests the owner wants a slicer Afon can call. A printer in a
-workshop is a tool for making brackets. A printer Afon can drive is a safety surface with a
+nothing in the inventory suggests the owner wants a slicer Mushegh can call. A printer in a
+workshop is a tool for making brackets. A printer Mushegh can drive is a safety surface with a
 heated bed and moving axes, in a house where D-13 already refuses door locks. The charter's
 instinct was right and the new hardware confirms it. **D-70 is a recommendation awaiting the
 owner's sign-off under D-47, not a decision in force** — and that is the same governance
@@ -49,7 +49,7 @@ subject — an unattended machine, unsupervised by the UPS, in a house nobody is
 
 There is nothing to point at, which is the cleanest possible removal — verified, not assumed:
 
-    grep -rniE "gcode|slicer|octoprint|klipper|filament|printer" src/afon/    # 0 matches, 2026-10-03
+    grep -rniE "gcode|slicer|octoprint|klipper|filament|printer" src/mushegh/    # 0 matches, 2026-10-03
 
 | Registry row | What it was | State |
 |---|---|---|
@@ -65,14 +65,14 @@ open fabrication tasks — is now satisfied by this document and the 2026-10-03 
 The hardware that triggered this review (H7) is a Prusa CORE One with a fire-suppression
 ball, a filament dryer and a maintenance kit, in the workshop. Read under D-63 — local,
 placed, read-or-actuate — the printer is local and its placement is a workshop, and it fails
-the third question for every use Afon would have: it is the most consequential actuator in
+the third question for every use Mushegh would have: it is the most consequential actuator in
 the house, and D-13's refusal of it is not a configuration setting. Nothing in that inventory
 is a repo path, and nothing in it changes the grep above.
 
 ## Goals — anti-goals
 
 1. No machine-control handler, no G-code path, and no printer, nozzle or filament vocabulary
-   anywhere under `src/afon/`.
+   anywhere under `src/mushegh/`.
 2. No "print this for me" routing, and no registry entry that reads as an open fabrication
    task.
 3. The drop stands on the owner's signature, not on a model score (D-47).
@@ -85,7 +85,7 @@ These are deletion gates. Each one **fails** if the system reappears.
 
 | Anti-goal | Tier | Command or drill | Threshold | Last measurement |
 |---|---|---|---|---|
-| 1 | B1 | `grep -rniE "gcode\|slicer\|octoprint\|klipper\|filament" src/afon/` | 0 matches | **0 matches**, checked 2026-10-03 |
+| 1 | B1 | `grep -rniE "gcode\|slicer\|octoprint\|klipper\|filament" src/mushegh/` | 0 matches | **0 matches**, checked 2026-10-03 |
 | 2 | B1 | `python scripts/systems_plan.py check` | 3 tasks read `cancelled`, 0 read `open`, and every cancellation carries an `owner-decision` record | last run 2026-10-03 as part of the reconciliation |
 | 3 | B4 | `docs/DECISIONS.md`, the D-48 row | the drop is recorded as re-signed by the owner with a date, and the reason is the owner\'s own, not a score | holds today: D-48 exists and D-47 states the rule |
 | 4 | B4 | the trigger | **half met** — the owner owns a printer; wanting a slicer it can call is not established, so the second half is not | no measurement needed; the condition is a fact about the house. D-70 recommends staying dropped, pending the owner's sign-off (D-47) |
@@ -101,7 +101,7 @@ mentioning a printer in passing — and that trigger is no longer hypothetical, 
 printer is on the shelf. Someone concludes that a 3D-printing integration is a small,
 charming addition to an assistant that already reaches the network:
 
-    grep -rniE "gcode|slicer|octoprint|klipper|filament" src/afon/
+    grep -rniE "gcode|slicer|octoprint|klipper|filament" src/mushegh/
     python -c "import json;d=json.load(open('docs/systems-plan.json',encoding='utf-8'));print([(t['id'],t['state']) for s in d['systems'] if s['id']=='S49' for t in s['tasks']])"
     python scripts/systems_plan.py check
 

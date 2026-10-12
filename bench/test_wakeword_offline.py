@@ -1,10 +1,10 @@
 """18.R5 — the wake phrase is on-device, and the two dead settings are gone.
 
-D-19 requires local wake detection. It is honoured in code — `src/afon/edge/wake_word.py`
+D-19 requires local wake detection. It is honoured in code — `src/mushegh/edge/wake_word.py`
 resolves phrases to openWakeWord models and loads them by path or pretrained name — but two
 things stood between that and proving it:
 
-  * `AFON_WAKE_WORD_ENGINE` and `AFON_PORCUPINE_ACCESS_KEY` sat in `.env.example` long after
+  * `MUSHEGH_WAKE_WORD_ENGINE` and `MUSHEGH_PORCUPINE_ACCESS_KEY` sat in `.env.example` long after
     `config.py` stopped reading them. Setting either did precisely nothing while looking like
     a real switch, which is worse than having no switch.
   * Nothing asserted the offline property. A future edit that reached for a hosted keyword
@@ -34,8 +34,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-_TMP = tempfile.TemporaryDirectory(prefix="afon-wake-")
-os.environ["AFON_STATE_DIR"] = _TMP.name
+_TMP = tempfile.TemporaryDirectory(prefix="mushegh-wake-")
+os.environ["MUSHEGH_STATE_DIR"] = _TMP.name
 
 passed = failed = 0
 
@@ -51,18 +51,18 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.config import Settings
-    from afon.edge.wake_word import OPENWAKEWORD_PRETRAINED, resolve_openwakeword_models
+    from mushegh.config import Settings
+    from mushegh.edge.wake_word import OPENWAKEWORD_PRETRAINED, resolve_openwakeword_models
 
     print("[1] the two dead settings are gone")
     for field in ("wake_word_engine", "porcupine_access_key"):
         check(f"Settings has no {field!r}", field not in Settings.model_fields)
     env = (ROOT / ".env.example").read_text(encoding="utf-8")
-    for token in ("AFON_WAKE_WORD_ENGINE", "AFON_PORCUPINE_ACCESS_KEY"):
+    for token in ("MUSHEGH_WAKE_WORD_ENGINE", "MUSHEGH_PORCUPINE_ACCESS_KEY"):
         # An ASSIGNMENT is what would mislead — a comment naming what was removed is history
         # worth keeping, and the file has one.
         check(f".env.example sets no {token}", f"{token}=" not in env)
-    body = (ROOT / "src" / "afon" / "edge" / "wake_word.py").read_text(encoding="utf-8")
+    body = (ROOT / "src" / "mushegh" / "edge" / "wake_word.py").read_text(encoding="utf-8")
     check("the module docstring no longer claims the engine is pluggable",
           "is pluggable via" not in body)
 

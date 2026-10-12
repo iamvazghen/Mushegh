@@ -1,6 +1,6 @@
 """33.F3 — every task can name the objective it serves, or is explicitly ad-hoc.
 
-Afon held objectives and he held a to-do list, and nothing connected them. So "am I actually
+Mushegh held objectives and he held a to-do list, and nothing connected them. So "am I actually
 working towards anything" had no answer: a week of tasks could be entirely unrelated to every
 objective he was driving and no surface would have said so.
 
@@ -64,7 +64,7 @@ class FakeTask:
 
 
 async def main() -> None:
-    from afon.brain.objectives import AD_HOC, ObjectiveBook, attribution, attribution_report
+    from mushegh.brain.objectives import AD_HOC, ObjectiveBook, attribution, attribution_report
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     book = ObjectiveBook(Path(tmp.name) / "objectives.json")
@@ -103,14 +103,14 @@ async def main() -> None:
     check("an empty list says so rather than reporting nothing",
           "Nothing open" in attribution_report(book, []))
 
-    print("\n[4] a task pointing at an objective Afon no longer holds is not silently dropped")
+    print("\n[4] a task pointing at an objective Mushegh no longer holds is not silently dropped")
     orphan = attribution_report(book, [FakeTask("old work", {"objective": "some-dead-goal"})])
     check("the dead objective id is still shown", "some-dead-goal" in orphan, orphan)
     check("...and flagged as no longer held", "no longer hold" in orphan, orphan)
 
     print("\n[5] the write path refuses an attribution it cannot resolve")
-    import afon.brain.objectives as objmod
-    import afon.brain.tools.tasks as ttools
+    import mushegh.brain.objectives as objmod
+    import mushegh.brain.tools.tasks as ttools
 
     objmod.OBJECTIVES = book
     captured: dict = {}
@@ -146,7 +146,7 @@ async def main() -> None:
         ttools.TASKS = real_store
 
     print("\n[6] 01.R3 — the same question asked of a TURN rather than a task")
-    from afon.brain.objectives import turn_attribution, why_this_turn
+    from mushegh.brain.objectives import turn_attribution, why_this_turn
 
     # `book` above already holds "Get Party Map beta launch-ready" and "Ship the Rently migration".
     for text, want in [
@@ -188,7 +188,7 @@ async def main() -> None:
     check("an objective dropped mid-turn degrades to silence, not a wrong name",
           why_this_turn("what's left before the Party Map beta ships", _Dropped()) == "")
 
-    src = (Path(__file__).resolve().parents[1] / "src/afon/brain/agent.py").read_text(
+    src = (Path(__file__).resolve().parents[1] / "src/mushegh/brain/agent.py").read_text(
         encoding="utf-8")
     check("_prepare_turn consults it", "why_this_turn(user_text)" in src)
     _i = src.index("why_this_turn(user_text)")
@@ -197,7 +197,7 @@ async def main() -> None:
     check("...and appends only when there is something to say", "if goal_note:" in src[_i:_i + 400])
 
     print("\n[7] the tools are registered")
-    from afon.brain.tools import tool_names
+    from mushegh.brain.tools import tool_names
 
     names = set(tool_names())
     for t in ("set_milestone", "objective_review"):

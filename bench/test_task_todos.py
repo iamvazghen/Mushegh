@@ -40,9 +40,9 @@ async def main() -> None:
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 
-    from afon.brain.tasks import TaskQueue, normalize_priority
-    import afon.brain.tools.tasks as tt
-    from afon.config import settings
+    from mushegh.brain.tasks import TaskQueue, normalize_priority
+    import mushegh.brain.tools.tasks as tt
+    from mushegh.config import settings
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     db = Path(tmp.name) / "tasks.sqlite"
@@ -64,7 +64,7 @@ async def main() -> None:
         def set_push_phone(self, *_a):
             pass
 
-    import afon.brain.scheduler as sched_mod
+    import mushegh.brain.scheduler as sched_mod
     sched_mod.SCHEDULER = _FakeSched()
 
     print("[1] priority normalisation")
@@ -133,7 +133,7 @@ async def main() -> None:
     check("reloaded task kept its deadline", ft.deadline is not None)
 
     print("\n[9] tools registered for the model")
-    from afon.brain.tools import tool_names
+    from mushegh.brain.tools import tool_names
     names = tool_names()
     for n in ("add_task", "update_task", "complete_task", "delete_task", "list_tasks", "task_status"):
         check(f"{n} registered", n in names)

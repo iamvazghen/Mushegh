@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, "src")
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from afon.brain.agent import AfonAgent  # noqa: E402
+from mushegh.brain.agent import MusheghAgent  # noqa: E402
 
 SAMPLES = [
     ("English",   "What time is it right now?"),
@@ -26,7 +26,7 @@ def looks_english(text: str) -> bool:
 
 async def main():
     for lang, text in SAMPLES:
-        agent = AfonAgent()  # fresh history each time
+        agent = MusheghAgent()  # fresh history each time
         reply = await agent.respond(text)
         print(f"[{lang}] -> {'EN' if looks_english(reply) else 'NON-EN'} | {reply[:90]}")
 

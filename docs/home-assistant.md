@@ -13,7 +13,7 @@
 > so there is no confirmation path that opens one. Reading a lock still works.
 > Full system view: [`subsystems/28-iot-orchestration.md`](subsystems/28-iot-orchestration.md).
 
-Afon controls a **local** Home Assistant instance over its REST API — the privacy-respecting smart-
+Mushegh controls a **local** Home Assistant instance over its REST API — the privacy-respecting smart-
 home choice (no cloud vendor in the loop). Two tools:
 
 | Tool | Purpose | Confirm? |
@@ -37,8 +37,8 @@ prompt suggestion a weak model could skip. Verified in `bench/test_phase11_integ
 1. In Home Assistant: **Profile → Long-Lived Access Tokens → Create Token**.
 2. Put these in the brain's `.env` (never commit them):
    ```
-   AFON_HA_URL=http://homeassistant.local:8123
-   AFON_HA_TOKEN=<long-lived token>
+   MUSHEGH_HA_URL=http://homeassistant.local:8123
+   MUSHEGH_HA_TOKEN=<long-lived token>
    ```
    Use the LAN URL — the brain and HA should share a trusted network (or the tailnet).
 

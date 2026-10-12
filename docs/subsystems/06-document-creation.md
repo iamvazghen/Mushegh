@@ -14,12 +14,12 @@ at all. Each reported success on the strength of not having raised, which is a d
 claim from "it is there".
 
 That distinction is the whole floor, and it is why `create()` writes, reads back, and
-compares. Success is reported only when the words come back. When they do not, Afon says
+compares. Success is reported only when the words come back. When they do not, Mushegh says
 which half happened — "I wrote it but could not confirm it" and "I could not write it" are
 different sentences, and the owner needs to know which. The failures hiding in this gap
 are not exotic: a Notion parent id that resolves to an archived page, a vault path on a
 mount that went read-only since startup, a title that sanitises down to nothing. Every
-one of them previously ended with Afon reporting a document that did not exist.
+one of them previously ended with Mushegh reporting a document that did not exist.
 
 Creating a document is also the point where the vault earns its authority. Markdown in
 the vault is the source of truth and the database is a cache (D-22), so a document the
@@ -39,7 +39,7 @@ sheet", never the sheet's contents — D-57 with paper instead of git. There is 
 in the codebase today, so the constraint is currently satisfied by the absence of the thing
 that would break it.
 
-If this is absent, Afon can discuss a document and cannot leave one behind.
+If this is absent, Mushegh can discuss a document and cannot leave one behind.
 
 ## Structure
 
@@ -49,8 +49,8 @@ create_document(kind, title, body, destination)
    ├──> brain/documents.py    create(): write → read back → compare → report
    │        │
    │        ├── local markdown ──> the vault (authoritative, D-22)
-   │        ├── vault note      ──> src/afon/brain/tools/vault.py
-   │        └── Notion page     ──> src/afon/brain/tools/documents.py handlers
+   │        ├── vault note      ──> src/mushegh/brain/tools/vault.py
+   │        └── Notion page     ──> src/mushegh/brain/tools/documents.py handlers
    │
    └── reading side (strong): brain/docstore.py  temporary one-document index
         tools/documents.py  open local file · ask grounded question · close
@@ -58,11 +58,11 @@ create_document(kind, title, body, destination)
 
 | Concern | Where |
 |---|---|
-| The single creation tool and read-back verification | `src/afon/brain/documents.py` |
-| Addressability afterwards (06.F3) | `src/afon/brain/documents.py`; `test_documents_routing.py` [7] |
-| Reading, grounded answers | `src/afon/brain/tools/documents.py` over `src/afon/brain/docstore.py` |
-| Vault writes | `src/afon/brain/tools/vault.py` |
-| Vault as source of truth, reconciliation | `src/afon/brain/docstore.py`, `memory.py` (D-22) |
+| The single creation tool and read-back verification | `src/mushegh/brain/documents.py` |
+| Addressability afterwards (06.F3) | `src/mushegh/brain/documents.py`; `test_documents_routing.py` [7] |
+| Reading, grounded answers | `src/mushegh/brain/tools/documents.py` over `src/mushegh/brain/docstore.py` |
+| Vault writes | `src/mushegh/brain/tools/vault.py` |
+| Vault as source of truth, reconciliation | `src/mushegh/brain/docstore.py`, `memory.py` (D-22) |
 | Generated documents from a day's work | `routine_draft.py`, `daily_digest.py` |
 | Local laser printing, office (H7) | **planned** — no print tool exists; the path is a destination of `create_document`, not a new system (D-71) |
 
@@ -114,7 +114,7 @@ closes 06.R3 and does nothing else. Templates (06.R1) and in-place revision
 (06.R2) remain in-repo and are the larger pieces of this subsystem.
 
 **Licence, recorded rather than inherited:** GPL-2.0 is acceptable for a private,
-never-distributed install, and becomes a real obligation the day Afon is shared
+never-distributed install, and becomes a real obligation the day Mushegh is shared
 (D-57, D-60). It belongs in `THIRD_PARTY_NOTICES.md` when adopted.
 
 **Gate:** the planned `bench/test_document_revise.py`, which does not exist yet.
@@ -122,8 +122,8 @@ PRINCIPLES §1 three commands, in order:
 
 ```
 pandoc --version
-journalctl -u openafon-brain -n 200 | grep -i export
-ls -l ~/.afon/exports/
+journalctl -u openmushegh-brain -n 200 | grep -i export
+ls -l ~/.mushegh/exports/
 ```
 
 See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
@@ -153,7 +153,7 @@ shape cannot be a phantom — a roadmap once named a script that never existed.
 ## Failure modes
 
 **A false creation.** The vault write lands on a read-only mount, or the Notion parent
-is an archived page, and Afon says "Done — created X" about a document that does not
+is an archived page, and Mushegh says "Done — created X" about a document that does not
 exist. The 2026-09-13 record on 06.F1 is the fix; the failure mode is what happens if
 the read-back is ever removed. Reproduce by pointing a destination at a read-only path.
 

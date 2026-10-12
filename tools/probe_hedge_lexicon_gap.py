@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.shared.uncertainty import HEDGES, _clauses, calibration  # noqa: E402
+from mushegh.shared.uncertainty import HEDGES, _clauses, calibration  # noqa: E402
 
 #: Real replies captured from the live agent on 2026-10-08. Each one reads, to a person,
 #: as an admission of a limit. Not one of them is phrased in a way HEDGES recognises.

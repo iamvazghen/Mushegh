@@ -53,15 +53,13 @@ function world() {
   };
 }
 
-function tracker(over: Partial<Parameters<typeof makeEnv>[0]> = {}) {
+function tracker(over: { viewport?: () => { w: number; h: number } } = {}) {
   return makeEnv(over);
 }
 
-function makeEnv(over: Partial<{
-  source: HandSource; viewport: { w: number; h: number }; onStatus: (s: TrackerStatus) => void;
-}> = {}) {
+function makeEnv(over: { viewport?: () => { w: number; h: number } } = {}) {
   const w = world();
-  const source = over.source ?? new ManualSource();
+  const source = new ManualSource();
   const statuses: TrackerStatus[] = [];
   const t = new HandTracker({
     source,
@@ -72,7 +70,7 @@ function makeEnv(over: Partial<{
     },
     viewport: over.viewport ?? (() => ({ w: 1000, h: 1000 })),
     camera: { hold: async () => undefined, release: () => undefined },
-    onStatus: over.onStatus ?? ((s) => statuses.push(s)),
+    onStatus: (s) => statuses.push(s),
   });
   return { t, w, source, statuses };
 }
@@ -149,9 +147,10 @@ describe('tracker lifecycle', () => {
   it('releases a held press when the hand disappears', async () => {
     const { t, w } = tracker();
     await t.start();
+    // wristX 0.2 mirrors to ~800px, so the press lands on the right-hand element.
     // Pinch down and hold long enough to pass every gate.
     for (const at of frames(0, 30)) {
-      t.ingest({ landmarks: [hand(0.8, 0.5, { pinch: true })], handedness: ['right'], at });
+      t.ingest({ landmarks: [hand(0.2, 0.5, { pinch: true })], handedness: ['right'], at });
     }
     expect(w.right.seen).toContain('pointerdown');
     t.ingest({ landmarks: [], handedness: [], at: 500 });

@@ -66,9 +66,9 @@ class _Resp:
 
 
 async def service_contract(root: Path) -> None:
-    from afon.brain.judgment import JudgmentService
-    from afon.brain.tools import groups_for_text
-    from afon.brain.intent_router import _is_multi_intent, forced_tools
+    from mushegh.brain.judgment import JudgmentService
+    from mushegh.brain.tools import groups_for_text
+    from mushegh.brain.intent_router import _is_multi_intent, forced_tools
 
     print("[0] the fixture is a real ambiguity, or this test is testing nothing")
     groups = groups_for_text(AMBIGUOUS)
@@ -175,7 +175,7 @@ class _StubArbitrator:
     """Stands in for JUDGMENTS on the full turn: a turn assessment plus a call counter."""
 
     def __init__(self, group: str | None):
-        from afon.brain.judgment import TurnSignals
+        from mushegh.brain.judgment import TurnSignals
         # A distribution, not just a probability: the gate reads entropy over the whole
         # distribution, so a stub that supplies only a top number is indistinguishable from a
         # model that had no opinion at all.
@@ -217,11 +217,11 @@ class _FakeLLM:
 
 
 async def agent_contract(root: Path) -> None:
-    import afon.brain.agent as agent_module
-    from afon.brain.agent import AfonAgent
-    from afon.brain.tools import core_tool_schemas, group_tool_schemas, groups_for_text
+    import mushegh.brain.agent as agent_module
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.tools import core_tool_schemas, group_tool_schemas, groups_for_text
 
-    os.environ["AFON_TRACE_DIR"] = str(root / "traces")
+    os.environ["MUSHEGH_TRACE_DIR"] = str(root / "traces")
     groups = sorted(groups_for_text(AMBIGUOUS))
     winner, loser = (groups[0], groups[1])
     core_names = {s["function"]["name"] for s in core_tool_schemas()}
@@ -234,7 +234,7 @@ async def agent_contract(root: Path) -> None:
     follow_phrase = {"office": "check my email again", "docs": "read the document again"}
 
     print(f"\n[5] the winner is the only group armed (winner={winner}, loser={loser})")
-    agent = AfonAgent()
+    agent = MusheghAgent()
     base = {s["function"]["name"] for s in agent._tools_for_turn(AMBIGUOUS)}
     narrowed = {s["function"]["name"] for s in agent._tools_for_turn(AMBIGUOUS, preferred_group=winner)}
     check("the losing group has tools of its own to test with", bool(away_names),
@@ -264,7 +264,7 @@ async def agent_contract(root: Path) -> None:
     original = agent_module.JUDGMENTS
     try:
         agent_module.JUDGMENTS = _StubArbitrator(winner)
-        live = AfonAgent()
+        live = MusheghAgent()
         live._history = []
         live._persist_session = lambda: None
         live._spawn_review = lambda: None
@@ -282,12 +282,12 @@ async def agent_contract(root: Path) -> None:
         agent_module.JUDGMENTS = original
 
     print("\n[8] arbitration failing changes nothing the owner can see")
-    baseline = AfonAgent()
+    baseline = MusheghAgent()
     base_surface = {s["function"]["name"] for s in baseline._tools_for_turn(AMBIGUOUS)}
     original = agent_module.JUDGMENTS
     try:
         agent_module.JUDGMENTS = _StubArbitrator(None)
-        live = AfonAgent()
+        live = MusheghAgent()
         live._history = []
         live._persist_session = lambda: None
         live._spawn_review = lambda: None
@@ -311,14 +311,14 @@ async def agent_contract(root: Path) -> None:
     try:
         class _AskingStub(_StubArbitrator):
             async def consider(self, _text, *, correlation_id=""):
-                from afon.brain.judgment import DecisionVerdict
+                from mushegh.brain.judgment import DecisionVerdict
                 return DecisionVerdict(
                     request_id="r", correlation_id=correlation_id, kind="explicit_options",
                     option_ids=("option_1", "option_2"), selected_id=None, selected_text=None,
                     probability=None, confidence=None, model="", latency_ms=1.0,
                     outcome="unavailable", fallback="ask_owner", error="http_429")
         agent_module.JUDGMENTS = _AskingStub(None)
-        live = AfonAgent()
+        live = MusheghAgent()
         live._history = []
         live._persist_session = lambda: None
         live._spawn_review = lambda: None
@@ -333,7 +333,7 @@ async def agent_contract(root: Path) -> None:
 
 async def main() -> int:
     import tempfile
-    with tempfile.TemporaryDirectory(prefix="afon-jev-arbitration-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="mushegh-jev-arbitration-") as tmp:
         root = Path(tmp)
         await service_contract(root)
         await agent_contract(root)

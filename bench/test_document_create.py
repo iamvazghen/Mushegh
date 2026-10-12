@@ -45,9 +45,9 @@ BODY = ("The feed order for the rabbit farm goes out on Thursday: forty sacks, d
 
 
 def main() -> None:
-    from afon.brain import documents as D
-    from afon.brain.tools import notion as N
-    from afon.config import settings
+    from mushegh.brain import documents as D
+    from mushegh.brain.tools import notion as N
+    from mushegh.config import settings
 
     real_state, real_vault, real_writable = (settings.state_dir, settings.vault_path,
                                              settings.vault_writable)
@@ -161,7 +161,7 @@ def main() -> None:
                   [r["title"] for r in D.created()])
 
             print("\n[three destinations] the two writers it replaces are no longer advertised")
-            from afon.brain.tools import group_tool_schemas, groups_for_text, tool_handlers, tool_names
+            from mushegh.brain.tools import group_tool_schemas, groups_for_text, tool_handlers, tool_names
 
             names = set(tool_names())
             check("create_document is the creation tool", "create_document" in names)
@@ -177,7 +177,7 @@ def main() -> None:
                       groups_for_text(phrase))
 
             print("\n[read-back] creating a document is confirm-gated, like the writers it replaced")
-            from afon.brain.proactive import confirm_required
+            from mushegh.brain.proactive import confirm_required
 
             check("create_document confirms first", confirm_required("create_document"))
         finally:

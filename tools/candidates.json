@@ -103,5 +103,5 @@
   "pyannote/pyannote-audio": "Speaker diarization",
   "YaroslavHolub/stable-diffusion-webui": "Control candidate",
   "openai/whisper": "Transcription candidate",
-  "home-assistant/core": "Afon IoT backend"
+  "home-assistant/core": "Mushegh IoT backend"
 }

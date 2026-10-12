@@ -10,7 +10,7 @@ Every gate between something the model said and something the machine did: which
 may run without asking, which require a confirmation, and which are refused regardless of
 what anyone says.
 
-Three rules are the system. **The silent-ok list is a whitelist** (D-07): Afon may act
+Three rules are the system. **The silent-ok list is a whitelist** (D-07): Mushegh may act
 unprompted for exactly five things — toggling predefined lighting scenes, appending to
 daily notes, setting local timers, read-only file and system queries, and polling transit
 and weather. Every other mutation is confirmed, and a new silent-ok action is a decision,
@@ -24,35 +24,35 @@ confirmation, not with an approval. And what makes those three mean anything:
 hardware key, never a request in conversation.
 
 If this is absent: nothing else in the charter holds. D-46's half-baked background actions
-and D-50's bad Afon are both what a missing gate looks like in production.
+and D-50's bad Mushegh are both what a missing gate looks like in production.
 
 ## Structure
 
-- `src/afon/brain/proactive.py` — `CONFIRM_TIER`, the single table of gated tools, with
+- `src/mushegh/brain/proactive.py` — `CONFIRM_TIER`, the single table of gated tools, with
   three dynamic cases on top: `_sequence_needs_confirm` (a macro or skill whose steps
   contain a gated tool gates; a read-only one does not; an unknown sequence gates,
   because failing closed is the safe side), `_composio_write` (a Composio slug gates
   only when it is a write), `_update_is_destructive` (adding a note stays frictionless;
   blanking a field gates). Task capture is deliberately ungated, with the "mark everything
   done" sweep gated as the exception.
-- `src/afon/brain/argcheck.py` — `check_args` runs before dispatch, so a malformed call is
+- `src/mushegh/brain/argcheck.py` — `check_args` runs before dispatch, so a malformed call is
   caught at the boundary rather than by each handler's own defence.
-  `src/afon/brain/approvals.py` — `ApprovalQueue`: `enqueue`, `pending`, `find`, `approve`,
-  `reject(reason)`, `prune`, `render`, plus `src/afon/brain/tools/approvals.py` for the
+  `src/mushegh/brain/approvals.py` — `ApprovalQueue`: `enqueue`, `pending`, `find`, `approve`,
+  `reject(reason)`, `prune`, `render`, plus `src/mushegh/brain/tools/approvals.py` for the
   model-facing surface.
-- `src/afon/brain/audit.py` — one JSON line per tool call into daily files, `_redact`
+- `src/mushegh/brain/audit.py` — one JSON line per tool call into daily files, `_redact`
   scrubbing secret values before the write. The trail is append-only and best-effort: no
   hash, no chain, no signature, and the module's own docstring says writes are
   fail-quiet, so a failed write is dropped rather than raised. It is what makes any of
   this explainable afterwards, and it is **not** tamper-evident — `45.R10` tracks adding
   an integrity check a reader can run without the framework, or striking the word from
-  every document. `src/afon/brain/judgment.py` — the value-precedence layer;
+  every document. `src/mushegh/brain/judgment.py` — the value-precedence layer;
   Safety > Privacy > Honesty > Helpfulness (D-10) still has no explicit test suite, and
   that gap belongs to S44 and M26.
-- `src/afon/brain/data_classes.py` — what each store may hold and whether it may leave the
+- `src/mushegh/brain/data_classes.py` — what each store may hold and whether it may leave the
   host: `classify(name)`, `must_not_leave()`, `summary()`, `unclassified()`.
-  `python -m afon.brain.data_classes` prints the table. The park switch in
-  `src/afon/brain/maintenance.py` halts every role on every host (36.F4).
+  `python -m mushegh.brain.data_classes` prints the table. The park switch in
+  `src/mushegh/brain/maintenance.py` halts every role on every host (36.F4).
 - `SECURITY.md` — the written tier, kept honest **in both directions** against
   `CONFIRM_TIER` by `bench/test_confirm_tier_documented.py`. The doc must not promise a
   gate that does not exist, and every gate must be written down.
@@ -103,7 +103,7 @@ into it — voice, HUD, scheduler, worker and automation alike.
 5. **B1** — the pre-push and pre-commit path (D-57, M33): refuses secrets, vault contents,
    hostnames and biometric templates. Threshold: 0 leaks against a seeded fixture. Last
    measurement: `not yet measured` for a seeded run; the gate runs on every push.
-6. **B2** — `36.E1`, the adversarial drill: 30 attempts to talk Afon past the gates, 0
+6. **B2** — `36.E1`, the adversarial drill: 30 attempts to talk Mushegh past the gates, 0
    successes. The gate is `bench/test_adversarial_prompts.py`, which does not exist. Last
    measurement: `not yet measured`. A conversation is not an authority (D-14), and this
    is the only evidence that a persuasive turn cannot become one.
@@ -114,9 +114,9 @@ into it — voice, HUD, scheduler, worker and automation alike.
 
 **A gate is bypassed.** Read the tier, then the call:
 
-    python -c "from afon.brain.proactive import CONFIRM_TIER; print(len(CONFIRM_TIER))"
-    journalctl -u openafon-brain --since "1h" | grep -iE "confirm|approval|gate"
-    ls -la "$AFON_STATE_DIR"/approvals.json
+    python -c "from mushegh.brain.proactive import CONFIRM_TIER; print(len(CONFIRM_TIER))"
+    journalctl -u openmushegh-brain --since "1h" | grep -iE "confirm|approval|gate"
+    ls -la "$MUSHEGH_STATE_DIR"/approvals.json
 
 **`SECURITY.md` and the code disagree.** The test exists for this and failed once, badly:
 `python bench/test_confirm_tier_documented.py`.
@@ -125,8 +125,8 @@ into it — voice, HUD, scheduler, worker and automation alike.
 by short id and `approve` consumes one, so two mutations under one id is a D-09 breach
 rather than a UX issue:
 
-    python -c "from afon.brain.approvals import ApprovalQueue; print(ApprovalQueue().render())"
-    journalctl -u openafon-brain --since "1h" | grep -iE "approved|approval"
+    python -c "from mushegh.brain.approvals import ApprovalQueue; print(ApprovalQueue().render())"
+    journalctl -u openmushegh-brain --since "1h" | grep -iE "approved|approval"
 
 **A secret reached the audit log, or something asked nicely and was obeyed.** `_redact`
 runs before the write, so a raw token means the redaction list missed a key. A
@@ -135,7 +135,7 @@ every line looks ordinary — the evidence for it is the gate test having passed
 direct override attempt in its set:
 
     grep -rlE "(token|key|secret)=" audit_log/ | head
-    python -c "from afon.brain.data_classes import must_not_leave; print(must_not_leave())"
+    python -c "from mushegh.brain.data_classes import must_not_leave; print(must_not_leave())"
 
 ## Open questions
 

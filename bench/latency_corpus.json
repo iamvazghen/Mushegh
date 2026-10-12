@@ -1,0 +1,102 @@
+{
+  "_why": "M13's acceptance criterion is 'measured over 30 utterances per device, method and date recorded'. Neither existing latency gate measures this: bench/test_latency_budget.py is a live regression guard on ONE round-trip, and bench/test_latency_guard.py states outright that it is not a measurement. Without a fixed corpus, '30 utterances' is whatever the measurer happened to say, and two runs are not comparable. This file is that corpus. See docs/LATENCY-METHOD.md.",
+  "schema": "batches[].device carries the D-35 budget; utterances are grouped by class so the reader can see what the number is made of rather than only the number.",
+
+  "conditions": {
+    "room": "quiet; no fans, no music, no other voice. A noise-floor sweep (M14) is a separate task and does not gate this one.",
+    "device": "one device, one power state. Battery saver OFF — it changes CPU clocks and the number is meaningless across power states.",
+    "brain": "the VPS brain at its normal location (tailnet), not localhost. A localhost number is a different product.",
+    "tts": "the configured default, recorded by name. D-17 makes local the default; recording WHICH ran is the point of M16.",
+    "stt": "the configured provider, recorded by name (D-19/D-56: local when available).",
+    "concurrent_load": "no other agent, no `graphify` run, no docker build, no behavioural suite. The 2026-10-10 session saw the LLM primary's first-token behaviour swing 403ms to 2829ms on an idle box, so this is not ceremony.",
+    "edge_state": "NOT parked. The MAINTENANCE file in the state root parks the edge deliberately; this measurement requires it running, which means the owner has unparked it. That is the owner's call, not this file's."
+  },
+
+  "statistics": {
+    "reported": ["p50", "p95", "mean", "n"],
+    "why_p95_not_mean": "D-35 is a ceiling the owner experiences on the worst turn, and the milestone says p95 explicitly. A mean hides exactly the tail that makes the product feel slow.",
+    "buckets": "stt / brain / tts, from the marks latency_meter already attributes. A run that misses the budget must name the bucket, or it is a number without a next action.",
+    "excluded": [
+      "turns with no STT mark (a reflex turn has nothing to wait for) — the meter renders these '?'; they are counted separately, never averaged in",
+      "barge-in turns — measured under M12 / D-49 (<350 ms to halt playback), which is a different number with a different budget"
+    ],
+    "repeat": "three passes over the corpus per device; report the median of the three p95s, and say so. A single pass is a sample, not a measurement."
+  },
+
+  "batches": [
+    {
+      "device": "laptop",
+      "budget_ms": 300,
+      "decision": "D-35",
+      "utterances": [
+        {"class": "reflex", "say": "what time is it"},
+        {"class": "reflex", "say": "stop"},
+        {"class": "reflex", "say": "never mind"},
+        {"class": "reflex", "say": "lights out"},
+        {"class": "reflex", "say": "how much power is left"},
+        {"class": "chat", "say": "how was your day"},
+        {"class": "chat", "say": "what is on my plate tomorrow"},
+        {"class": "chat", "say": "remind me to call the dentist"},
+        {"class": "chat", "say": "what did I ask you about the lease yesterday"},
+        {"class": "chat", "say": "is the garage still open"},
+        {"class": "chat", "say": "read me the last note I wrote"},
+        {"class": "chat", "say": "did I ever fix the coffee machine"},
+        {"class": "tool", "say": "check my email"},
+        {"class": "tool", "say": "what is the weather in Vanadzor"},
+        {"class": "tool", "say": "play something by Vivaldi"},
+        {"class": "tool", "say": "how many steps did I take today"},
+        {"class": "tool", "say": "add milk to the shopping list"},
+        {"class": "tool", "say": "look up the capital of Japan"},
+        {"class": "compound", "say": "what time is it and remind me to call mum"},
+        {"class": "compound", "say": "check my email and remember the lease date"},
+        {"class": "compound", "say": "look up the weather and note it for tomorrow"},
+        {"class": "compound", "say": "what is on today and add it to my task list"},
+        {"class": "compound", "say": "find my keys and tell me when I last used them"},
+        {"class": "adversarial", "say": "what will bitcoin be worth next year"},
+        {"class": "adversarial", "say": "am I going to get the job I applied for"},
+        {"class": "adversarial", "say": "will it rain here next Tuesday"},
+        {"class": "adversarial", "say": "should I buy a house this year"},
+        {"class": "long", "say": "summarise the last three notes in my journal"},
+        {"class": "long", "say": "what have I decided about the Vanadzor trip"},
+        {"class": "long", "say": "read the vault note about the rabbit farm and tell me what it says"}
+      ]
+    },
+    {
+      "device": "phone",
+      "budget_ms": 500,
+      "decision": "D-35",
+      "utterances": [
+        {"class": "reflex", "say": "what time is it"},
+        {"class": "reflex", "say": "stop"},
+        {"class": "reflex", "say": "lights out"},
+        {"class": "reflex", "say": "how much power is left"},
+        {"class": "chat", "say": "how was your day"},
+        {"class": "chat", "say": "what is on my plate tomorrow"},
+        {"class": "chat", "say": "remind me to call the dentist"},
+        {"class": "chat", "say": "what did I ask you about the lease yesterday"},
+        {"class": "chat", "say": "is the garage still open"},
+        {"class": "chat", "say": "read me the last note I wrote"},
+        {"class": "chat", "say": "did I ever fix the coffee machine"},
+        {"class": "tool", "say": "check my email"},
+        {"class": "tool", "say": "what is the weather in Vanadzor"},
+        {"class": "tool", "say": "play something by Vivaldi"},
+        {"class": "tool", "say": "how many steps did I take today"},
+        {"class": "tool", "say": "add milk to the shopping list"},
+        {"class": "tool", "say": "look up the capital of Japan"},
+        {"class": "compound", "say": "what time is it and remind me to call mum"},
+        {"class": "compound", "say": "check my email and remember the lease date"},
+        {"class": "compound", "say": "look up the weather and note it for tomorrow"},
+        {"class": "compound", "say": "what is on today and add it to my task list"},
+        {"class": "compound", "say": "what's the weather and add it to tomorrow's note"},
+        {"class": "adversarial", "say": "what will bitcoin be worth next year"},
+        {"class": "adversarial", "say": "am I going to get the job I applied for"},
+        {"class": "adversarial", "say": "will it rain here next Tuesday"},
+        {"class": "adversarial", "say": "should I buy a house this year"},
+        {"class": "long", "say": "summarise the last three notes in my journal"},
+        {"class": "long", "say": "what have I decided about the Vanadzor trip"},
+        {"class": "long", "say": "read the vault note about the rabbit farm"},
+        {"class": "long", "say": "what are the next three things I said I would do"}
+      ]
+    }
+  ]
+}

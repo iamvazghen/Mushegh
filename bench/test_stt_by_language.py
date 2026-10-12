@@ -2,7 +2,7 @@
 
 The owner speaks six languages; the configured ear hears five. Deepgram's nova-3 `multi` covers
 en/es/fr/de/ru and NOT Ukrainian, so Ukrainian speech does not fail — it comes back as plausible
-Russian, the language detector agrees with it, and Afon answers confidently in the wrong language.
+Russian, the language detector agrees with it, and Mushegh answers confidently in the wrong language.
 
 A **predictive** router (identify the language from the audio first) was designed, MEASURED, and
 REJECTED: faster-whisper `detect_language()` on this machine costs 1089ms on `tiny` and 2425ms on
@@ -70,13 +70,13 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.edge.stt_routing import (
+    from mushegh.edge.stt_routing import (
         CANNOT_HEAR, HEARD, NO_LOCAL, UNKNOWN_LANGUAGE, StickyEarRouter, choose_ear, ear_covers,
     )
-    from afon.shared.language import STT_COVERAGE
+    from mushegh.shared.language import STT_COVERAGE
 
     print("\n[1] the cost that killed the predictive design is on the record")
-    src = (ROOT / "src" / "afon" / "edge" / "stt_routing.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "edge" / "stt_routing.py").read_text(encoding="utf-8")
     check("the module states the measured detect_language() cost",
           "1089ms" in src and "2425ms" in src, "the refutation number is missing")
     check("...and says the design was rejected rather than deferred",
@@ -208,15 +208,15 @@ def main() -> int:
             imports.update(a.name.split(".")[0] for a in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             imports.add(node.module.split(".")[0])
-    check("the module imports only stdlib and afon",
-          imports <= {"__future__", "dataclasses", "afon"}, str(sorted(imports)))
+    check("the module imports only stdlib and mushegh",
+          imports <= {"__future__", "dataclasses", "mushegh"}, str(sorted(imports)))
     check("it imports no pipecat frame machinery, because the wiring is not in here",
           "pipecat" not in imports, str(sorted(imports)))
     check("the docstring says the wiring is a separate task, not done",
           "18.R8" in src, "the module claims more than it does")
 
     print("\n[10] the shipped default is unchanged, and that is asserted")
-    import afon.config as cfg
+    import mushegh.config as cfg
     fresh = cfg.Settings(_env_file=None)
     check("the code default is still Deepgram — this task adds logic, not a behaviour change",
           fresh.stt_provider == cfg.STTProvider.deepgram, fresh.stt_provider.value)

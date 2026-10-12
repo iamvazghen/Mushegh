@@ -21,7 +21,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.tool_usage import ToolUsage  # noqa: E402
+from mushegh.brain.tool_usage import ToolUsage  # noqa: E402
 
 passed = failed = 0
 
@@ -140,7 +140,7 @@ def main() -> int:
         # but-name tool from sitting in the registry unnoticed.
         import re as _re
 
-        from afon.brain.tools import tool_names
+        from mushegh.brain.tools import tool_names
 
         bench_dir = Path(__file__).resolve().parent
         corpus = "\n".join(p.read_text(encoding="utf-8", errors="ignore")

@@ -27,9 +27,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.memory import MemoryStore
 
-    tmp = Path(tempfile.mkdtemp(prefix="afon-mem-"))
+    tmp = Path(tempfile.mkdtemp(prefix="mushegh-mem-"))
     store = MemoryStore(base_dir=tmp)
 
     print("[1] remember + recall")
@@ -79,8 +79,8 @@ def main() -> None:
     check("remember('') -> None", store.remember("   ") is None)
 
     print("\n[8] recall tool degrades when memory disabled")
-    import afon.brain.tools.memory as memtool
-    import afon.config as cfg
+    import mushegh.brain.tools.memory as memtool
+    import mushegh.config as cfg
 
     old = cfg.settings.memory_enabled
     try:
@@ -91,7 +91,7 @@ def main() -> None:
         cfg.settings.memory_enabled = old
 
     print("\n[9] vault (L3) validation reports clearly")
-    from afon.brain.context import validate_vault
+    from mushegh.brain.context import validate_vault
 
     ok_v, msg_v = validate_vault()
     check("validate_vault returns (bool, message)", isinstance(ok_v, bool) and isinstance(msg_v, str), msg_v)
@@ -117,9 +117,9 @@ def main() -> None:
     # From a real trace: the model called recall({'entity': …, 'key': …}) and recall({'text': …})
     # where the schema says `query`. The tool read only `query`, found nothing, and returned the
     # conversational "What should I recall, sir?" — which the model then SPOKE as its answer. An
-    # independent audit scored those echoes as Afon failing to describe his own governance. The
+    # independent audit scored those echoes as Mushegh failing to describe his own governance. The
     # intent was right every time; only the key was wrong.
-    from afon.brain.tools.memory import _arg, forget as _forget, recall as _recall
+    from mushegh.brain.tools.memory import _arg, forget as _forget, recall as _recall
 
     for args, label in [({"entity": "governance", "key": "GDPR Art. 9"}, "entity+key"),
                         ({"text": "openclaw fleet"}, "text"),

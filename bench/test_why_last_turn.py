@@ -47,14 +47,14 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def why() -> str:
-    from afon.brain.tools.diagnose import diagnose
+    from mushegh.brain.tools.diagnose import diagnose
 
     return asyncio.run(diagnose({"about": "last_turn"}))
 
 
 def main() -> None:
-    from afon.brain import citations as C
-    from afon.brain import turn_trace as tt
+    from mushegh.brain import citations as C
+    from mushegh.brain import turn_trace as tt
 
     print("[1] before anything has happened, he says so rather than inventing an account")
     tt._RING.clear()
@@ -129,7 +129,7 @@ def main() -> None:
           tt.is_complete(row), row)
 
     print("\n[7] it costs nothing per turn")
-    from afon.brain.tools import core_tool_schemas
+    from mushegh.brain.tools import core_tool_schemas
 
     names = {s["function"]["name"] for s in core_tool_schemas()}
     check("no new tool was added for it", "why" not in names and "why_last_turn" not in names)
@@ -162,7 +162,7 @@ def _boom():
 
 
 async def _diag():
-    from afon.brain.tools.diagnose import diagnose
+    from mushegh.brain.tools.diagnose import diagnose
 
     return await diagnose({"about": "last_turn"})
 

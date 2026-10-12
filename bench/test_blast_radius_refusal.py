@@ -56,9 +56,9 @@ class _Resp:
 
 
 async def main() -> int:
-    from afon.brain.proactive import confirm_required
-    from afon.brain.tools import smarthome as sh
-    from afon.config import settings
+    from mushegh.brain.proactive import confirm_required
+    from mushegh.brain.tools import smarthome as sh
+    from mushegh.config import settings
 
     settings.ha_url = "http://ha.local:8123"
     settings.ha_token = "test-token"

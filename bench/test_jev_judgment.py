@@ -33,7 +33,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 async def service_contract(root: Path) -> None:
-    from afon.brain.judgment import JudgmentService, explicit_decision
+    from mushegh.brain.judgment import JudgmentService, explicit_decision
 
     print("[1] conservative explicit-option parser")
     parsed = explicit_decision("Choose between taking the train or driving the car.")
@@ -142,11 +142,11 @@ class FakeLLM:
 
 
 async def agent_contract(root: Path) -> None:
-    import afon.brain.agent as agent_module
-    from afon.brain.agent import AfonAgent
-    from afon.brain.judgment import DecisionVerdict
+    import mushegh.brain.agent as agent_module
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain.judgment import DecisionVerdict
 
-    os.environ["AFON_TRACE_DIR"] = str(root / "traces")
+    os.environ["MUSHEGH_TRACE_DIR"] = str(root / "traces")
     selected = DecisionVerdict(
         request_id="req-1", correlation_id="turn-1", kind="explicit_options",
         option_ids=("option_1", "option_2"), selected_id="option_2", selected_text="green",
@@ -163,7 +163,7 @@ async def agent_contract(root: Path) -> None:
     try:
         print("\n[5] LLM can phrase but cannot reverse the Jev choice")
         agent_module.JUDGMENTS = StubJudgments(selected)
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._history = []
         agent._persist_session = lambda: None
         agent._spawn_review = lambda: None
@@ -177,7 +177,7 @@ async def agent_contract(root: Path) -> None:
               "green" in prompt_wire and "blue" not in prompt_wire, prompt_wire)
 
         print("\n[6] streaming and buffered paths share the decision seam")
-        agent2 = AfonAgent()
+        agent2 = MusheghAgent()
         agent2._history = []
         agent2._persist_session = lambda: None
         agent2._spawn_review = lambda: None
@@ -190,7 +190,7 @@ async def agent_contract(root: Path) -> None:
 
         print("\n[7] Jev outage cannot silently become an LLM decision")
         agent_module.JUDGMENTS = StubJudgments(unavailable)
-        agent3 = AfonAgent()
+        agent3 = MusheghAgent()
         agent3._history = []
         agent3._persist_session = lambda: None
         agent3._spawn_review = lambda: None
@@ -203,7 +203,7 @@ async def agent_contract(root: Path) -> None:
         print("\n[8] deterministic catastrophic refusal stays above Jev")
         counter = StubJudgments(selected)
         agent_module.JUDGMENTS = counter
-        agent4 = AfonAgent()
+        agent4 = MusheghAgent()
         agent4._history = []
         agent4._persist_session = lambda: None
         refused = await agent4.respond("format c:")
@@ -215,7 +215,7 @@ async def agent_contract(root: Path) -> None:
 
 
 async def main() -> None:
-    with tempfile.TemporaryDirectory(prefix="afon-jev-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="mushegh-jev-") as tmp:
         root = Path(tmp)
         await service_contract(root)
         await agent_contract(root)

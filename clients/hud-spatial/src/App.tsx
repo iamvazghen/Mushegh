@@ -119,7 +119,7 @@ export function App() {
       send({ type: 'open', id: '3d_engine' });
       if (!state.hero) send({ type: 'hero', id: '3d_engine' });
     } else return false;
-    if (remote && command.action !== 'explain') setNotice(`Afon applied: ${command.action.replace('_', ' ')}`);
+    if (remote && command.action !== 'explain') setNotice(`Mushegh applied: ${command.action.replace('_', ' ')}`);
     return true;
   }
 
@@ -143,7 +143,7 @@ export function App() {
 
   function submitCommand(event: React.FormEvent) {
     event.preventDefault();
-    const text = query.toLowerCase().replace(/^(jarvis|afon|watari)[, ]*/g, '').trim();
+    const text = query.toLowerCase().replace(/^(jarvis|mushegh|watari)[, ]*/g, '').trim();
     const canvas = canvasForText(text);
     const primitive = ['box', 'sphere', 'cylinder', 'cone', 'torus'].find(item => new RegExp(`\\b${item}\\b`).test(text));
     let applied = false;
@@ -188,7 +188,7 @@ export function App() {
   }
   function body(id: CanvasId, visible: boolean) {
     const needsBrain = ['goals', 'diagnostics', 'decisions', 'approvals', 'agents', 'security'].includes(id);
-    if (needsBrain && status === 'connecting' && !snapshot) return <CanvasLoader label="Connecting to Afon" detail="Waiting for the authenticated HUD snapshot"/>;
+    if (needsBrain && status === 'connecting' && !snapshot) return <CanvasLoader label="Connecting to Mushegh" detail="Waiting for the authenticated HUD snapshot"/>;
     if (id === 'transcription') return <Conversation/>;
     if (id === 'goals') return <Goals data={snapshot}/>;
     if (id === 'diagnostics') return <Diagnostics data={snapshot} history={history} reduced={reduced} refresh={reconnect}/>;
@@ -199,7 +199,7 @@ export function App() {
     if (id === 'pdf_reader') return <PdfCanvas active={visible && pageVisible}/>;
     if (id === 'audio') return <AudioCanvas/>;
     const canvas = CANVASES.find(item => item.id === id)!;
-    const message = id === 'browser' ? 'Connect the isolated browser streaming gateway before Afon can navigate or explain a page here.' : id === 'cameras' ? 'Connect an authenticated camera gateway before live or recorded feeds can appear.' : `This canvas is addressable by Afon, but ${canvas.source.toLowerCase()} before it can show real information.`;
+    const message = id === 'browser' ? 'Connect the isolated browser streaming gateway before Mushegh can navigate or explain a page here.' : id === 'cameras' ? 'Connect an authenticated camera gateway before live or recorded feeds can appear.' : `This canvas is addressable by Mushegh, but ${canvas.source.toLowerCase()} before it can show real information.`;
     return <Empty title={`${canvas.title} source unavailable`} icon={canvas.icon}><p>{message}</p></Empty>;
   }
 
@@ -207,10 +207,10 @@ export function App() {
     <div className="hud-shell">
       <div className="command-surface">
         <form className="command-form" onSubmit={submitCommand} role="search">
-          <span className={`brain-indicator ${status}`} title={`Afon brain: ${status}`} aria-label={`Afon brain ${status}`}/>
+          <span className={`brain-indicator ${status}`} title={`Mushegh brain: ${status}`} aria-label={`Mushegh brain ${status}`}/>
           <CommandIcon size={17} aria-hidden="true"/>
-          <label className="sr-only" htmlFor="hud-command">Afon command or canvas search</label>
-          <input ref={searchInput} id="hud-command" value={query} onFocus={() => setSearchOpen(true)} onChange={event => { setQuery(event.target.value); setSearchOpen(true); setNotice(''); }} placeholder="Ask Afon to open, move, explain, inspect, or render…" autoComplete="off"/>
+          <label className="sr-only" htmlFor="hud-command">Mushegh command or canvas search</label>
+          <input ref={searchInput} id="hud-command" value={query} onFocus={() => setSearchOpen(true)} onChange={event => { setQuery(event.target.value); setSearchOpen(true); setNotice(''); }} placeholder="Ask Mushegh to open, move, explain, inspect, or render…" autoComplete="off"/>
           {query && <button type="button" className="clear-command" aria-label="Clear command" onClick={() => { setQuery(''); setNotice(''); searchInput.current?.focus(); }}><X size={15}/></button>}
           <button type="submit" className="run-command" aria-label="Run HUD command" disabled={!query.trim()}><Send size={16}/></button>
           <kbd>Ctrl K</kbd>

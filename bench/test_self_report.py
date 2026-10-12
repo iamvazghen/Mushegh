@@ -46,7 +46,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 passed = failed = 0
 
-#: The REAL shape `afon.shared.errors.summary()` returns — taken from an actual call, not invented,
+#: The REAL shape `mushegh.shared.errors.summary()` returns — taken from an actual call, not invented,
 #: so the composition is proven against what the reader produces.
 REAL_SUMMARY = {
     "window_minutes": 10080, "total": 17, "ok": 597, "operations": 614,
@@ -72,9 +72,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.brain.self_report import (MEASURED, NO_DATA, asks_all_three, render, self_report)
+    from mushegh.brain.self_report import (MEASURED, NO_DATA, asks_all_three, render, self_report)
 
-    with tempfile.TemporaryDirectory(prefix="afon-selfreport-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-selfreport-") as td:
         root = Path(td)
 
         print("\n[1] it asks exactly the three questions 31.R3 names")
@@ -153,7 +153,7 @@ def main() -> int:
               rep4["broke"]["status"] != rep4["repaired"]["status"], "uniform status hides the gap")
 
         print("\n[6] it composes from the real readers, not a mock of itself")
-        src = (ROOT / "src" / "afon" / "brain" / "self_report.py").read_text(encoding="utf-8")
+        src = (ROOT / "src" / "mushegh" / "brain" / "self_report.py").read_text(encoding="utf-8")
         check("it calls errors.summary by default", "journal_summary" in src and "since_minutes" in src)
         check("...and reads the escalation file by NAME", "health_escalation.json" in src)
         check("...and a corrupt file is no-data, not an exception",

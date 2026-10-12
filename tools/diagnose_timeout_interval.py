@@ -31,7 +31,7 @@ import httpx
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 CONTROL_SLEEP = 4.0
 
@@ -100,8 +100,8 @@ async def main() -> int:
         "model": settings.jev_model,
         "state": {"question": "what is on today"},
         "questions": {"route": {"type": "choice", "instructions": "Pick the group.",
-                                "criteria": {"group_1": "afon.brain.tools.calendar",
-                                             "group_2": "afon.brain.tasks"}}},
+                                "criteria": {"group_1": "mushegh.brain.tools.calendar",
+                                             "group_2": "mushegh.brain.tasks"}}},
     }
 
     print("\n  JEv - api.typesafe.ai, real endpoint")

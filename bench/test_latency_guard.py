@@ -40,7 +40,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
 
     print("[1] config latency invariants (a regression here dooms every turn)")
     target = settings.ttfw_target_ms
@@ -90,10 +90,10 @@ def main() -> None:
     #
     # The reason this floor exists is not preference: Deepgram's nova-3 `multi` cannot transcribe
     # UKRAINIAN, which the owner speaks, and that failure is silent — plausible Russian comes back
-    # and Afon answers confidently in the wrong language. Neither provider is acceptable alone, so
+    # and Mushegh answers confidently in the wrong language. Neither provider is acceptable alone, so
     # the fix is routing by language rather than picking a winner; that is 18.R7 and the owner's
     # call. Until then this guard holds the default where the measurement says it can live.
-    from afon.config import STTProvider
+    from mushegh.config import STTProvider
     default_stt = type(settings)().stt_provider  # a fresh Settings() = the shipped default, not .env
     check("shipped default STT is deepgram (streaming, low-latency)",
           default_stt == STTProvider.deepgram, str(default_stt))
@@ -104,18 +104,18 @@ def main() -> None:
     # intent_router's 27 regexes. warmup() must pre-pay it.
     import sys as _sys
 
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
     # 01.R1 moved the turn-kind detectors into intent_router and agent.py imports it at module
     # level, so the regexes compile when the brain imports the agent — earlier than the warm, which
     # is strictly better. Popping it from sys.modules can no longer prove anything: the package
-    # still holds the attribute, so `from afon.brain import intent_router` would not re-import.
+    # still holds the attribute, so `from mushegh.brain import intent_router` would not re-import.
     check("importing the agent has already paid intent_router's import",
-          "afon.brain.intent_router" in _sys.modules,
+          "mushegh.brain.intent_router" in _sys.modules,
           "the first turn of the day would compile 27 regexes")
     # What the warm still owes: the tool registry, and a route actually executed end to end. This
     # ran for months raising TypeError on its first statement, swallowed at debug level, so it
     # warmed NOTHING and nothing said so. Assert the effect, not the source text.
-    _agent = AfonAgent()
+    _agent = MusheghAgent()
     _warned: list[str] = []
     from loguru import logger as _lg
 
@@ -126,11 +126,11 @@ def main() -> None:
         _lg.remove(_sink)
     check("_warm_turn_path completes without being swallowed",
           not any("warm skipped" in w for w in _warned), "; ".join(_warned)[:200])
-    from afon.brain.intent_router import forced_tools as _ft
+    from mushegh.brain.intent_router import forced_tools as _ft
     check("...and the routes it warmed actually answer", _ft("remind me to call mum") != [])
     check("warmup() actually calls it (not just defined)",
-          "_warm_turn_path" in AfonAgent.warmup.__code__.co_names,
-          str(AfonAgent.warmup.__code__.co_names))
+          "_warm_turn_path" in MusheghAgent.warmup.__code__.co_names,
+          str(MusheghAgent.warmup.__code__.co_names))
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

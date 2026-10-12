@@ -10,7 +10,7 @@
 
 A communication hub's obvious job is sending, and the sharpest constraint in this system
 is that it does not send. D-13 puts external email and messaging dispatch inside the blast
-radius: Afon can never touch it without the owner physically present. That is not a
+radius: Mushegh can never touch it without the owner physically present. That is not a
 missing feature to be scheduled — it is the design. A hub that could send on its own
 would have a failure mode with an external, irreversible, third-party blast radius, which
 is precisely the category D-13 exists to close.
@@ -33,13 +33,13 @@ the value of the system is limited to whatever a single script could have done.
 
 | Path | Process | Role |
 |---|---|---|
-| `src/afon/brain/tools/inbox.py` | brain | 38.F2 — one "what's waiting for me" view, merged across channels and deduplicated by thread |
-| `src/afon/brain/tools/gmail.py`, `src/afon/brain/google.py` | brain | 38.F1 — read, draft and send mail through one OAuth app |
-| `src/afon/brain/tools/telegram.py`, `src/afon/brain/telegram_bridge.py` | brain | The Telegram path; the bridge doubles as the 24/7 reach channel for S23 |
-| `src/afon/brain/contacts.py`, `src/afon/brain/tools/contacts.py` | brain | 38.F1 — "email John" is useless until John is an address |
-| `src/afon/brain/approvals.py` | brain | 38.F3 — deferred outward steps become APPROVABLE actions; the send gate, and the place that refuses email, publishing, spending and deleting while unattended |
-| `src/afon/brain/delivery.py` | brain | What happened to a notification after it left, per channel (13.F3) |
-| `src/afon/brain/tools/notify.py` | brain | The delivery surface every message is charged against (D-29) |
+| `src/mushegh/brain/tools/inbox.py` | brain | 38.F2 — one "what's waiting for me" view, merged across channels and deduplicated by thread |
+| `src/mushegh/brain/tools/gmail.py`, `src/mushegh/brain/google.py` | brain | 38.F1 — read, draft and send mail through one OAuth app |
+| `src/mushegh/brain/tools/telegram.py`, `src/mushegh/brain/telegram_bridge.py` | brain | The Telegram path; the bridge doubles as the 24/7 reach channel for S23 |
+| `src/mushegh/brain/contacts.py`, `src/mushegh/brain/tools/contacts.py` | brain | 38.F1 — "email John" is useless until John is an address |
+| `src/mushegh/brain/approvals.py` | brain | 38.F3 — deferred outward steps become APPROVABLE actions; the send gate, and the place that refuses email, publishing, spending and deleting while unattended |
+| `src/mushegh/brain/delivery.py` | brain | What happened to a notification after it left, per channel (13.F3) |
+| `src/mushegh/brain/tools/notify.py` | brain | The delivery surface every message is charged against (D-29) |
 
 **Data flow.** The brain process polls or receives on each channel, resolves senders and
 recipients through the local contact book, merges threads in `inbox.py`, and hands the
@@ -74,7 +74,7 @@ credential accounting stops a fifth token from being added.
 | 3 | B1 | `uv run python bench/test_approvals.py` [38.F3] plus the M27 dispatch refusal | a send with no approval produces 0 sends; an unattended worker refuses email, publish, spend and delete | registry records 38.F3 done; M27 open — not yet measured |
 | 4 | B1 | `uv run python bench/test_unified_inbox.py` [triage] | every item lands in exactly one of the four buckets; 0 unclassified; 0 item in two buckets | not yet measured (38.R1 open) |
 | 5 | B1 | `uv run python bench/test_unified_inbox.py` [thread] | a reply to a three-message thread carries the thread, not the last message alone | not yet measured (38.R2 open) |
-| 6 | B4 | `systemctl show openafon-brain -p Environment`, then diff the credentials against the D-62 four | exactly 4 tokens; 0 credentials beyond Home Assistant, CalDAV, Matrix and one weather/transit API | not yet measured — the running configuration was not audited here, and two channels already sit outside the four |
+| 6 | B4 | `systemctl show openmushegh-brain -p Environment`, then diff the credentials against the D-62 four | exactly 4 tokens; 0 credentials beyond Home Assistant, CalDAV, Matrix and one weather/transit API | not yet measured — the running configuration was not audited here, and two channels already sit outside the four |
 | 7 | B1 | `uv run python bench/test_phase11_integrations.py` | nothing in the hub raises an audio interruption above the daily budget of 3; 0 during a focus block | not yet measured |
 
 Goal 3 is the one that cannot be allowed to regress silently: `approvals.py` states it
@@ -86,7 +86,7 @@ this system tolerable.
 **The hub becomes a send bot.** A turn drafts, the approval gate is misread as a
 formality, and a message leaves that the owner never read. This is the D-13 failure and
 the only one here with an irreversible external effect. Diagnose:
-`journalctl -u openafon-brain -n 200 | grep -iE 'approv|send'`, then the approval rows
+`journalctl -u openmushegh-brain -n 200 | grep -iE 'approv|send'`, then the approval rows
 and the audit line for the same timestamp.
 
 **The merge lies about volume.** One conversation arriving on two channels is reported
@@ -100,18 +100,18 @@ the four, so the fifth arrives without ceremony. D-62 was amended on 2026-10-03 
 exactly this reason. It now carries a table mapping every credential in `.env.example`
 to a system, to the decision it answers to, and to whether it is configured — plus the
 rule that no credential may be added without a row. Diagnose: `systemctl show
-openafon-brain -p Environment`, then read each entry against that table instead of
+openmushegh-brain -p Environment`, then read each entry against that table instead of
 against a four-item list that no longer describes the machine. `36.R4` tracks building
 the inventory from the code; this document only names the gate.
 
 **Triage decays into a feed.** A view that pushes unprompted is D-34 and, past three a
-day, D-29. Diagnose: `journalctl -u openafon-brain -n 200 | grep -iE 'proactive|triage'`,
+day, D-29. Diagnose: `journalctl -u openmushegh-brain -n 200 | grep -iE 'proactive|triage'`,
 then the daily interruption count.
 
 ## Open questions
 
 1. Is triage a rule the owner writes, or something inferred from his actions — and if
-   inferred, from which record? `src/afon/brain/tool_usage.py` holds durable per-tool
+   inferred, from which record? `src/mushegh/brain/tool_usage.py` holds durable per-tool
    counts, not per-message outcomes.
 2. When the owner approves a reply, does approval bind that exact text, or may the model
    revise it afterwards? D-09 says a confirmation never authorises the next action, which

@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 async def main() -> int:
-    from afon.brain.tools.notion import notion_tasks
+    from mushegh.brain.tools.notion import notion_tasks
 
     result = await notion_tasks({})
     text = str(result)

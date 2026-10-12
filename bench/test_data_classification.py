@@ -27,8 +27,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import data_classes as dc      # noqa: E402
-from afon.shared import paths                  # noqa: E402
+from mushegh.brain import data_classes as dc      # noqa: E402
+from mushegh.shared import paths                  # noqa: E402
 
 passed = failed = 0
 
@@ -75,10 +75,10 @@ def main() -> int:
         root = Path(tmp)
         (root / "voiceprint.json").write_text("{}", encoding="utf-8")
         check("a declared store in a clean root passes", dc.unclassified(root) == [])
-        (root / "afon_secrets.sqlite").write_text("", encoding="utf-8")
+        (root / "mushegh_secrets.sqlite").write_text("", encoding="utf-8")
         check("...and planting an undeclared store FAILS it",
-              dc.unclassified(root) == ["afon_secrets.sqlite"], str(dc.unclassified(root)))
-        (root / "afon_secrets.sqlite").unlink()
+              dc.unclassified(root) == ["mushegh_secrets.sqlite"], str(dc.unclassified(root)))
+        (root / "mushegh_secrets.sqlite").unlink()
         (root / "new_store_dir").mkdir()
         check("an undeclared DIRECTORY fails it too, not just a file",
               dc.unclassified(root) == ["new_store_dir"], str(dc.unclassified(root)))

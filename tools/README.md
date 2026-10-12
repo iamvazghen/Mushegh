@@ -17,7 +17,7 @@ Written during the 2026-10-08 pass over S01, in the order the questions came up.
 | `list_tool_names.py` | What does the registry actually contain? Exists because writing a scenario against a tool name that does not exist is worse than not writing it. |
 | `probe_unrouted_tools.py` | Which core-advertised tools can no route reach? Superseded by the gate `bench/test_tool_reachability.py`, which asserts the invariant rather than reporting it. |
 | `check_hedge_match.py` | Does the calibration scorer see the model's apostrophes? Carries the ASCII-vs-typographic control that motivated the fix in
-`src/afon/shared/uncertainty.py`. |
+`src/mushegh/shared/uncertainty.py`. |
 | `audit_exempt_routes.py` | **Audits the new gate itself.** `test_tool_reachability.py` requires every unrouted core tool to be exempt *with a reason*, and those 37 reasons were all written today, from reasoning about each tool's name rather than from testing it. This asks whether a plainly-implying request actually reaches them. Result: **1 of 12.** |
 | `probe_jev_live.py` | Can this host reach JEv at all, and is the failure a network or a missing credential? Separate the two, because `JudgmentService` short-circuits before HTTP when the key is absent. |
 | `probe_notion_residue.py` | How many `behavioral-suite-temp` rows has the suite left in the owner's real Notion? Read-only. |
@@ -56,7 +56,7 @@ false positive" that turned out to be my own ambiguous scenario.
 
 **`probe_tool_backed_unknowns.py`** — reports `tools fired: NONE` for prompts whose tools
 demonstrably fire. **Its capture does not work in that process**; the agent's own log is
-the authority. Used as-is it "proved" Afon invents weather and prices with no tool behind
+the authority. Used as-is it "proved" Mushegh invents weather and prices with no tool behind
 them, which is false — `run_all_tests`-style log lines show
 `_run_one_tool: tool weather(...)` and `_run_one_tool: tool crypto_price(...)` for the same
 prompts. Fifth measurement error of the session, and the same shape as the others: right
@@ -125,7 +125,7 @@ check.
 
 **Why both exist.** Of 105 candidate projects proposed by five research agents, **13 did not
 exist at all** and **7 more were cited under the wrong owner**. `cobotar/cowrie` is now
-`cowrie/cowrie`; `pslmodels/taxcalc` — the only candidate for Rubo's tax engine — is not real
+`cowrie/cowrie`; `pslmodels/taxcalc` — the only candidate for RUBEN's tax engine — is not real
 at any path. Six agents' worth of confident-sounding repo names would have gone straight into
 a document without either script. See `docs/INTEGRATION-MATRIX.md` §0.
 
@@ -159,4 +159,4 @@ gateway ran out of credit mid-run.
 suite caused by a billing state is a fact about the account, not a defect in the code, and
 nothing imports it into `run_all_tests.py`. Its default floor is 2 on purpose: one reachable
 provider is a primary, not a fallback, and with only one the behavioural score becomes a
-measurement of that provider rather than of Afon.
+measurement of that provider rather than of Mushegh.

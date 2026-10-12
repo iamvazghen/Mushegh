@@ -19,9 +19,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import tools  # noqa: E402
-from afon.brain.fleet import FLEET_TOOL_SCHEMA, delegate_to_fleet  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain import tools  # noqa: E402
+from mushegh.brain.fleet import FLEET_TOOL_SCHEMA, delegate_to_fleet  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 passed = 0
 failed = 0
@@ -52,13 +52,29 @@ async def main() -> None:
         for s in schemas))
     check("every schema has a handler", all(n in handlers for n in names))
 
-    print("\n[2] ispir-only delegation (no per-call agent override)")
-    props = FLEET_TOOL_SCHEMA["function"]["parameters"]["properties"]
-    check("delegate_to_fleet schema exposes no 'agent' param", "agent" not in props)
-    check("delegate_to_fleet() signature has no 'agent' param",
-          "agent" not in inspect.signature(delegate_to_fleet).parameters)
+    print("\n[2] per-agent delegation - INVERTED 2026-10-11, there is no team lead")
+    # This section used to assert the OPPOSITE of every line below: no `agent` parameter, and the
+    # description naming `ispir` as the team lead. That was right while one router re-read each
+    # brief and chose a specialist himself. `ispir` belonged to the eight-agent fleet deleted on
+    # 2026-10-08; the eighteen-agent fleet has no router, each agent owns its domains exclusively,
+    # so the choice moved into Mushegh and `agent` became REQUIRED. A test that still demanded its
+    # absence would have locked the fleet to an agent that does not exist.
+    from mushegh.brain import roster
+
+    params = FLEET_TOOL_SCHEMA["function"]["parameters"]
+    props = params["properties"]
+    check("delegate_to_fleet schema exposes an 'agent' param", "agent" in props)
+    check("...and it is required, so routing is never left to chance", "agent" in params["required"])
+    check("...enumerated as exactly the eighteen, so an invented name cannot be sent",
+          sorted(props["agent"].get("enum", [])) == sorted(roster.names()))
+    check("delegate_to_fleet() takes an 'agent' argument",
+          "agent" in inspect.signature(delegate_to_fleet).parameters)
     desc = FLEET_TOOL_SCHEMA["function"]["description"].lower()
-    check("schema description names ispir as the team lead", "ispir" in desc and "team lead" in desc)
+    check("the schema does NOT name the deleted router", "ispir" not in desc)
+    check("...and says plainly that there is no team lead",
+          "no team lead" in desc or "no router" in desc, desc[:160])
+    check("every agent is named in the description, since the model routes from it",
+          all(n in desc for n in roster.names()))
 
     print("\n[3] graceful degradation when unconfigured")
     # Force a clean slate so each 'not configured' path is exercised deterministically.
@@ -71,7 +87,7 @@ async def main() -> None:
     try:
         # web_search now has a KEYLESS tail (Jina Search), so it no longer has a 'not configured'
         # state — with no keys the provider chain is just the keyless Jina provider (Phase 4.5).
-        import afon.brain.tools.web as webmod
+        import mushegh.brain.tools.web as webmod
         chain = [n for n, _ in webmod._search_providers()]
         check("web_search w/o keys -> keyless Jina fallback only", chain == ["Jina"], str(chain))
         # scrape_url uses Jina Reader (keyless) so it has no 'not configured' state — not exercised here.
@@ -105,8 +121,8 @@ async def main() -> None:
             setattr(settings, k, v)
 
     print("\n[5] agent registers the Phase 3 tools")
-    from afon.brain.agent import AfonAgent
-    a = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    a = MusheghAgent()
     registered = {s["function"]["name"] for s in a._tools}
     check("agent exposes vault+web+telegram+fleet", expected <= registered)
     check("agent still has get_time + delegate_to_fleet",

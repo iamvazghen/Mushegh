@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Afon can reach the owner four ways: spoken through a listening edge, pushed to a phone,
+Mushegh can reach the owner four ways: spoken through a listening edge, pushed to a phone,
 messaged over Telegram, and rendered on the HUD. This system decides which one, when, and
 whether at all. The number that constrains everything is the **interruption budget**: at most
 three audio interruptions per day, and **zero** inside a scheduled focus block (D-29). That is
@@ -24,26 +24,26 @@ daily notes, setting a local timer, read-only queries, and polling transit or we
 without asking. Everything else confirms. The list is a whitelist; adding to it is a decision,
 not a feature.
 
-If it is absent, Afon either nags until he mutes the channel — and then misses the alert that
+If it is absent, Mushegh either nags until he mutes the channel — and then misses the alert that
 mattered — or stays silent and fails the one job it has.
 
 ## Structure
 
 | Path | Role |
 |---|---|
-| `src/afon/brain/delivery.py` | The ledger: `delivered` / `seen` / `acted-on`, one named inference to "seen", and the re-raise sweep (13.F3) |
-| `src/afon/brain/proactive.py` | The decision core — budget, quiet hours, relevance threshold, repeat suppression, day rollover — pure, with an injectable clock |
-| `src/afon/brain/scheduler.py` | One process-wide APScheduler persisted to SQLite; reminders survive a restart |
-| `src/afon/brain/telegram_bridge.py` | Inbound and outbound Telegram; only the owner's own chat id is answered |
-| `src/afon/brain/tools/notify.py`, `src/afon/brain/tools/phone.py`, `src/afon/brain/tools/telegram.py` | The handler belt for push, phone and Telegram |
-| `src/afon/brain/presence.py` | Answers "is he here", which is the input to channel choice |
-| `src/afon/edge/offline_queue.py` | Holds an undeliverable item until the edge returns |
+| `src/mushegh/brain/delivery.py` | The ledger: `delivered` / `seen` / `acted-on`, one named inference to "seen", and the re-raise sweep (13.F3) |
+| `src/mushegh/brain/proactive.py` | The decision core — budget, quiet hours, relevance threshold, repeat suppression, day rollover — pure, with an injectable clock |
+| `src/mushegh/brain/scheduler.py` | One process-wide APScheduler persisted to SQLite; reminders survive a restart |
+| `src/mushegh/brain/telegram_bridge.py` | Inbound and outbound Telegram; only the owner's own chat id is answered |
+| `src/mushegh/brain/tools/notify.py`, `src/mushegh/brain/tools/phone.py`, `src/mushegh/brain/tools/telegram.py` | The handler belt for push, phone and Telegram |
+| `src/mushegh/brain/presence.py` | Answers "is he here", which is the input to channel choice |
+| `src/mushegh/edge/offline_queue.py` | Holds an undeliverable item until the edge returns |
 
 The ledger is a JSON file, not a table — `state_dir() / "delivery_ledger.json"`, a few hundred
 rows, read once per re-raise sweep. A table would be the better shape at ten times that size;
 it is the wrong shape now, and the comment in the module says so.
 
-`src/afon/brain/delivery.py` is deliberately the *downstream* half. S14 decides whether to speak; this
+`src/mushegh/brain/delivery.py` is deliberately the *downstream* half. S14 decides whether to speak; this
 records what happened after the message left, which is the part that is normally missing
 entirely.
 
@@ -70,7 +70,7 @@ entirely.
 | 4 | B1 | new `bench/test_notify_routing.py` (planned, 13.R1 — does not exist yet) | 10/10 items routed by the stated rule; 0 voice attempts with no listening edge | not yet measured |
 | 5 | B1 | new `bench/test_notify_routing.py` [batch] (planned — does not exist yet) | 5 non-urgent items produce 0 interruptions and 1 batched entry | not yet measured |
 | 6 | B1 | `uv run python bench/test_deadmans_switch.py` (to be extended) | 0 loops; every escalation path terminates in ≤1 re-raise | not yet measured (13.R3 open) |
-| 7 | B4 | `src/afon/brain/approvals.py` and the handler schema guards | 5 named silent-ok classes, and 0 others; any new silent-ok handler is a charter edit | not yet measured — the open gap is 05.R1, which is `open`, so a spend or a send can still be one voice command away today (see [05-browser-control.md](05-browser-control.md)) |
+| 7 | B4 | `src/mushegh/brain/approvals.py` and the handler schema guards | 5 named silent-ok classes, and 0 others; any new silent-ok handler is a charter edit | not yet measured — the open gap is 05.R1, which is `open`, so a spend or a send can still be one voice command away today (see [05-browser-control.md](05-browser-control.md)) |
 
 Quiet hours (D-32) are a separate boundary from the budget: they are edited by the owner, in
 a file, by hand. No tool call and no natural-language request changes them, and there is no
@@ -79,20 +79,20 @@ test that would let one.
 ## Failure modes
 
 **The budget is not enforced on one path.** The budget lives in the proactive engine; a
-reminder fired by `src/afon/brain/scheduler.py` or a Telegram send from a tool can bypass it. The owner sees
+reminder fired by `src/mushegh/brain/scheduler.py` or a Telegram send from a tool can bypass it. The owner sees
 four interruptions in an afternoon and starts ignoring all of them. Diagnose: `journalctl -u
-openafon-brain -n 300 | grep -i "proactive\["`, then `ls ~/.afon` for the persisted budget and
+openmushegh-brain -n 300 | grep -i "proactive\["`, then `ls ~/.mushegh` for the persisted budget and
 suppression state, then the engine's per-kind hold counts.
 
 **Duplicate delivery.** The recorded incident this system was written to stop: the same two
 lines — "N past-due tasks", "M important emails" — pushed three to four times each, seven or
 eight duplicates a day, because suppression was per-window and reset on every brain restart.
 Suppression and the day's budget are now persisted, so a restart does not re-fire them. If it
-recurs, the state file is being reset or unreadable: `cat ~/.afon/daily_digest_state.json`.
+recurs, the state file is being reset or unreadable: `cat ~/.mushegh/daily_digest_state.json`.
 
 **Overclaiming delivery.** An urgent item is pushed to a phone in a coat pocket, counted as
 delivered, and never mentioned again. The ledger is the only defence, and it is a JSON file
-that a failed write will not report. Diagnose: `cat ~/.afon/delivery_ledger.json` and look at
+that a failed write will not report. Diagnose: `cat ~/.mushegh/delivery_ledger.json` and look at
 the `seen` column.
 
 **Escalation loops.** An alert re-raises, is re-raised, is re-raised. The deadman's switch

@@ -11,11 +11,11 @@ from __future__ import annotations
 import asyncio
 import time
 
-from afon.brain.agent import AfonAgent
+from mushegh.brain.agent import MusheghAgent
 
 
 async def run(prompt: str) -> None:
-    agent = AfonAgent()
+    agent = MusheghAgent()
     await agent.warmup()
     print(f"\n>>> {prompt!r}")
     t0 = time.perf_counter()
@@ -32,7 +32,7 @@ async def run(prompt: str) -> None:
 
 
 async def main() -> None:
-    for p in ["How are you, Afon?", "What time is it?", "Give me a two sentence summary of why the sky is blue."]:
+    for p in ["How are you, Mushegh?", "What time is it?", "Give me a two sentence summary of why the sky is blue."]:
         await run(p)
 
 

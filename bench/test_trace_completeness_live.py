@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import turn_trace  # noqa: E402
+from mushegh.brain import turn_trace  # noqa: E402
 
 # (prompt, shape) — the shape is what the row is supposed to prove it handled.
 PROMPTS: list[tuple[str, str]] = [
@@ -58,8 +58,8 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 
 async def _agent():
-    from afon.brain.agent import AfonAgent
-    agent = AfonAgent()
+    from mushegh.brain.agent import MusheghAgent
+    agent = MusheghAgent()
     agent._history = []
     agent._persist_session = lambda: None      # keep the gate off the real session file
     agent._spawn_review = lambda: None
@@ -67,7 +67,7 @@ async def _agent():
 
 
 async def run(prompts: list[tuple[str, str]]) -> int:
-    from afon.brain import turn_trace as tt
+    from mushegh.brain import turn_trace as tt
 
     rows: list[dict[str, Any]] = []
     trace_dir = tt.trace_dir()

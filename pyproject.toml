@@ -1,7 +1,7 @@
 [project]
-name = "afon"
+name = "mushegh"
 version = "0.0.1"
-description = "OpenAfon — an open-source framework for building your own 24/7, voice-first, multi-device AI companion (Afon)"
+description = "Mushegh — an open-source, voice-first, multi-device AI companion: Modular Universal Synthetic Hyper Engine General Hub"
 requires-python = ">=3.11"
 readme = "README.md"
 license = "MIT"
@@ -19,7 +19,8 @@ dependencies = [
 ]
 
 [project.scripts]
-afon-setup = "afon.setup_wizard:main"
+mushegh = "mushegh.cli:main"
+mushegh-setup = "mushegh.setup_wizard:main"
 
 [project.optional-dependencies]
 # The real-time voice pipeline (edge). Pinned in Phase 0; providers added per-phase.
@@ -43,7 +44,7 @@ local-voice = [
 ]
 # The 24/7 orchestrator (brain): own LLM + FastAPI + OpenClaw bridge + scheduler + channels.
 brain = [
-    "openai>=1.40",            # OpenAI-compatible client -> freellmapi (Afon's own LLM)
+    "openai>=1.40",            # OpenAI-compatible client -> freellmapi (Mushegh's own LLM)
     "tzdata>=2024.1",          # IANA tz db (Windows has none) for Europe/Berlin scheduling
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
@@ -102,7 +103,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/afon"]
+packages = ["src/mushegh"]
 
 [tool.ruff]
 line-length = 100

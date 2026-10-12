@@ -28,8 +28,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.memory import STORE  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain.memory import STORE  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 QUERY = "what do you know about my travel plans and flights"
 

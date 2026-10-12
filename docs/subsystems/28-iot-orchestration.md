@@ -1,12 +1,12 @@
 # S28 — Environmental / IoT Orchestration
 
-> **One line:** Afon reads and actuates the house's own sensors, lights, climate and air through a local Home Assistant Green — and today controls nothing at all, because no token is installed.
+> **One line:** Mushegh reads and actuates the house's own sensors, lights, climate and air through a local Home Assistant Green — and today controls nothing at all, because no token is installed.
 > **Status:** built and **dark** — complete code, no token, controls nothing; the hardware that would make it real is ordered but not installed · **Registry:** S28 · 2/5 floor, 0/5 raise, 0/1 elite
 > **Milestones:** M20 · **Decisions:** D-07, D-13, D-14, D-62, D-63, D-64, D-65, D-68
 
 ## Purpose
 
-Afon actuates the house: a predefined lighting scene, the desk lamp, a climate
+Mushegh actuates the house: a predefined lighting scene, the desk lamp, a climate
 setpoint, a named multi-device state. It reads an entity's real state and reports
 what it observed, not what it commanded. It confirms before anything with a security
 edge, and it **refuses** the two domains D-13 puts outside the blast radius entirely —
@@ -29,7 +29,7 @@ There is no room for a second smart-home integration and no cloud vendor in the 
 
 **The hardware plan names the box.** [HARDWARE.md](../HARDWARE.md) §5 (H2) puts a
 **Home Assistant Green** in the hallway as the local automation controller: it holds the
-state, the entity registry, and the one token the house needs. Afon talks to it over the
+state, the entity registry, and the one token the house needs. Mushegh talks to it over the
 tailnet with the single HA token — credential 1 of the four (D-62) — and that credential is
 the one the docs have been calling `28.F1` and that has still never been installed. Installing
 it is what makes S28 stop being dark, and it also settles the old question of whether an
@@ -50,12 +50,12 @@ is a read whose failure mode costs nothing, and each one makes the next integrat
 test. The smoke/CO pair is the only hardware in this house permitted to interrupt the owner
 outside the D-29 budget, because D-18 makes life safety the one exception.
 
-**The water shut-off valve stays physical.** Afon reports *"the basin under the kitchen sink
+**The water shut-off valve stays physical.** Mushegh reports *"the basin under the kitchen sink
 is wet"*; the owner turns the valve. A Shelly plug on the washing machine may cut *that
 appliance* — D-68 confines the plugs to appliance circuits — and it may not touch the
 plumbing.
 
-**The Aqara U200 front-door lock is the sharpest edge in the inventory.** Afon **reads** its
+**The Aqara U200 front-door lock is the sharpest edge in the inventory.** Mushegh **reads** its
 state and may say "the front door is unlocked". It **never actuates** it: not with a
 confirmation, not with a code, not inside a scheduled routine, and not on any path — Matter,
 Thread, Zigbee, or through Home Assistant. That is D-13 applied to local hardware instead of
@@ -71,37 +71,37 @@ tag becomes the door tag; the other nine are room triggers and a night-mode tag.
 If this is absent: the north-star Tuesday loses its 08:30. A spoken phrase that sets
 focus mode has no physical half, and the first item on the silent-ok list (D-07) —
 toggling a predefined lighting scene — cannot be exercised at all. Everything else
-Afon does is a voice answering a voice.
+Mushegh does is a voice answering a voice.
 
 ## Structure
 
-`src/afon/brain/tools/smarthome.py` is the whole surface, 161 lines. Two schemas,
+`src/mushegh/brain/tools/smarthome.py` is the whole surface, 161 lines. Two schemas,
 registered into the tool belt like any other handler (D-04):
 
 - `ha_state(entity)` — read one entity. Silent-ok: it is a read (D-07).
 - `ha_call(domain, service, entity)` — actuate.
 
-`_configured()` is False without `AFON_HA_URL` and `AFON_HA_TOKEN`; the handlers
+`_configured()` is False without `MUSHEGH_HA_URL` and `MUSHEGH_HA_TOKEN`; the handlers
 return a spoken note naming what is missing rather than raising. `_read_back()` re-reads
 the entity after the call and compares it against `_EXPECTED`, which is what makes
 "the state I observed" checkable at all (28.F2, done).
 
 `SENSITIVE_DOMAINS` in the same module is the security-edge list. `BLAST_RADIUS_DOMAINS`
 in the same module is the smaller list that refuses outright: `lock` and `garage_door`.
-`CONFIRM_TIER` in `src/afon/brain/proactive.py` lists `ha_call`, and its domain-aware
+`CONFIRM_TIER` in `src/mushegh/brain/proactive.py` lists `ha_call`, and its domain-aware
 check mirrors the sensitive list: `light`, `scene`, `climate` and `switch` flow silently;
 `alarm_control_panel`, `cover` and `climate` confirm; `lock` and `garage_door` are
 refused inside `ha_call` before the URL is even built. Both layers agree those two are
 sensitive — the gate still flags them — but only the refusal is load-bearing.
 
-Data flow: utterance -> `src/afon/brain/agent.py` -> `ha_call` schema ->
+Data flow: utterance -> `src/mushegh/brain/agent.py` -> `ha_call` schema ->
 domain-aware confirm gate -> REST POST to the HA instance over the LAN or the tailnet
 -> `_read_back()` -> observed state -> one spoken line.
 
 **What the house adds, and in what order.** None of it is installed; every row is the
 ordered plan from [HARDWARE.md](../HARDWARE.md) §5, and the order is the argument.
 
-| Device | What Afon may do | Confirmation |
+| Device | What Mushegh may do | Confirmation |
 |---|---|---|
 | Aqara contact sensors ×5 | read; gate heating, the brief, and "is anyone home" | n/a (a read) |
 | Heiman/Aqara smoke+CO ×2 | read and raise; may pierce quiet hours (D-18) | n/a |
@@ -164,9 +164,9 @@ interlock on every physical action, `28.E1` a week of scenes with no surprises.
    rather than done: D-43's seven-day bar is outstanding and the token is not installed,
    so no live drill has run.
 3. **B1** — unconfigured host: both `ha_state` and `ha_call` return the spoken note
-   with `AFON_HA_TOKEN` unset. Threshold: 0 exceptions, 0 tracebacks in the journal.
+   with `MUSHEGH_HA_TOKEN` unset. Threshold: 0 exceptions, 0 tracebacks in the journal.
    Last measurement: `not yet measured`.
-4. **B2 drill** — change one light out of band in the HA UI, then ask Afon for its
+4. **B2 drill** — change one light out of band in the HA UI, then ask Mushegh for its
    state. Threshold: the spoken answer matches the observed state in 10/10 trials.
    Last measurement: `not yet measured`.
 5. **B1 planned** — `bench/test_smarthome_verify.py [offline]`, extended to an
@@ -192,9 +192,9 @@ interlock on every physical action, `28.E1` a week of scenes with no surprises.
 configured yet" and nothing in the house moves. The owner hears a correct, useless
 answer and may not connect it to the missing credential. Three commands:
 
-    journalctl -u openafon-brain -n 200 | grep -i "home.assistant"
-    test -n "$AFON_HA_TOKEN" && echo token-set || echo token-missing
-    curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $AFON_HA_TOKEN" "$AFON_HA_URL/api/"
+    journalctl -u openmushegh-brain -n 200 | grep -i "home.assistant"
+    test -n "$MUSHEGH_HA_TOKEN" && echo token-set || echo token-missing
+    curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $MUSHEGH_HA_TOKEN" "$MUSHEGH_HA_URL/api/"
 
 A 200 from the third line alongside "not configured" in the first means the token is
 missing from the brain process's environment, not absent from the disk.

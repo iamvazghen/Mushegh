@@ -1,11 +1,11 @@
 # Security
 
-OpenAfon is a framework for a high-trust agent (the assistant, **Afon**): a deployed instance
+Mushegh is a framework for a high-trust agent (the assistant, **Mushegh**): a deployed instance
 runs shell commands, drives a real browser, sends messages and email, controls smart-home devices,
 and edits and commits its own source code. This document describes the safety model that makes that
 trustworthy, what is kept out of version control, and how to report a problem. **If you fork and
-deploy this, you are the operator — read §11.** (*Afon* is only the blueprint/inspiration; the
-internal Python package is named `afon` for stability.)
+deploy this, you are the operator — read §11.** (*Mushegh* is only the blueprint/inspiration; the
+internal Python package is named `Mushegh` for stability.)
 
 > **Design principle: least surprise, full reversibility, deny-by-default.** Every consequential
 > action is either confirmed first, reversible, scoped, or all three. A missing credential degrades
@@ -20,15 +20,15 @@ internal Python package is named `afon` for stability.)
 
 **Secrets never live in code and never enter version control.**
 
-- All secrets are read from environment variables (prefix `AFON_`) via a local **`.env`** file,
+- All secrets are read from environment variables (prefix `MUSHEGH_`) via a local **`.env`** file,
   which is **git-ignored**. Only `.env.example` (no values) is committed.
 - The following are explicitly excluded from git (see [`.gitignore`](.gitignore)):
   `.env` and any `.env.*` (except the example), `*.session` / `*.session-journal` (Telegram/Telethon
-  logins), `voiceprint.json` (your biometric template), `afon_jobs.sqlite`, `audit/`, `backups/`,
-  `.afon-browser/` (the persistent browser profile, which holds login cookies).
-- **Afon's learned memory is not in the repository at all.** Everything he writes about you — the
+  logins), `voiceprint.json` (your biometric template), `mushegh_jobs.sqlite`, `audit/`, `backups/`,
+  `.mushegh-browser/` (the persistent browser profile, which holds login cookies).
+- **Mushegh's learned memory is not in the repository at all.** Everything he writes about you — the
   learned facts, the daily journal, every sqlite store, the relationship model — lives under
-  `AFON_STATE_DIR` (default `~/.afon`), per host, outside the tree. There is nothing to
+  `MUSHEGH_STATE_DIR` (default `~/.Mushegh`), per host, outside the tree. There is nothing to
   accidentally commit and nothing for a deploy to copy to another machine (SYSTEMS.md 30.F1).
 - The **audit log redacts secrets two ways**: (1) any tool argument whose *key* looks like a
   password / token / secret / api_key / auth / credential is written as `***redacted***`; and (2) a
@@ -36,11 +36,11 @@ internal Python package is named `afon` for stability.)
   passwords) from the whole line — so a secret that leaks into a tool *result* (e.g. PowerShell
   echoing an env var) never reaches disk. Protocol passwords are never logged or spoken.
 - If you publish this repo, make it **private** — the committed context (`memory/*.md`,
-  `personality/afon.md`) is personal, and host/service details may be sensitive.
+  `personality/Mushegh.md`) is personal, and host/service details may be sensitive.
 
 **Token scopes.** Use the narrowest credential that works:
 - GitHub: a **fine-grained PAT** limited to the one repo, **Contents: read/write** only.
-- Notion: an **internal integration**, and **share only the specific pages** you want Afon to
+- Notion: an **internal integration**, and **share only the specific pages** you want Mushegh to
   touch (Notion is deny-by-default — the integration sees nothing else).
 - Google: the OAuth app is yours; keep yourself as the only test user.
 
@@ -48,7 +48,7 @@ internal Python package is named `afon` for stability.)
 
 ## 2. Confirmation tier (outward-facing & destructive actions)
 
-Afon **confirms before acting** on anything outward-facing or hard to undo. This is **enforced in
+Mushegh **confirms before acting** on anything outward-facing or hard to undo. This is **enforced in
 code**, not merely prompted: the agent's tool-execution path (`brain/agent.py::_execute_calls`) calls
 `brain/proactive.py::confirm_required` and, for a confirm-tier tool, **blocks the call**, hands the
 model a `CONFIRM_REQUIRED` sentinel so it reads the action back, and runs it only after the next user
@@ -71,8 +71,8 @@ than no prose, because it is the thing an auditor reads instead of the code.
   the vault, on disk or in Notion, and reads it back before reporting success. `write_vault` and
   `notion_create_page` keep their gates and their handlers; they are simply no longer offered to
   the model, because two advertised ways to write a note is how one of them stays unverified.
-- Rewriting when Afon speaks up unprompted: `adopt_routines` (replaces `routines.json`, which
-  is the rule set for unprompted interjections; the draft it installs is written by Afon
+- Rewriting when Mushegh speaks up unprompted: `adopt_routines` (replaces `routines.json`, which
+  is the rule set for unprompted interjections; the draft it installs is written by Mushegh
   from observed activity, so the owner has to hear it before it takes effect).
 - Self-improvement: `write_source`, `git_commit`, `git_push`, `git_revert`.
 - Outward-facing filing: `create_github_issue` (posts to a shared repo).
@@ -83,7 +83,7 @@ than no prose, because it is the thing an auditor reads instead of the code.
   is worse than no note, because it gets trusted later). `forget` reaches further than it used to:
   since 37.F3 it sweeps every matching learned fact, its embeddings, its graph relations and the
   journal lines about it, then re-queries to verify — which is exactly why it stays gated. It does
-  NOT touch the owner's own vault notes or the audit log; erasing the record of what Afon did is a
+  NOT touch the owner's own vault notes or the audit log; erasing the record of what Mushegh did is a
   different thing from forgetting a fact about him.
 - Gated **dynamically**, so the frictionless case stays frictionless:
   - `update_task` / `notion_update_task` — adding a note or nudging a deadline is free; overwriting
@@ -106,15 +106,15 @@ question instead of a risky guess (`needs_clarification`).
 ## 3. Filesystem & system guardrails
 
 - **Destructive file ops refuse protected paths.** `file_op` deletes are blocked under
-  `AFON_SYSTEM_PROTECTED_PATHS` (default `C:\Windows`, `C:\Program Files`,
+  `MUSHEGH_SYSTEM_PROTECTED_PATHS` (default `C:\Windows`, `C:\Program Files`,
   `C:\Program Files (x86)`) and drive roots.
-- **System file ops also refuse Afon's own secrets/state.** `file_op` delete *and* overwrite
+- **System file ops also refuse Mushegh's own secrets/state.** `file_op` delete *and* overwrite
   refuse `.env`/`.env.*`, `*.session`, `voiceprint.json`, and the repo's `.git/`, `audit/`,
-  `backups/`, `.afon-browser/` — the same set the coding tool blocks — so "delete the .env" or
+  `backups/`, `.mushegh-browser/` — the same set the coding tool blocks — so "delete the .env" or
   clobbering the voiceprint can never land through the system tools either.
 - **Elevation is explicit.** `run_powershell(as_admin=true)` raises a Windows UAC prompt you must
-  accept; Afon cannot silently elevate.
-- **The browser is visible by default** (`AFON_BROWSER_HEADLESS=false`) so you can watch what it
+  accept; Mushegh cannot silently elevate.
+- **The browser is visible by default** (`MUSHEGH_BROWSER_HEADLESS=false`) so you can watch what it
   does and complete logins yourself.
 
 ---
@@ -139,8 +139,8 @@ Net effect: the worst case is an uncommitted bad edit (caught by tests) or a com
 
 ### 4b. Code written by an external CLI (2026-10-06)
 
-Afon can also delegate coding to the CLIs installed on the host — Claude Code, Codex and MiniMax
-Code. The guardrails are **different in kind** from the ones above, because the agent is not Afon
+Mushegh can also delegate coding to the CLIs installed on the host — Claude Code, Codex and MiniMax
+Code. The guardrails are **different in kind** from the ones above, because the agent is not Mushegh
 and its instructions are not binding:
 
 - **Isolation, not instruction.** Each brief gets its own `git worktree` on its own new branch,
@@ -148,7 +148,7 @@ and its instructions are not binding:
   refused or abandoned run leaves your branch, your commit and your working tree byte-identical.
   The constraints in the brief ("do not commit, do not push") are there to save a wasted paid run;
   the isolation is what makes them unnecessary.
-- **Four conditions, in code, in order.** A diff becomes a commit only on a worktree Afon created,
+- **Four conditions, in code, in order.** A diff becomes a commit only on a worktree Mushegh created,
   with a green suite, with zero schema migrations, and with your explicit approval of the diff
   (D-08). The migration scan reads files the executor *created* as well as the ones it changed —
   `git diff HEAD` alone does not show a new file, which is how a `CREATE TABLE` in a brand-new
@@ -161,7 +161,7 @@ and its instructions are not binding:
   tells you where it is; cleaning it up is yours, because losing a proposal is worse than leaving a
   directory behind.
 - **No credentials.** The child's environment is an allowlist built from nothing: `PATH` and the
-  executor's own API key, never `.env`, the vault, your biometric templates or any `AFON_*`
+  executor's own API key, never `.env`, the vault, your biometric templates or any `MUSHEGH_*`
   setting. A secret added to the environment next year is withheld without anyone editing that
   list.
 - **No shell.** Every invocation is argv form with `stdin` closed, and a spec naming a command
@@ -175,12 +175,12 @@ Nothing an external CLI does can reach your branch without your approval of the 
 
 ## 5. Protocols (privileged routines)
 
-`goodnight` (stop), `phoenix` (restart Afon), `ragnarok` (restart the machine), `backup`
+`goodnight` (stop), `phoenix` (restart Mushegh), `ragnarok` (restart the machine), `backup`
 (archive memory), `ping` (phone push test), `diagnostics` (local health report), `auditpack`
 (audit archive), and `checkpoint` (non-secret context archive) are
-**password-gated**. Afon asks for the password first; it's compared in constant time
+**password-gated**. Mushegh asks for the password first; it's compared in constant time
 (`hmac.compare_digest`); a wrong or missing password runs nothing. **Change the default passwords**
-in `.env` (`AFON_PROTOCOL_*_PASSWORD`) before deploying — the **`afon-setup`** wizard generates a
+in `.env` (`MUSHEGH_PROTOCOL_*_PASSWORD`) before deploying — the **`mushegh-setup`** wizard generates a
 strong, unique password for all eight automatically, so a fork is never shipped on the placeholders.
 Passwords are never spoken or logged.
 
@@ -191,7 +191,7 @@ The non-privileged routines (`briefing`, `focus`, `lockdown`, `guest`, `commute`
 
 ## 6. Speaker biometrics (optional)
 
-With `AFON_SPEAKER_ID_ENABLED=true` and an enrolled voiceprint, Afon obeys **only your voice**
+With `MUSHEGH_SPEAKER_ID_ENABLED=true` and an enrolled voiceprint, Mushegh obeys **only your voice**
 and ignores the TV or a guest. It's **off until you enroll** — and deliberately fails *open* (accepts
 all) rather than risk locking you out if no profile exists. The voiceprint (`voiceprint.json`) is
 git-ignored.
@@ -200,10 +200,10 @@ git-ignored.
 
 ## 7. The OpenClaw fleet is gated
 
-Afon can *consult* an external multi-agent fleet, but it touches shared infrastructure, so it is
+Mushegh can *consult* an external multi-agent fleet, but it touches shared infrastructure, so it is
 **off by default** (`fleet_authorized=False`). Arm it deliberately per session, or for a deployment
-via `AFON_FLEET_AUTHORIZED=true`. Until armed, `delegate_to_fleet` returns a safe sentinel and
-performs no network action. Afon always re-voices any fleet result as himself.
+via `MUSHEGH_FLEET_AUTHORIZED=true`. Until armed, `delegate_to_fleet` returns a safe sentinel and
+performs no network action. Mushegh always re-voices any fleet result as himself.
 
 ---
 
@@ -211,7 +211,7 @@ performs no network action. Afon always re-voices any fleet result as himself.
 
 Every tool call is appended (best-effort, fail-quiet) to `audit/<date>.jsonl` with a timestamp, the
 tool name, **redacted** arguments, success flag, and a clipped result. This is the trust-and-debug
-record: you can see exactly what Afon did. The audit directory is git-ignored (it can contain
+record: you can see exactly what Mushegh did. The audit directory is git-ignored (it can contain
 personal context).
 
 ---
@@ -226,9 +226,9 @@ personal context).
   label reads as a promise the inference path does not keep.
 - **Loopback by default.** The brain WebSocket (`/voice`, `/control`) and the HTTP sidecar
   (`/talk` for the iPhone Siri path) bind `127.0.0.1`. To reach them from a phone/glasses, bind
-  `0.0.0.0` **and set `AFON_API_AUTH_TOKEN`** — remote clients must then present the token as
+  `0.0.0.0` **and set `MUSHEGH_API_AUTH_TOKEN`** — remote clients must then present the token as
   `Authorization: Bearer <token>` (native) or `?token=<token>` (browser/Shortcut). Requests without
-  it are refused. The `afon-setup` wizard generates this token for you when you choose the VPS
+  it are refused. The `mushegh-setup` wizard generates this token for you when you choose the VPS
   deployment shape. **Don't expose any port without the token.**
 - **Prefer a private overlay.** Put the brain host on a private network (e.g. Tailscale/WireGuard)
   rather than the public internet; the bearer token guards the port, the overlay keeps it unroutable
@@ -248,10 +248,10 @@ issue. Include reproduction steps and the affected file/function.
 
 ## 11. Operator responsibilities (you, if you fork & deploy)
 
-- **Run `afon-setup`** (or set them by hand): it generates the brain auth token and the eight
+- **Run `mushegh-setup`** (or set them by hand): it generates the brain auth token and the eight
   protocol passwords so you never ship on defaults.
 - **Keep your repository private** if it carries personal data — `memory/*.md` and
-  `personality/afon.md` describe a real person and their accounts. A clean framework fork (no
+  `personality/Mushegh.md` describe a real person and their accounts. A clean framework fork (no
   personal `memory/`) can be public; a configured instance should not be.
 - **Rotate any key ever shared in plaintext** (chat, screenshare, a committed mistake) and use the
   narrowest scope that works (see §1).
@@ -260,15 +260,15 @@ issue. Include reproduction steps and the affected file/function.
   if others share your space.
 - **Treat the host running the brain as trusted** — it holds the tokens that let the assistant act on
   your behalf. Anyone with shell on that host can read `.env`.
-- **Arm the fleet deliberately** (`AFON_FLEET_AUTHORIZED`) — it reaches shared infrastructure.
+- **Arm the fleet deliberately** (`MUSHEGH_FLEET_AUTHORIZED`) — it reaches shared infrastructure.
 
 ## 12. Licensing, conduct & attribution
 
-This project is **OpenAfon** (assistant persona **Afon**); *Afon* is referenced only as the
+This project is **Mushegh** (assistant persona **Mushegh**); *Mushegh* is referenced only as the
 blueprint/inspiration, never as this project's brand. Governance and licensing live in these
 root files:
 
-- [`LICENSE`](LICENSE) — MIT (the code grant). Copyright "Vazghen and the OpenAfon contributors".
+- [`LICENSE`](LICENSE) — MIT (the code grant). Copyright "Vazghen and the Mushegh contributors".
 - [`NOTICE`](NOTICE) — attribution + the naming notice.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — dependency licenses (incl. the single LGPL-3.0
   optional dependency, `py-tgcalls`) and the cloud-service Terms you accept by using your own keys.
@@ -278,4 +278,4 @@ root files:
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1.
 
 MIT covers copyright, not trademark — see the naming note in `THIRD_PARTY_NOTICES.md` before
-distributing a fork widely. Full docs: **https://openafon.vercel.app**.
+distributing a fork widely. Full docs: **https://Mushegh.vercel.app**.

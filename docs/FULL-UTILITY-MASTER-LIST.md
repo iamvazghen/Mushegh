@@ -4,7 +4,7 @@ Generated 2026-10-09. Every entry below was measured from a primary source, not 
 
 | surface | source of the count |
 |---|---|
-| Jarvis / Afon | `AfonAgent()._registry` — 160 tools, grouped by owning module |
+| Jarvis / Mushegh | `MusheghAgent()._registry` — 160 tools, grouped by owning module |
 | Rubo | `iamvazghen/Rubo` `src/tools/**` — every declared `name:` in 89 files |
 | Agent fleet | `OpenClaw_Hermes_Agent_Utilities_Catalog.docx` — 83 utilities, 18 domains |
 | Subsystems | `docs/systems-plan.json` — 50 systems, 426 tasks |
@@ -18,7 +18,7 @@ is in the tree today.
 
 ---
 
-# PART 1 — JARVIS / AFON (160 tools, 50 subsystems)
+# PART 1 — JARVIS / MUSHEGH (160 tools, 50 subsystems)
 
 Each utility below is a real entry in the live registry, grouped by the subsystem that
 owns it. Subsystems with **no dedicated tool** are marked honestly rather than padded.
@@ -816,7 +816,7 @@ Local-first desktop app (macOS 13+, Windows 10+ x64), "V1.0 · DIRECTOR'S BUILD"
 
 | surface | utilities |
 |---|---|
-| Jarvis / Afon | 160 unique tools across 50 subsystems |
+| Jarvis / Mushegh | 160 unique tools across 50 subsystems |
 | Rubo | 122 tools + 10 skills + 6 subagents |
 | Agent fleet catalog | 83 utilities across 18 domains |
 | Claude Code | 42 utilities |

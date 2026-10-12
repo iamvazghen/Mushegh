@@ -3,7 +3,7 @@
 > Only relevant if you run your OWN external agent fleet (e.g. an OpenClaw gateway) for deep,
 > multi-step domain work. **It ships fully disabled with no host baked in.** Most users delete this
 > file and never think about it. To use it: copy to `openclaw-fleet.md`, set the gateway env vars
-> (`AFON_OPENCLAW_GATEWAY_URL`, token, router agent), and flip `AFON_FLEET_AUTHORIZED=true`.
+> (`MUSHEGH_OPENCLAW_GATEWAY_URL`, token, router agent), and flip `MUSHEGH_FLEET_AUTHORIZED=true`.
 
 ## The pattern
 Your assistant stays itself; for work it can't do alone it **consults** the fleet by messaging a

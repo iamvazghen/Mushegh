@@ -1,6 +1,6 @@
 """Unparking refuses while any Wave-0 floor is unmet — SYSTEMS.md 23.F4.
 
-`~/.afon/MAINTENANCE` is a file. `rm` has no opinion about whether the thing it unblocks is ready,
+`~/.mushegh/MAINTENANCE` is a file. `rm` has no opinion about whether the thing it unblocks is ready,
 and that asymmetry is the whole problem: parking was a decision taken with reasons, unparking is a
 keystroke that forgets all of them. `scripts/preflight.sh --unpark` is the checklist in between.
 

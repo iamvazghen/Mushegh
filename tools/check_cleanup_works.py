@@ -3,7 +3,7 @@
 `behavioral_suite._cleanup()` is:
 
     try:
-        from afon.brain.memory import STORE
+        from mushegh.brain.memory import STORE
         for q in (...): STORE.forget(q)
     except Exception:
         pass
@@ -28,7 +28,7 @@ for extra in (str(ROOT), str(ROOT / "bench"), str(ROOT / "src")):
     if extra not in sys.path:
         sys.path.insert(0, extra)
 
-from afon.brain.memory import STORE  # noqa: E402
+from mushegh.brain.memory import STORE  # noqa: E402
 
 QUERIES = ("tea over coffee", "next travel destination", "capital of Japan", "London flight")
 

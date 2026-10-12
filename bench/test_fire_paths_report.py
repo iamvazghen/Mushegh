@@ -1,6 +1,6 @@
 """J2.8 — every autonomous job must REPORT what it did, and one of them never has.
 
-The owner's standing rule is that an autonomous action is never silent: what Afon did, why, and his
+The owner's standing rule is that an autonomous action is never silent: what Mushegh did, why, and his
 reasoning. The scheduler's `_fire_*` jobs are where that rule is actually kept or broken, and it
 has been broken twice now in the same shape — work happens, a line goes into the log, the job counts
 itself done, and the owner is told nothing.
@@ -75,7 +75,7 @@ DECLARED = {
 
 
 def main() -> None:
-    import afon.brain.scheduler as S
+    import mushegh.brain.scheduler as S
 
     src = inspect.getsource(S)
     jobs = re.findall(r"async def (_fire_\w+)", src)
@@ -109,9 +109,9 @@ def main() -> None:
         def recent_digest(self, limit=20):
             return ["he prefers oat milk", "the rent is due on the 3rd"]
 
-    import afon.brain.daily_digest as DD
-    import afon.brain.memory as M
-    import afon.brain.objectives as OBJ
+    import mushegh.brain.daily_digest as DD
+    import mushegh.brain.memory as M
+    import mushegh.brain.objectives as OBJ
 
     saved = (S._BRIEFING_EMIT, S._LIVE_SPEAK, S._BACKLOG_RUNNER, S._BACKLOG_REPORTER,
              S._OBJECTIVES_RUNNER, DD.build_body, DD.mark_delivered, M.STORE,

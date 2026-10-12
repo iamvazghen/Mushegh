@@ -1,4 +1,4 @@
-"""One situation per turn, and Afon says which one he assumed (SYSTEMS.md 27.F1, 27.F2).
+"""One situation per turn, and Mushegh says which one he assumed (SYSTEMS.md 27.F1, 27.F2).
 
 Four sources already answered "where is he and what is he doing", and nothing assembled them, so
 two halves of one turn could disagree: the answer assuming he was at the desk while proactivity
@@ -32,8 +32,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain import perception as P  # noqa: E402
-from afon.brain import situation as S  # noqa: E402
+from mushegh.brain import perception as P  # noqa: E402
+from mushegh.brain import situation as S  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -145,7 +145,7 @@ def main() -> None:
             check(S.current().place == "away", "an inner turn publishes its own situation")
         check(S.current().place == "desk", "the outer turn's situation is restored")
 
-    agent = (ROOT / "src/afon/brain/agent.py").read_text(encoding="utf-8")
+    agent = (ROOT / "src/mushegh/brain/agent.py").read_text(encoding="utf-8")
     for name in TURN_ENTRY_POINTS:
         body = agent.split(f"async def {name}(", 1)
         ok = len(body) == 2 and "_turn_situation()" in body[1][:1200]
@@ -164,7 +164,7 @@ def main() -> None:
           == "I assumed someone else was listening", "a guest is disclosed")
 
     # Ordering is load-bearing: with several true at once the most consequential must win, or the
-    # owner is told about focus time while Afon was actually withholding for lockdown.
+    # owner is told about focus time while Mushegh was actually withholding for lockdown.
     loud = S.assemble(perc(_Presence(meeting=True)),
                       _Modes(focus=True, guest=True, lockdown=True), now=1000.0)
     check(S.disclosure(loud) == "I'm in lockdown, so I kept that local",
@@ -176,7 +176,7 @@ def main() -> None:
     check(S.disclosure() is None, "and returns None outside a turn")
 
     print("\n[5] the budget: in-process arithmetic, never a model")
-    src = (ROOT / "src/afon/brain/situation.py").read_text(encoding="utf-8")
+    src = (ROOT / "src/mushegh/brain/situation.py").read_text(encoding="utf-8")
     check(not re.search(r"^\s*(from|import)\s+.*\bllm\b", src, re.M),
           "situation.py imports no LLM client")
     check("await " not in src, "assembly is synchronous — nothing to await on the answer path")

@@ -27,7 +27,7 @@ work, not this system's.
 entity resolution on top. It is not a model of their life. `24.R3` — consulting the model
 in the prompt path so it shapes answers rather than only answering tools — is paused, and
 so is `24.E1`, the dated, sourced, entity-grounded project briefing. Nobody should read
-this document as a claim that Afon knows what the owner is doing.
+this document as a claim that Mushegh knows what the owner is doing.
 
 If it is absent, the owner loses two things and keeps everything else: no admission of
 ignorance, and no correction when two stored facts disagree. What must not come back is the
@@ -37,17 +37,17 @@ relation layer, and M04 is the record of why.
 
 | Path | Role | Fate under M04 |
 |---|---|---|
-| `src/afon/brain/world_model.py` | `Goal`, `WorldModel`, `what_i_dont_know()` | named for deletion in §B, but it also holds both completed floors — see open questions |
-| `src/afon/brain/graph.py` | `GraphMemory`, a no-server sqlite triple store; the 607 inferred edges | **removed 2026-10-04 (M04)** |
-| `src/afon/brain/semantic.py` | `VectorStore`, `SemanticIndex`; embedding cosine blended into keyword recall, graceful without embeddings | edge indexing goes; whether the semantic recall goes with it is undecided |
-| `src/afon/brain/docstore.py` | The vault mirror | stays; markdown remains authoritative (D-22) |
-| `src/afon/brain/contacts.py` | The contact book the entity-resolution gate is measured against | stays |
-| `src/afon/brain/tools/graphmem.py` | The tool surface over the graph | **removed 2026-10-04 with its store** |
+| `src/mushegh/brain/world_model.py` | `Goal`, `WorldModel`, `what_i_dont_know()` | named for deletion in §B, but it also holds both completed floors — see open questions |
+| `src/mushegh/brain/graph.py` | `GraphMemory`, a no-server sqlite triple store; the 607 inferred edges | **removed 2026-10-04 (M04)** |
+| `src/mushegh/brain/semantic.py` | `VectorStore`, `SemanticIndex`; embedding cosine blended into keyword recall, graceful without embeddings | edge indexing goes; whether the semantic recall goes with it is undecided |
+| `src/mushegh/brain/docstore.py` | The vault mirror | stays; markdown remains authoritative (D-22) |
+| `src/mushegh/brain/contacts.py` | The contact book the entity-resolution gate is measured against | stays |
+| `src/mushegh/brain/tools/graphmem.py` | The tool surface over the graph | **removed 2026-10-04 with its store** |
 
 Storage is ordinary: the graph and the vector index are sqlite files —
-`memory_graph_db_path` (default `<repo>/afon_graph.sqlite`) and
-`memory_vector_db_path` (default `<repo>/afon_vectors.sqlite`), both configured in
-`src/afon/config.py` — plus the vault markdown, which is the human source of truth and wins
+`memory_graph_db_path` (default `<repo>/mushegh_graph.sqlite`) and
+`memory_vector_db_path` (default `<repo>/mushegh_vectors.sqlite`), both configured in
+`src/mushegh/config.py` — plus the vault markdown, which is the human source of truth and wins
 every disagreement (D-22). Under D-02 a graph store is not an argument for a second
 database.
 
@@ -101,7 +101,7 @@ markdown still winning.
 
 - **A stale inferred edge is quoted as fact.** The worst failure this system ever had, and
   the reason for D-26: a confident, wrong, well-formatted relation the owner cannot tell from
-  a true one. Diagnose: `sqlite3 afon_graph.sqlite "select count(*) from triples;"` at the
+  a true one. Diagnose: `sqlite3 mushegh_graph.sqlite "select count(*) from triples;"` at the
   configured `memory_graph_db_path`, and the tool name in the audit lines.
 - **Deleting the layer breaks recall.** The honest risk, because every green test in this
   area is B1-only and a mock agrees with whatever the code does (D-43). Diagnose: M04's
@@ -110,16 +110,16 @@ markdown still winning.
 - **A contradiction is resolved silently.** The recent correction wins and the old fact
   disappears with no trace, so the system can no longer explain itself. That is a D-25
   violation. Diagnose: the audit log for the revision, and
-  `sqlite3 afon_vectors.sqlite` for what recall still holds.
+  `sqlite3 mushegh_vectors.sqlite` for what recall still holds.
 - **The database and the vault disagree.** Markdown must win (D-22). Diagnose: compare the
   file and the row; the file is correct by definition, and the cache is a cache.
-- **Something re-adds a graph tool.** `src/afon/brain/tools/graphmem.py` was the handle, and
+- **Something re-adds a graph tool.** `src/mushegh/brain/tools/graphmem.py` was the handle, and
   a green `bench/test_graph_memory.py` made deletion look like a regression. Both were
   removed 2026-10-04 with the store, not against the decision.
 
 ## Open questions
 
-1. ~~REGISTRY-RECONCILIATION.md §B names `src/afon/brain/world_model.py` for deletion, and
+1. ~~REGISTRY-RECONCILIATION.md §B names `src/mushegh/brain/world_model.py` for deletion, and
    both completed floors (24.F1 entity resolution, 24.F2 the unknown) live in that file.
    Which survives M04 — the file, or the two behaviours moved elsewhere?~~ **Answered in part
    2026-10-04.** `world_model.py` survives and 24.F2 stands. 24.F1 did not, and not because of
@@ -133,5 +133,5 @@ markdown still winning.
 2. Is losing multi-hop associative queries still a theoretical cost, or did the owner
    actually ask for one of those queries and get a worse answer?
 3. M04 says "delete the graph relation layer" and §B says "semantic edge indexing". Those
-   are narrower than deleting `src/afon/brain/semantic.py`, which is also the only layer
+   are narrower than deleting `src/mushegh/brain/semantic.py`, which is also the only layer
    that retrieves by meaning rather than keyword. Is the semantic recall staying?

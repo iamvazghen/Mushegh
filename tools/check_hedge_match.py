@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.shared.uncertainty import HEDGES, _clauses, calibration, hedged  # noqa: E402
+from mushegh.shared.uncertainty import HEDGES, _clauses, calibration, hedged  # noqa: E402
 
 REPLIES = {
     "rabbits (from the live run)":

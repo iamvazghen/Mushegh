@@ -28,8 +28,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.agent import AfonAgent, _completion_force  # noqa: E402
-from afon.brain.intent_router import clause_tools  # noqa: E402
+from mushegh.brain.agent import MusheghAgent, _completion_force  # noqa: E402
+from mushegh.brain.intent_router import clause_tools  # noqa: E402
 
 _ok = 0
 _fail = 0
@@ -128,7 +128,7 @@ def _agent(llm):
     the right instruction: assert the PLAN. A plan tool that ran is in `ran`; a plan tool
     the model merely asked for is in `llm.fired`. Both are reported, so neither is hidden.
     """
-    a = AfonAgent()
+    a = MusheghAgent()
     a._llm = llm
     a._self_improve = False
     a.ran = []

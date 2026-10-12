@@ -18,7 +18,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.reliability import attempt_repair_and_escalate  # noqa: E402
+from mushegh.brain.reliability import attempt_repair_and_escalate  # noqa: E402
 
 passed = failed = 0
 
@@ -50,7 +50,7 @@ async def main() -> None:
         state = Path(td) / "esc.json"
         pushes: list[tuple[str, str]] = []
 
-        async def push(msg: str, title: str = "Afon") -> bool:
+        async def push(msg: str, title: str = "Mushegh") -> bool:
             pushes.append((title, msg))
             return True
 

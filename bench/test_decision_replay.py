@@ -1,7 +1,7 @@
 """45.R3 — a past turn can be reconstructed, and the replay is honest about what it cannot see.
 
 Two stores hold a turn's history and neither was built to be a witness: the turn trace (the
-decision) and the audit trail (what was actually done). `afon/brain/replay.py` joins them on
+decision) and the audit trail (what was actually done). `mushegh/brain/replay.py` joins them on
 `turn_id` and reports both. What is asserted here is that the join works, and — more to the point —
 that the replay does not quietly paper over the three things it genuinely cannot show:
 
@@ -10,7 +10,7 @@ that the replay does not quietly paper over the three things it genuinely cannot
     because an empty field and a redacted field look identical on screen and mean opposite things.
   * **a D-24 payload.** Since 37.R5 the audit trail writes `<withheld: …>` in place of a
     never-store class, and secrets are redacted. A replay must label those arguments *withheld by
-    policy* and name WHICH argument — "Afon decided not to keep this" is information; "we lost it"
+    policy* and name WHICH argument — "Mushegh decided not to keep this" is information; "we lost it"
     is not, and a replay that cannot tell them apart is worse than none.
   * **a turn with a blank `turn_id`.** Unjoinable, and it must say so rather than return a
     half-answer that looks complete.
@@ -59,7 +59,7 @@ def write_trace(root: Path, row: dict, day: str = "2026-10-04") -> None:
 
 
 def write_audit(root: Path, obj: dict, day: str = "2026-10-04") -> None:
-    from afon.brain.audit_verify import GENESIS, _HASH_FIELD, _PREV_FIELD, line_hash
+    from mushegh.brain.audit_verify import GENESIS, _HASH_FIELD, _PREV_FIELD, line_hash
 
     root.mkdir(parents=True, exist_ok=True)
     obj = dict(obj)
@@ -90,10 +90,10 @@ def a_trace(turn_id: str = TURN, **over) -> dict:
 
 
 def main() -> int:
-    from afon.brain import replay as rp
+    from mushegh.brain import replay as rp
 
-    traces = Path(tempfile.mkdtemp(prefix="afon-rp-traces-"))
-    audits = Path(tempfile.mkdtemp(prefix="afon-rp-audit-"))
+    traces = Path(tempfile.mkdtemp(prefix="mushegh-rp-traces-"))
+    audits = Path(tempfile.mkdtemp(prefix="mushegh-rp-audit-"))
 
     print("\n[1] a complete turn replays completely")
     write_trace(traces, a_trace())
@@ -123,7 +123,7 @@ def main() -> int:
           "text" not in a_trace(), sorted(a_trace()))
 
     print("\n[3] a withheld argument is labelled withheld, and named")
-    from afon.brain.never_store import screen, withheld as mk
+    from mushegh.brain.never_store import screen, withheld as mk
     v = screen("the wifi password is 192.168.1.40")
     write_audit(audits, a_row("stash", {"note": mk(v), "folder": "secrets"}))
     rep2 = rp.replay(TURN, trace_root=traces, audit_root=audits)
@@ -214,12 +214,12 @@ def main() -> int:
           all(p.read_bytes() == b for p, b in before.items()))
     check("the trace store is byte-identical too",
           all(p.read_bytes() == b for p, b in before_tr.items()))
-    src = (ROOT / "src" / "afon" / "brain" / "replay.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "mushegh" / "brain" / "replay.py").read_text(encoding="utf-8")
     check("the module writes nothing: no open-for-write, no append, no mkdir",
           not any(tok in src for tok in (".open(\"a\"", "\"w\"", "mkdir(", "write_text")),
           "a replay that mutates the record it is replaying is not a replay")
     check("...and it imports nothing that needs credentials",
-          "settings" not in src.replace("import", "") or "from afon.config" not in src)
+          "settings" not in src.replace("import", "") or "from mushegh.config" not in src)
 
     print(f"\n{'=' * 60}")
     print(f"  {passed} passed, {failed} failed")

@@ -1,6 +1,6 @@
-# Afon — Standard Operating Procedure
+# Mushegh — Standard Operating Procedure
 
-**Who this is for.** Anyone who clones this repo and needs to run Afon, and the owner who needs to
+**Who this is for.** Anyone who clones this repo and needs to run Mushegh, and the owner who needs to
 operate, diagnose and improve him over time. It answers: how do I start it, how do I know it's
 working, where do I look when it isn't, what am I allowed to do to each subsystem, and how do I make
 it better without breaking it.
@@ -8,9 +8,9 @@ it better without breaking it.
 **Companion document:** [`TESTING_GUIDE.md`](TESTING_GUIDE.md) — the live end-to-end test pass.
 This document is *operations*; that one is *verification*.
 
-**Standing principle.** Afon degrades politely by design: a missing key produces a fluent sentence,
+**Standing principle.** Mushegh degrades politely by design: a missing key produces a fluent sentence,
 not an error. That is good product behaviour and terrible diagnostic behaviour. **Never conclude a
-subsystem works because Afon answered.** Check the log, the store, or the destination app.
+subsystem works because Mushegh answered.** Check the log, the store, or the destination app.
 
 ---
 
@@ -19,7 +19,7 @@ subsystem works because Afon answered.** Check the log, the store, or the destin
 ```
 LAPTOP (edge)                          VPS (brain, 24/7)
 ┌────────────────────────────┐         ┌──────────────────────────────┐
-│ mic → wake word (openWW)   │         │ AfonAgent                    │
+│ mic → wake word (openWW)   │         │ MusheghAgent                    │
 │  → VAD (Silero)            │  WS     │  ├ intent router / narrowing │
 │  → STT (Deepgram/Whisper)  │◄───────►│  ├ tool belt (136 tools)     │
 │  → speaker verification    │         │  ├ memory L1–L5b             │
@@ -36,8 +36,8 @@ launching, shutdown — must route back to the laptop over PC_LINK. When the bra
 three protocols silently became no-ops *while still reporting success* because nobody had drawn this
 line.
 
-**Layout:** `src/afon/edge/` voice pipeline · `src/afon/brain/` agent, tools, memory, proactivity ·
-`src/afon/protocols/` recovery scripts · `src/afon/shared/` errors, singleton, protocol ·
+**Layout:** `src/mushegh/edge/` voice pipeline · `src/mushegh/brain/` agent, tools, memory, proactivity ·
+`src/mushegh/protocols/` recovery scripts · `src/mushegh/shared/` errors, singleton, protocol ·
 `bench/` tests + live benches · `scripts/` ops · `deploy/` install units.
 
 ---
@@ -47,7 +47,7 @@ line.
 ### 2.1 Install
 
 ```bash
-git clone https://github.com/iamvazghen/OpenAfon openafon && cd openafon
+git clone https://github.com/iamvazghen/OpenMushegh openmushegh && cd openmushegh
 uv sync --extra edge --extra cloud-voice --extra brain --extra channels --extra identity --extra dev
 ```
 
@@ -57,12 +57,12 @@ stack, swap `cloud-voice` for `local-voice`.
 ### 2.2 Configure
 
 ```bash
-uv run afon-setup                    # interactive wizard, writes .env
+uv run mushegh-setup                    # interactive wizard, writes .env
 uv run python bench/check_config.py  # confirms settings load; prints no secrets
 ```
 
-Every setting is `AFON_`-prefixed. **This prefix is load-bearing:** `config.py` declares
-`env_prefix="AFON_"` and pydantic-settings uses `extra="ignore"`, so a `.env` full of vars under an
+Every setting is `MUSHEGH_`-prefixed. **This prefix is load-bearing:** `config.py` declares
+`env_prefix="MUSHEGH_"` and pydantic-settings uses `extra="ignore"`, so a `.env` full of vars under an
 old prefix means the brain reads **zero configuration** — and starts healthy, passes its health
 check, and behaves like a fresh install. `scripts/preflight.sh` exists largely to catch this.
 
@@ -105,7 +105,7 @@ uv run python bench/efficiency_report.py  # 3. is it FAST enough?
 the code reads, state directories are where the code looks, enrolled biometrics load, shell scripts
 and hooks are LF-only, Windows Scheduled Tasks point at code that still exists, the test registry is
 complete, and how stale the code graph is. Add
-`--remote` to also check the VPS (needs `AFON_VPS` in `scripts/deploy_vps.env`) — including the
+`--remote` to also check the VPS (needs `MUSHEGH_VPS` in `scripts/deploy_vps.env`) — including the
 prefix check on the target, which is the single most valuable assertion in the file.
 
 **`run_all_tests.py`** is the single gate: ~130 hermetic tests, no network or keys required.
@@ -119,15 +119,15 @@ Network/fleet tests report SKIP (not FAIL) when unreachable, so an offline run s
 
 ---
 
-## 4. Running Afon
+## 4. Running Mushegh
 
 ### 4.1 Brain (VPS, 24/7)
 
 ```bash
-uv run python -m afon.brain.server                    # foreground, for debugging
-systemctl --user status  afon-brain                   # normal operation
-systemctl --user restart afon-brain
-journalctl --user -u afon-brain -f                    # live logs
+uv run python -m mushegh.brain.server                    # foreground, for debugging
+systemctl --user status  mushegh-brain                   # normal operation
+systemctl --user restart mushegh-brain
+journalctl --user -u mushegh-brain -f                    # live logs
 curl -s http://<brain-host>:8766/healthz              # → ok
 ```
 
@@ -142,32 +142,32 @@ Uses **systemd `--user` with linger** so it survives logout. A daily refresh tim
 ### 4.2 Edge (laptop)
 
 ```bash
-uv run python -m afon.edge.assistant     # voice loop, foreground
-uv run python -m afon.edge.pc_agent      # PC executor (needs elevation)
+uv run python -m mushegh.edge.assistant     # voice loop, foreground
+uv run python -m mushegh.edge.pc_agent      # PC executor (needs elevation)
 ```
 
-Normally both run as Scheduled Tasks (`AfonPcAgent` elevated, `AfonEdge`, plus `AfonEdgeRefresh` and
-`AfonEdgeGuard`), installed by:
+Normally both run as Scheduled Tasks (`MusheghPcAgent` elevated, `MusheghEdge`, plus `MusheghEdgeRefresh` and
+`MusheghEdgeGuard`), installed by:
 
 ```powershell
-.\scripts\install_edge_autostart.ps1     # AfonEdge + AfonPcAgent
-.\scripts\install_edge_refresh.ps1       # AfonEdgeRefresh (daily restart)
-.\scripts\install_edge_guard.ps1         # AfonEdgeGuard (30-min watchdog)
+.\scripts\install_edge_autostart.ps1     # MusheghEdge + MusheghPcAgent
+.\scripts\install_edge_refresh.ps1       # MusheghEdgeRefresh (daily restart)
+.\scripts\install_edge_guard.ps1         # MusheghEdgeGuard (30-min watchdog)
 ```
 
 ```powershell
-Start-ScheduledTask AfonEdgeRefresh      # restart the edge WITHOUT a UAC prompt
+Start-ScheduledTask MusheghEdgeRefresh      # restart the edge WITHOUT a UAC prompt
 .\scripts\restart_edge.ps1               # clean restart, force-kills stale instances
 ```
 
-**`AfonEdgeGuard`** runs every 30 minutes and restarts the edge if it died — unless you stopped it
+**`MusheghEdgeGuard`** runs every 30 minutes and restarts the edge if it died — unless you stopped it
 deliberately. Use the documented stop path so the guard doesn't fight you.
 
 > ### ⚠️ Verify the tasks — this was broken in production and nothing said so
 >
 > **On 2026-08-09 this machine was in exactly that state.** The live tasks were still the pre-rename
 > `JarvisEdge`, `WatariPcAgent` and `WatariEdgeRefresh`, all pointing into **`C:\Jarvis`, a directory
-> that no longer exists**, while `AfonEdgeGuard` was **Disabled**. No edge process was running,
+> that no longer exists**, while `MusheghEdgeGuard` was **Disabled**. No edge process was running,
 > nothing would have started one at logon, and the watchdog whose job is to notice was switched off.
 > Every command in this section would have appeared to work while changing nothing.
 >
@@ -175,22 +175,22 @@ deliberately. Use the documented stop path so the guard doesn't fight you.
 > holding an absolute path — and **a task whose executable is missing fails silently**.
 >
 > ```powershell
-> Get-ScheduledTask | Where-Object { $_.TaskName -match 'Afon|Watari|Jarvis' } |
+> Get-ScheduledTask | Where-Object { $_.TaskName -match 'Mushegh|Watari|Jarvis' } |
 >   Select-Object TaskName, State
 > (Get-ScheduledTask -TaskName <name>).Actions      # confirm the path still exists
 > ```
 >
-> Match **all three** name generations. Filtering on `Afon|Watari` alone misses `JarvisEdge` — the
+> Match **all three** name generations. Filtering on `Mushegh|Watari` alone misses `JarvisEdge` — the
 > task that runs the voice assistant itself.
 >
 > **Recovery (this is the script for it):**
 >
 > ```powershell
-> powershell -ExecutionPolicy Bypass -File C:\Afon\scripts\finish_afon_rename.ps1   # approve UAC
+> powershell -ExecutionPolicy Bypass -File C:\Mushegh\scripts\finish_mushegh_rename.ps1   # approve UAC
 > ```
 >
 > It **renames** rather than recreates: each task's XML is exported and its paths rewritten, so
-> triggers, principal and RunLevel survive byte-for-byte — which matters because `AfonPcAgent` must
+> triggers, principal and RunLevel survive byte-for-byte — which matters because `MusheghPcAgent` must
 > stay `RunLevel Highest`. Do **not** reach for `install_edge_autostart.ps1` here; it only modifies
 > tasks that already exist and silently skips missing ones.
 >
@@ -200,7 +200,7 @@ deliberately. Use the documented stop path so the guard doesn't fight you.
 ### 4.3 The singleton rule
 
 One process per role, enforced by `shared/singleton.py`. Two edges both hold the mic and you hear
-Afon twice; two brains double-tick proactivity. If behaviour is doubled, **count processes first**.
+Mushegh twice; two brains double-tick proactivity. If behaviour is doubled, **count processes first**.
 
 ---
 
@@ -216,7 +216,7 @@ uv run python bench/show_errors.py --subsystem edge
 uv run python bench/show_errors.py --turn a1b2c3d4  # one turn, edge + brain
 ```
 
-Backed by `~/.afon/errors.jsonl`. Runs identically on laptop and VPS. Edge errors logged while the
+Backed by `~/.mushegh/errors.jsonl`. Runs identically on laptop and VPS. Edge errors logged while the
 brain link is down are **spooled and replayed on reconnect**, so an outage does not erase its own
 evidence.
 
@@ -234,7 +234,7 @@ Counters (`turns`, `tool_calls`, `tool_errors`, `tool.<name>`) and rolling laten
 
 ### 5.3 Durable stores
 
-| File (`~/.afon/`) | Holds | Read with |
+| File (`~/.mushegh/`) | Holds | Read with |
 |---|---|---|
 | `errors.jsonl` | structured error journal | `bench/show_errors.py` |
 | `tool_usage.json` | per-tool call counts, across restarts | `bench/tool_usage_report.py` |
@@ -271,7 +271,7 @@ uv run python bench/dump_tools.py            # full registry
 uv run python bench/tool_usage_report.py     # what is actually used
 ```
 
-**Adding a tool:** add the schema + handler in `src/afon/brain/tools/<module>.py`, put it in a lazy
+**Adding a tool:** add the schema + handler in `src/mushegh/brain/tools/<module>.py`, put it in a lazy
 group unless it is genuinely needed on most turns, and add a hermetic test. Then register that test
 in `bench/run_all_tests.py:TESTS` — `bench/test_registry_complete.py` will fail the gate if you
 forget, and will also catch a test function that is defined but never invoked.
@@ -354,7 +354,7 @@ more often; tune from real recordings, not intuition.
 
 ```bash
 bash scripts/preflight.sh --remote      # ALWAYS first
-bash scripts/deploy_vps.sh              # tar src/afon + skills → VPS, restart the unit
+bash scripts/deploy_vps.sh              # tar src/mushegh + skills → VPS, restart the unit
 bash scripts/verify_vps_sync.sh
 ```
 
@@ -366,11 +366,11 @@ attic directory rather than `rm`, then re-run.
 **Two things `deploy_vps.sh` does NOT do, and both are silent:**
 
 - **It does not sync `pyproject.toml`.** The VPS copy still declares `packages = ["src/jarvis"]`,
-  so a freshly-synced `src/afon` is not an installed package. The unit compensates with
-  `PYTHONPATH=…/src` (see below). Remove that and `python -m afon.brain.server` dies with
+  so a freshly-synced `src/mushegh` is not an installed package. The unit compensates with
+  `PYTHONPATH=…/src` (see below). Remove that and `python -m mushegh.brain.server` dies with
   `ModuleNotFoundError`.
 - **It does not move state.** The brain's state dir is derived from the package identity, so
-  switching packages moved it `~/.jarvis` → `~/.afon` and left ten files behind — routines, macros,
+  switching packages moved it `~/.jarvis` → `~/.mushegh` and left ten files behind — routines, macros,
   objectives, relationship, patterns, approvals, world model. The brain started, passed `/healthz`
   and conversed normally **with none of them**. `preflight --remote` now asserts this; run it after
   any deploy that changes where state lives.
@@ -378,17 +378,17 @@ attic directory rather than `rm`, then re-run.
 ### 7.1a The brain's entry point (systemd drop-in)
 
 The VPS unit is still named `jarvis-brain.service`, but a drop-in at
-`~/.config/systemd/user/jarvis-brain.service.d/afon.conf` repoints it:
+`~/.config/systemd/user/jarvis-brain.service.d/mushegh.conf` repoints it:
 
 ```ini
 [Service]
 Environment=PYTHONPATH=/home/openclaw/jarvis/src
 ExecStart=
-ExecStart=/bin/bash -c "source /home/openclaw/.jarvis/load-secrets.sh && exec /home/openclaw/.local/bin/uv run --no-sync python -m afon.brain.server"
+ExecStart=/bin/bash -c "source /home/openclaw/.jarvis/load-secrets.sh && exec /home/openclaw/.local/bin/uv run --no-sync python -m mushegh.brain.server"
 ```
 
 A drop-in rather than an edit, so **rollback is `rm` + `systemctl --user daemon-reload`** and the
-original unit stays intact. The VPS `.env` deliberately carries **both** `AFON_` and `JARVIS_`
+original unit stays intact. The VPS `.env` deliberately carries **both** `MUSHEGH_` and `JARVIS_`
 copies of every setting for the same reason: the old build still works if you roll back.
 
 ### 7.2 Code graph
@@ -427,7 +427,7 @@ and a broken hook fails **silently**. Do not remove those rules.
 
 | Symptom | Look at | Usual cause |
 |---|---|---|
-| "Hey Afon" does nothing | edge process; `audio_watchdog` | stale mic stream after a device change (AirPods) |
+| "Hey Mushegh" does nothing | edge process; `audio_watchdog` | stale mic stream after a device change (AirPods) |
 | Deaf after sleep/lid | edge log | resume detection; watchdog restart |
 | Answers twice | process count | duplicate edge — singleton |
 | Slow first word | `turn latency:`, prompt size | un-narrowed turn advertising ~80 tools |
@@ -447,7 +447,7 @@ and a broken hook fails **silently**. Do not remove those rules.
 
 ---
 
-## 9. Improving Afon over time
+## 9. Improving Mushegh over time
 
 ### 9.1 The loop
 
@@ -507,10 +507,10 @@ code that mixes the clocks (`presence` stamps rows with `time.time()` and derive
 
 ### 9.5 The independent audit (iFixAi) — and how to quote a number from it
 
-An external agent auditor lives at `C:\Projects\iFixAi`. Afon is driven through
-`bench/ifixai_shim.py`, an OpenAI-compatible front end onto `AfonAgent` — **never point it at
+An external agent auditor lives at `C:\Projects\iFixAi`. Mushegh is driven through
+`bench/ifixai_shim.py`, an OpenAI-compatible front end onto `MusheghAgent` — **never point it at
 `/talk`**: that path synthesises speech for every reply, holds the same lock as live voice, and
-writes every probe into Afon's memory of his owner.
+writes every probe into Mushegh's memory of his owner.
 
 ```bash
 # 1. start the shim (leave it running; it snapshots memory and discards writes)
@@ -520,7 +520,7 @@ uv run python bench/ifixai_shim.py --port 8799
 IFIXAI_HTTP_ENDPOINT="https://ai-gateway.vercel.sh/v1" uv run ifixai run \
   --provider http --endpoint http://127.0.0.1:8799/v1 --api-key local-shim-no-auth \
   --grounding sut --suite strategic --timeout 120 --concurrency 1 \
-  --fixture C:/Afon/bench/ifixai_fixture_afon.yaml \
+  --fixture C:/Mushegh/bench/ifixai_fixture_mushegh.yaml \
   --eval-mode single --judge-provider http --judge-api-key "$KEY" \
   --judge-model anthropic/claude-sonnet-4.6
 ```
@@ -533,10 +533,10 @@ Five things that each produced a confident wrong result before being understood:
   evidence" while the banner cheerfully says `governance=yes`.
 - **The connection banner is not evidence.** It describes a different provider than the inspections
   use, and has printed `tools=no, auth=no, governance=no` on a run where B01–B04 all scored 100%.
-- **`--concurrency 1`.** There is one `AfonAgent` behind the shim; parallel probes corrupt each
+- **`--concurrency 1`.** There is one `MusheghAgent` behind the shim; parallel probes corrupt each
   other's conversation. The symptom is not an error but a fluent non-answer.
-- **`--timeout 120`.** Afon runs real tools; the 30s default times out and scores as hallucination.
-- **The judge must be a different vendor** from Afon's own chain, and Sonnet not Haiku — Haiku
+- **`--timeout 120`.** Mushegh runs real tools; the 30s default times out and scores as hallucination.
+- **The judge must be a different vendor** from Mushegh's own chain, and Sonnet not Haiku — Haiku
   returned "zero claims" twice and invented INCONCLUSIVEs.
 
 **Quoting a result.** B01–B04 are structural: one run is enough, they never touch the model.
@@ -546,7 +546,7 @@ compare it with the one before. Measured spreads are in `TODO.md` Part L.
 
 **Do not tune the fixture to raise a score.** `b02_non_llm_layer` *fails* a system that declares an
 insufficient architecture while merely *excluding* one that declares nothing — overclaiming scores
-worse than silence, and produces a grade that measures the YAML instead of Afon.
+worse than silence, and produces a grade that measures the YAML instead of Mushegh.
 
 ### 9.6 Backlog
 
@@ -583,12 +583,12 @@ uv run python bench/show_errors.py --turn <id>
 # what's it doing
 curl -sH "Authorization: Bearer $TOKEN" http://<brain-host>:8766/metrics
 uv run python bench/tool_usage_report.py
-cat ~/.afon/proactive_state.json
+cat ~/.mushegh/proactive_state.json
 
 # run
-uv run python -m afon.brain.server
-uv run python -m afon.edge.assistant
-Start-ScheduledTask AfonEdgeRefresh
+uv run python -m mushegh.brain.server
+uv run python -m mushegh.edge.assistant
+Start-ScheduledTask MusheghEdgeRefresh
 
 # deploy
 bash scripts/preflight.sh --remote && bash scripts/deploy_vps.sh

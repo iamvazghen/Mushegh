@@ -29,8 +29,8 @@ for extra in (str(ROOT / "bench"), str(ROOT / "src")):
     if extra not in sys.path:
         sys.path.insert(0, extra)
 
-from afon.brain.agent import AfonAgent  # noqa: E402
-from afon.brain.judgment import JudgmentService, clarity_question  # noqa: E402
+from mushegh.brain.agent import MusheghAgent  # noqa: E402
+from mushegh.brain.judgment import JudgmentService, clarity_question  # noqa: E402
 
 CANNED = clarity_question()
 
@@ -50,7 +50,7 @@ async def main() -> int:
     asked = 0
     for text in CLEAR_REQUESTS:
         signals = await service.assess_turn(text)
-        agent = AfonAgent()
+        agent = MusheghAgent()
         agent._self_improve = False
         reply = await agent.respond(text)
         used_canned = reply.strip().startswith("I want to get that right")

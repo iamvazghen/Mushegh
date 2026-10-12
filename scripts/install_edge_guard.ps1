@@ -1,19 +1,19 @@
 <#
 .SYNOPSIS
-    Register AfonEdgeGuard: a cheap periodic check that the edge is actually RUNNING.
+    Register MusheghEdgeGuard: a cheap periodic check that the edge is actually RUNNING.
 
 .DESCRIPTION
     Three things can leave the laptop without a live edge, and each has its own recovery:
 
-      * code went stale / long uptime  -> AfonEdgeRefresh, daily 03:20 (already installed)
+      * code went stale / long uptime  -> MusheghEdgeRefresh, daily 03:20 (already installed)
       * machine resumed from sleep     -> the edge detects the wall-clock jump itself and rebuilds
                                           (audio_watchdog.watch_audio_liveness, suspend_limit_s)
       * the edge PROCESS died entirely -> nothing. The in-process watchdog is gone with it, and the
                                           Task Scheduler logon trigger won't refire until the next
                                           logon. THIS task is that gap.
 
-    Every 30 minutes it looks for a pythonw running afon.edge.* and, only if none is found, kicks
-    AfonEdgeRefresh. Finding a live edge costs one CIM query and does nothing — so this never
+    Every 30 minutes it looks for a pythonw running mushegh.edge.* and, only if none is found, kicks
+    MusheghEdgeRefresh. Finding a live edge costs one CIM query and does nothing — so this never
     interrupts a working session (unlike a resume-event trigger, which fires ~8x/day on this laptop's
     modern standby for brief maintenance wakes).
 
@@ -28,14 +28,14 @@ param([int]$EveryMinutes = 30)
 $ErrorActionPreference = 'Stop'
 
 $check = @'
-$stopped = 'C:\Afon\logs\edge_stopped_by_owner'
-$edge = @(Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" | Where-Object { $_.CommandLine -match 'afon\.edge\.' })
+$stopped = 'C:\Mushegh\logs\edge_stopped_by_owner'
+$edge = @(Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" | Where-Object { $_.CommandLine -match 'mushegh\.edge\.' })
 if ($edge.Count -eq 0) {
   # Protocol goodnight drops this marker: that silence was ORDERED, not a crash. Without the check
   # the guard would undo an explicit "goodnight" within 30 minutes. restart_edge.ps1 clears it.
   if (Test-Path $stopped) { return }
-  Add-Content -Encoding utf8 'C:\Afon\logs\edge_guard.log' ("{0} no edge process - starting AfonEdgeRefresh" -f (Get-Date -Format s))
-  Start-ScheduledTask AfonEdgeRefresh
+  Add-Content -Encoding utf8 'C:\Mushegh\logs\edge_guard.log' ("{0} no edge process - starting MusheghEdgeRefresh" -f (Get-Date -Format s))
+  Start-ScheduledTask MusheghEdgeRefresh
 }
 '@
 $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($check))
@@ -47,8 +47,8 @@ $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) `
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
             -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew -StartWhenAvailable
 
-Register-ScheduledTask -TaskName 'AfonEdgeGuard' -Action $action -Trigger $trigger -Settings $settings `
-    -Description 'Afon: restart the edge if its process is missing (checked every 30 min).' -Force | Out-Null
+Register-ScheduledTask -TaskName 'MusheghEdgeGuard' -Action $action -Trigger $trigger -Settings $settings `
+    -Description 'Mushegh: restart the edge if its process is missing (checked every 30 min).' -Force | Out-Null
 
-Write-Host ("Registered AfonEdgeGuard (every {0} min, restarts only when no edge process exists); state: {1}" -f `
-    $EveryMinutes, (Get-ScheduledTask AfonEdgeGuard).State)
+Write-Host ("Registered MusheghEdgeGuard (every {0} min, restarts only when no edge process exists); state: {1}" -f `
+    $EveryMinutes, (Get-ScheduledTask MusheghEdgeGuard).State)

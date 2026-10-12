@@ -72,17 +72,17 @@ def _assistant_text(ws: FakeWS) -> str:
 
 
 async def main() -> None:
-    import afon.brain.daily_digest as dd
-    from afon.brain.server import BrainServer
-    from afon.shared.protocol import Utterance
+    import mushegh.brain.daily_digest as dd
+    from mushegh.brain.server import BrainServer
+    from mushegh.shared.protocol import Utterance
 
     tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     state_file = Path(tmp.name) / "digest_state.json"
     dd._state_path = lambda: state_file  # type: ignore[assignment]
 
     print("[1] build_body composes past-due tasks + important email into one line")
-    import afon.brain.tools.notion as nt
-    import afon.brain.tools.gmail as gm
+    import mushegh.brain.tools.notion as nt
+    import mushegh.brain.tools.gmail as gm
 
     async def fake_overdue():
         return (["rent (2d overdue)", "call the bank (1d overdue)"], ["submit report"])
@@ -179,7 +179,7 @@ async def main() -> None:
     check("edge still marked delivered (won't rebuild all day)", not dd.due("edge"))
 
     print("\n[7] task/email nudges are NOT proactive tick sources anymore")
-    from afon.brain.proactive import default_signal_sources
+    from mushegh.brain.proactive import default_signal_sources
     names = {getattr(s, "__name__", "") for s in default_signal_sources()}
     check("task_signals not a tick source", "task_signals" not in names, str(names))
     check("email_signals not a tick source", "email_signals" not in names, str(names))

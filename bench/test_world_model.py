@@ -17,7 +17,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from afon.brain.world_model import WorldModel  # noqa: E402
+from mushegh.brain.world_model import WorldModel  # noqa: E402
 
 passed = failed = 0
 
@@ -122,7 +122,7 @@ def main() -> None:
 
 
 # ── 24.F2: say what is NOT known about an entity ─────────────────────────────────────────────
-# Afon could always report what he knew about someone. He could not report what he didn't — so an
+# Mushegh could always report what he knew about someone. He could not report what he didn't — so an
 # entity he held two facts about and one he held twenty about sounded equally complete, and the
 # owner had no way to tell which answers were thin. The gaps come from a DECLARED list of facets,
 # not from whatever happens to be stored: a gap you can only notice by already knowing what to
@@ -136,7 +136,7 @@ def states_its_gaps() -> None:
     asserted now is that the answer no longer *claims* either half — it does not report
     facts it no longer holds, and it does not invent gaps from a store that is gone.
     """
-    from afon.brain.world_model import what_i_dont_know
+    from mushegh.brain.world_model import what_i_dont_know
 
     print("\n[24.F2] it no longer claims knowledge or gaps from a store that is gone")
     said = what_i_dont_know("Anna Petrova")

@@ -1,4 +1,4 @@
-"""H2.2 — every tool degrades in Afon's voice, never as a raw exception name.
+"""H2.2 — every tool degrades in Mushegh's voice, never as a raw exception name.
 
 `agent.py`'s blanket catch stops a bad tool crashing the brain, but what the owner then HEARS is
 "That tool hit an error: KeyError". These modules had no handling of their own: documents,
@@ -35,13 +35,13 @@ def _boom(*_a, **_k):
 
 
 def main() -> None:
-    import afon.brain.tools.channels as channels
-    import afon.brain.tools.documents as docs
-    import afon.brain.tools.protocols as protocols
-    import afon.brain.tools.relationship as rel
-    from afon.brain import docstore
-    from afon.brain.relationship import RELATIONSHIP
-    from afon.brain.tools.base import tool_failed
+    import mushegh.brain.tools.channels as channels
+    import mushegh.brain.tools.documents as docs
+    import mushegh.brain.tools.protocols as protocols
+    import mushegh.brain.tools.relationship as rel
+    from mushegh.brain import docstore
+    from mushegh.brain.relationship import RELATIONSHIP
+    from mushegh.brain.tools.base import tool_failed
 
     print("[1] relationship tools survive a broken store")
     for fn, args, patch in (
@@ -117,8 +117,8 @@ def main() -> None:
         channels._resolve_videos = real_resolve  # type: ignore[assignment]
 
     print("\n[6] contacts: an unexpected save failure is spoken, not raised")
-    import afon.brain.contacts as _c
-    import afon.brain.tools.contacts as ct
+    import mushegh.brain.contacts as _c
+    import mushegh.brain.tools.contacts as ct
     real_save = type(_c.BOOK).save
     type(_c.BOOK).save = _boom
     try:
@@ -132,7 +132,7 @@ def main() -> None:
     # "isn't configured yet" for themselves, so rewording it would have left them ALL green with
     # the guarantee gone. These checks compare the PRODUCER against the PREDICATE, so the pair
     # cannot drift: reword the sentence and this fails immediately, in one place.
-    from afon.brain.tools.base import is_not_configured, not_configured, tool_error
+    from mushegh.brain.tools.base import is_not_configured, not_configured, tool_error
 
     _nc = not_configured("Gmail", "an OAuth token")
     check("not_configured() output is recognised by is_not_configured()", is_not_configured(_nc), _nc)
@@ -145,8 +145,8 @@ def main() -> None:
           and not is_not_configured("You have 3 meetings today, sir."))
 
     print("\n[6] 03.R2 — the types the schema can actually prove, checked before dispatch")
-    from afon.brain.tools import schemas_by_name
-    from afon.brain.argcheck import check_args
+    from mushegh.brain.tools import schemas_by_name
+    from mushegh.brain.argcheck import check_args
 
     [weather] = schemas_by_name(["weather"])
     _, problem = check_args("weather", {"location": "Cologne"}, weather)
@@ -181,7 +181,7 @@ def main() -> None:
     import re as _re
     _tools_src = "\n".join(
         p.read_text(encoding="utf-8")
-        for p in (Path(__file__).resolve().parents[1] / "src/afon/brain/tools").glob("*.py"))
+        for p in (Path(__file__).resolve().parents[1] / "src/mushegh/brain/tools").glob("*.py"))
     _req = {sch["function"]["name"]: (sch["function"].get("parameters") or {}).get("required") or []
             for sch in schemas_by_name([n["function"]["name"] for n in schemas_by_name([])] or [])}
     synonym_tools = []
@@ -201,8 +201,8 @@ def main() -> None:
               problem == "", problem)
 
     print("\n[8] 03.R2 — a rejected call becomes ONE repair instruction, not prose")
-    from afon.brain import agent as A
-    from afon.brain.tools.base import ErrorKind, kind_of, tool_error
+    from mushegh.brain import agent as A
+    from mushegh.brain.tools.base import ErrorKind, kind_of, tool_error
 
     # The handler's own rejection is already TYPED, so nothing parses a sentence to notice it.
     rejected = tool_error("send a push", ValueError("unknown argument(s) ['body_text']"))
@@ -221,7 +221,7 @@ def main() -> None:
           "tell the owner" in A._BAD_ARGS_GIVE_UP.lower())
     check("the two are different instructions", A._BAD_ARGS_REPAIR != A._BAD_ARGS_GIVE_UP)
 
-    src = (Path(__file__).resolve().parents[1] / "src/afon/brain/agent.py").read_text(
+    src = (Path(__file__).resolve().parents[1] / "src/mushegh/brain/agent.py").read_text(
         encoding="utf-8")
     check("the repair memo is reset at the start of every turn",
           "self._repaired = set()          # 03.R2" in src,
@@ -245,15 +245,15 @@ def main() -> None:
     import os as _os
     import tempfile as _tempfile
 
-    from afon.brain.tools import tool_handlers as _all_handlers
-    from afon.brain.tools.base import kind_of as _kind
+    from mushegh.brain.tools import tool_handlers as _all_handlers
+    from mushegh.brain.tools.base import kind_of as _kind
 
     _never_called = ["define_macro", "list_macros", "list_recent_actions", "mark_telegram",
                      "telegram_music", "undo_last"]
     _H = _all_handlers()
     with _tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as _td:
-        _prev = _os.environ.get("AFON_STATE_DIR")
-        _os.environ["AFON_STATE_DIR"] = _td      # never touch the owner's real macros/undo log
+        _prev = _os.environ.get("MUSHEGH_STATE_DIR")
+        _os.environ["MUSHEGH_STATE_DIR"] = _td      # never touch the owner's real macros/undo log
         try:
             for _name in _never_called:
                 _fn = _H.get(_name)
@@ -269,16 +269,16 @@ def main() -> None:
                 except Exception as _e:  # noqa: BLE001
                     _res, _ok = f"{type(_e).__name__}: {_e}", False
                 check(f"{_name}({{}}) answers instead of raising", _ok, str(_res)[:120])
-                check(f"...in Afon's voice, not a bare exception name",
+                check(f"...in Mushegh's voice, not a bare exception name",
                       _ok and isinstance(str(_res), str) and str(_res).strip() != "", str(_res)[:80])
                 check(f"...and any failure is TYPED, so a caller can decide",
                       not _ok or _kind(_res) is None or hasattr(_kind(_res), "value"),
                       str(_kind(_res)))
         finally:
             if _prev is None:
-                _os.environ.pop("AFON_STATE_DIR", None)
+                _os.environ.pop("MUSHEGH_STATE_DIR", None)
             else:
-                _os.environ["AFON_STATE_DIR"] = _prev
+                _os.environ["MUSHEGH_STATE_DIR"] = _prev
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

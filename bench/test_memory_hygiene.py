@@ -31,8 +31,8 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> None:
-    from afon.brain.maintenance import cap_learned, compact_learned, rotate_journals
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.maintenance import cap_learned, compact_learned, rotate_journals
+    from mushegh.brain.memory import MemoryStore
 
     with tempfile.TemporaryDirectory() as d:
         store = MemoryStore(base_dir=d)
@@ -81,9 +81,9 @@ def main() -> None:
     import os
     import time
 
-    from afon.brain import inventory as I
-    from afon.brain.maintenance import sweep_retention
-    from afon.config import settings
+    from mushegh.brain import inventory as I
+    from mushegh.brain.maintenance import sweep_retention
+    from mushegh.config import settings
 
     real_root = settings.state_dir
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as root:
@@ -108,7 +108,7 @@ def main() -> None:
             os.utime(pending, (long_ago, long_ago))
 
             # A sqlite store, which the sweep must not touch: deleting rows by age needs a schema.
-            db = base / "afon_presence.sqlite"
+            db = base / "mushegh_presence.sqlite"
             db.write_text("not really sqlite", encoding="utf-8")
             os.utime(db, (long_ago, long_ago))
 
@@ -130,7 +130,7 @@ def main() -> None:
                   pending.exists(), "file mtime is not age for a document that IS current state")
             check("...and it is not in the result either", "approvals.json" not in out, sorted(out))
             check("a sqlite store is left to its own module", db.exists())
-            check("...and is not claimed as swept", "afon_presence.sqlite" not in out, sorted(out))
+            check("...and is not claimed as swept", "mushegh_presence.sqlite" not in out, sorted(out))
 
             # Idempotent: a second run has nothing left to do.
             again = sweep_retention()
@@ -138,7 +138,7 @@ def main() -> None:
 
             # And it is wired into the job that already runs daily, not a script nobody calls.
             src = (Path(__file__).resolve().parents[1]
-                   / "src/afon/brain/maintenance.py").read_text(encoding="utf-8")
+                   / "src/mushegh/brain/maintenance.py").read_text(encoding="utf-8")
             check("the daily hygiene job calls it",
                   "sweep_retention()" in src.split("async def run_maintenance")[1])
             check("...and says what it removed", "retention dropped" in src)

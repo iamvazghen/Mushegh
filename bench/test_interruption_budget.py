@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []
@@ -65,8 +65,8 @@ async def _focus_probe() -> tuple[list[str], list[str]]:
     """
     import tempfile
 
-    from afon.brain import proactive
-    from afon.brain.modes import MODES
+    from mushegh.brain import proactive
+    from mushegh.brain.modes import MODES
 
     collected: dict[str, list[str]] = {}
     with tempfile.TemporaryDirectory() as tmp:
@@ -121,7 +121,7 @@ def main() -> int:
     template = ROOT / ".env.example"
     if template.is_file():
         line = next((l for l in template.read_text(encoding="utf-8").splitlines()
-                     if l.strip().startswith("AFON_PROACTIVE_DAILY_BUDGET=")), "")
+                     if l.strip().startswith("MUSHEGH_PROACTIVE_DAILY_BUDGET=")), "")
         # Strip the trailing comment the way python-dotenv does when it reads the file.
         # Comparing the raw text after "=" made every commented line in this template look
         # like a mismatch, which is a bug in the gate rather than in the template.
@@ -139,7 +139,7 @@ def main() -> int:
           settings.proactive_quiet_hours)
     check("quiet hours cover the night", "-" in settings.proactive_quiet_hours)
 
-    from afon.brain import proactive  # noqa: E402
+    from mushegh.brain import proactive  # noqa: E402
 
     budget_args = [p for p in proactive.ProactiveEngine.__init__.__code__.co_varnames
                    if "budget" in p or "quiet" in p]

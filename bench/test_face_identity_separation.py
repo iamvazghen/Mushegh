@@ -81,7 +81,7 @@ def shuffle_cells(img: np.ndarray, grid: int = 8, seed: int = 7) -> np.ndarray:
 
 
 def main() -> None:
-    from afon.brain.tools.camera import (_best_similarity, _face_signature, _lbp_hist,
+    from mushegh.brain.tools.camera import (_best_similarity, _face_signature, _lbp_hist,
                                          _majority_matched, _similarity, _SIG_LEN)
 
     owner = a_face()
@@ -122,7 +122,7 @@ def main() -> None:
     check(_majority_matched([]) is False, "no frames at all is not a match")
 
     print("\n[4] stale refs are refused, not mis-scored")
-    import afon.brain.tools.camera as cam
+    import mushegh.brain.tools.camera as cam
 
     frames = [a_face(seed) for seed in (1, 2, 3)]
     refs = np.array([_face_signature(f) for f in frames])

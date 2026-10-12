@@ -1,11 +1,11 @@
-"""One command to verify Afon works end-to-end.
+"""One command to verify Mushegh works end-to-end.
 
     uv run python bench/run_all_tests.py
 
 Runs every check in order and prints a single PASS/FAIL summary. Tests are tagged:
 
   [offline]  — deterministic, no network (config, VAD, barge-in, wake-word perf)
-  [network]  — needs the freellmapi proxy reachable (Afon's brain LLM); reported as
+  [network]  — needs the freellmapi proxy reachable (Mushegh's brain LLM); reported as
                SKIP (not FAIL) if the proxy is unreachable, so an offline run still passes
   [gated]    — the OpenClaw fleet connect, intentionally blocked until a sanctioned path
                is enabled; reported as SKIP
@@ -41,7 +41,13 @@ TESTS = [
      "offline", ["checks passed ==="]),
     ("Unattended worker: report a raised tool as failed, never as used", "test_worker_progress.py",
      "offline", ["checks passed ==="]),
-    ("Phase 3: knowledge & channel tools + ispir-only", "test_phase3_tools.py", "offline",
+    ("Live transit (DB + KVB, keyless): delay wording, platforms, journey shape, cancellations",
+     "test_transit.py", "offline", ["checks passed ==="]),
+    ("Named places + JSON contacts: 'home'/'the gym' resolve; ambiguity is refused, not guessed",
+     "test_places_and_contacts.py", "offline", ["checks passed ==="]),
+    ("Subsystem ledger: all 50 mapped honestly — no phantom settings, no orphan ids, unmapped != ready",
+     "test_subsystems.py", "offline", ["checks passed ==="]),
+    ("Phase 3: knowledge & channel tools + per-agent delegation", "test_phase3_tools.py", "offline",
      ["checks passed ==="]),
     ("Phase 4 + system/browser/protocols", "test_phase4_system_protocols.py", "offline",
      ["checks passed ==="]),
@@ -137,7 +143,7 @@ TESTS = [
      "re-sent over the CLI, the breaker is not tripped, and the outage path still recovers",
      "test_fleet_takeback.py", "offline", ["passed, 0 failed"]),
     ("A failure is described accurately (02.E1): an exhausted chain, a single model going quiet and "
-     "a bug in Afon are three different sentences, and a bug is never blamed on the models",
+     "a bug in Mushegh are three different sentences, and a bug is never blamed on the models",
      "test_outage_audible.py", "offline", ["passed, 0 failed"]),
     ("The catalogue router is MEASURED (03.R1 + 03.R7): 60 hand-written prompts reach the right "
      "group, narrowing measurably beats the 19k full surface, and the triggers that mis-fired are "
@@ -212,6 +218,9 @@ TESTS = [
      "offline", ["checks passed ==="]),
     ("Latency regression guard: config invariants + TTFW/VAQI floor", "test_latency_guard.py",
      "offline", ["checks passed ==="]),
+    ("M13 latency METHOD: the 30-utterance corpus per device exists, is diverse, and its budgets "
+     "match D-35. Explicitly NOT a measurement — no end-to-end number has been taken",
+     "test_latency_method.py", "offline", ["checks passed ==="]),
     ("Uptime watcher: edge-triggered outage alert (no repeat spam)", "test_uptime_watch.py",
      "offline", ["checks passed ==="]),
     ("Phase 0.1: active self-repair + escalate-on-sustained-red (reliability probe acts, not just logs)",
@@ -242,7 +251,7 @@ TESTS = [
      "test_ops_scripts.py", "offline", ["checks passed ==="]),
     ("Deploy prune (H2.13): --prune removes stale code on the brain, and refuses everything else",
      "test_deploy_prune.py", "offline", ["checks passed ==="]),
-    ("Skill docs (J4.6/J4.7): no doc may name a tool Afon cannot call — it fails silently mid-turn",
+    ("Skill docs (J4.6/J4.7): no doc may name a tool Mushegh cannot call — it fails silently mid-turn",
      "test_skill_docs_resolve.py", "offline", ["checks passed ==="]),
     ("Roadmap docs (J5.1): one canonical roadmap, and no doc cites a path that isn't in the tree",
      "test_doc_paths.py", "offline", ["checks passed ==="]),
@@ -265,7 +274,7 @@ TESTS = [
      "test_camera_routing.py", "offline", ["checks passed ==="]),
     ("Health coverage (J3.7): the healthy sentence names what it checked, and never overclaims",
      "test_health_coverage.py", "offline", ["checks passed ==="]),
-    ("README claims (J5.2): the feature tour cannot advertise a capability Afon does not have",
+    ("README claims (J5.2): the feature tour cannot advertise a capability Mushegh does not have",
      "test_readme_claims.py", "offline", ["checks passed ==="]),
     ("Chain exhaustion (J7.2): a domain type for 'every model refused', and the harness agrees on it",
      "test_llm_chain_exhausted.py", "offline", ["checks passed ==="]),
@@ -339,8 +348,20 @@ TESTS = [
      "test_fire_paths_report.py", "offline", ["checks passed ==="]),
     ("Loop registry (31.F4): no background loop runs unseen — period, budget, kill switch, HUD",
      "test_loop_registry.py", "offline", ["checks passed ==="]),
+    ("RSS ceiling (31.F6): the brain's memory budget is a MEASURED figure with stated headroom, "
+     "not the 250 MB guess it replaces",
+     "test_rss_ceiling.py", "offline", ["checks passed ==="]),
     ("Unpark gate (23.F4): leaving the park refuses while any Wave-0 floor is unmet",
      "test_unpark_gate.py", "offline", ["checks passed ==="]),
+    ("Jev call budget (01.J1): a turn the router already resolves to one argument-less tool "
+     "spends no decision call — and everything else still asks",
+     "test_jev_call_budget.py", "offline", ["checks passed ==="]),
+    ("Jev arbitration cap: the 400 ms budget is a configured number, and no other gate read it "
+     "until this one did",
+     "test_jev_arbitration_cap.py", "offline", ["checks passed ==="]),
+    ("Constant contracts (01.J14): six shipped numbers — the governor's call ceiling among them — "
+     "that stayed green through every mutation, now read directly",
+     "test_constant_contracts.py", "offline", ["checks passed ==="]),
     ("Provider cooldown (02.F3): provider health is learned from failures, and the HUD says so",
      "test_provider_cooldown.py", "offline", ["checks passed ==="]),
     ("Languages: six understood, the spoken one identified, and the reply matched to it",
@@ -357,8 +378,12 @@ TESTS = [
      "test_objectives.py", "offline", ["checks passed ==="]),
     ("Phase 4.2: approval queue — deferred outward steps become approvable; worker can't self-approve",
      "test_approvals.py", "offline", ["checks passed ==="]),
-    ("Phase 4.4: delegation fast-path breaker + learned routing bias", "test_fleet_fastpath.py",
-     "offline", ["checks passed ==="]),
+    ("Fleet routing: the agent is named and checked against the 18-agent roster, or refused",
+     "test_fleet_fastpath.py", "offline", ["checks passed ==="]),
+    ("Fleet transport: A2A to the 9 OpenClaw agents, hermes -z to the 9 profiles",
+     "test_a2a_transport.py", "offline", ["offline ok:"]),
+    ("Coding pipeline: Claude Code -> mcode -> vibe on failure; frontend goes to Open Design",
+     "test_coding_chain.py", "offline", ["ALL CHECKS PASSED ==="]),
     ("Phase 5.3: ambient HUD snapshot — objectives/working-on/awaiting-approval, fail-quiet per section",
      "test_hud.py", "offline", ["checks passed ==="]),
     ("Phase 5.2: device handoff — unprompted speech follows the owner to his active device",
@@ -549,7 +574,7 @@ TESTS = [
     ("Interruption budget (D-29): the charter's own number, read from DECISIONS.md, plus a "
      "focus block that zeroes the engine at maximum urgency",
      "test_interruption_budget.py", "offline", ["PASSED", "FAILED"]),
-    ("Spatial HUD (45.R6): bounded Afon control, search-only shell, real sources and loaders",
+    ("Spatial HUD (45.R6): bounded Mushegh control, search-only shell, real sources and loaders",
      "test_hud_modes.py", "offline", ["checks passed ==="]),
     ("Confirm seam (O2.5): all six exits from tool dispatch audit a decision, rule and turn id",
      "test_confirm_seam.py", "offline", ["checks passed ==="]),
@@ -654,9 +679,9 @@ RUNNABLE_FAILURE = (
 #: Five consecutive deploys died on that, each on a different test, each passing in isolation.
 #: The suite must not spend the real autonomy window (36.F6). Several tests drive a real
 #: TaskWorker, and a measured run consumed 64 of 200 calls - so the ledger is pointed at a
-#: throwaway file for the duration. Set before any test imports afon.brain.governor.
+#: throwaway file for the duration. Set before any test imports mushegh.brain.governor.
 os.environ.setdefault(
-    "AFON_GOVERNOR_LEDGER",
+    "MUSHEGH_GOVERNOR_LEDGER",
     # The PID is load-bearing. A FIXED path was documented as "a throwaway file for the
     # duration" while actually persisting every run, and `autonomy_max_calls` is 200 over a
     # 24 h window - so the ledger kept accumulating (measured 162 calls, window opened the
@@ -664,11 +689,11 @@ os.environ.setdefault(
     # reasons that had nothing to do with the code under test. That is the "deploy died on a
     # different test each time, each passing in isolation" failure this line exists to
     # prevent, rebuilt one level down. Each run now starts on a fresh budget.
-    str(Path(tempfile.gettempdir()) / f"afon-test-governor-{os.getpid()}.json"),
+    str(Path(tempfile.gettempdir()) / f"mushegh-test-governor-{os.getpid()}.json"),
 )
 
-#: Override with AFON_TEST_TIMEOUT_S on a slower machine.
-TEST_TIMEOUT_S = int(os.environ.get("AFON_TEST_TIMEOUT_S", "420"))
+#: Override with MUSHEGH_TEST_TIMEOUT_S on a slower machine.
+TEST_TIMEOUT_S = int(os.environ.get("MUSHEGH_TEST_TIMEOUT_S", "420"))
 
 
 #: How long to wait between deadline checks. Also the suspend detector's resolution: ask for a slice
@@ -769,6 +794,10 @@ def classify_result(tag: str, code: int, out: str, needles: list[str]) -> str:
 
 _NO_BASH = -99
 
+#: Wall-clock ceiling for the preflight subprocess. Preflight itself is a dozen local checks and
+#: finishes in about two seconds; anything past this is wedged, not slow.
+_PREFLIGHT_TIMEOUT_S = 120
+
 
 def _run_preflight():
     """Run scripts/preflight.sh under GIT Bash specifically.
@@ -778,21 +807,66 @@ def _run_preflight():
     does not use, so the checker confidently reported "state dir is missing" for a directory
     sitting right there. A preflight that inspects the wrong machine is worse than no preflight —
     it is the same failure it exists to catch, one level up.
+
+    Bounded, because this was the one subprocess in the gate without a timeout and an unbounded
+    one has no failure mode of its own: it hangs, the operator waits, and the only escape is
+    Ctrl+C, which raises KeyboardInterrupt out of `main()` and takes the other 250 results with
+    it. A wedged preflight is a broken invariant and belongs in the tally like any other.
     """
     candidates = [Path(r"C:\Program Files\Git\bin\bash.exe"),
                   Path(r"C:\Program Files (x86)\Git\bin\bash.exe")]
     git_bash = next((c for c in candidates if c.is_file()), None)
     if git_bash is None:
         return subprocess.CompletedProcess([], _NO_BASH, "", "")
-    return subprocess.run([str(git_bash), "scripts/preflight.sh"], cwd=str(ROOT),
-                          capture_output=True, text=True)
+    try:
+        return subprocess.run([str(git_bash), "scripts/preflight.sh"], cwd=str(ROOT),
+                              capture_output=True, text=True,
+                              timeout=_PREFLIGHT_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        # Reported, not raised. The point of the gate is the full set of results;
+        # one wedged script must not be able to destroy the other 250.
+        return subprocess.CompletedProcess(
+            [], 124,
+            stdout=f"preflight did not finish within {_PREFLIGHT_TIMEOUT_S}s and was terminated.\n"
+                   "        -> it is hung, not slow: rerun 'bash scripts/preflight.sh' directly to see where it stops",
+            stderr="")
+
+
+def _tree_fingerprint() -> str:
+    """A digest of every .py the suite can execute, so the run can name the tree it verified.
+
+    Recorded before the first test and re-checked after the last. A 33-minute run whose inputs
+    moved underneath it does not describe one moment, it describes two trees, and nothing in the
+    output would say so. That is not hypothetical: on 2026-10-11 a concurrent agent landed a merge
+    across the whole working tree 15 minutes into a baseline run. Every file took a fresh mtime,
+    `.git/AUTO_MERGE` appeared, and the giveaway was a traceback citing line 115 of a gate whose
+    line 115 had moved to 121 in the version that replaced it. `255 passed, 10 failed` was a
+    comparison across two different checkouts and looked exactly as authoritative as a real one.
+
+    Content, not mtime: a merge or checkout rewrites mtimes wholesale, and a touched-but-identical
+    file is still the same tree. SHA-256 over (relative path, bytes) in sorted order.
+    """
+    import hashlib
+
+    h = hashlib.sha256()
+    for base in (ROOT / "src", ROOT / "bench"):
+        for p in sorted(base.rglob("*.py")):
+            try:
+                h.update(str(p.relative_to(ROOT)).encode("utf-8", "replace"))
+                h.update(p.read_bytes())
+            except OSError:
+                h.update(str(p).encode("utf-8", "replace"))
+    return h.hexdigest()[:16]
 
 
 def main() -> int:
     print("=" * 60)
-    print(" AFON — full verification")
+    print(" MUSHEGH — full verification")
     print("=" * 60)
     results: list[tuple[str, str]] = []  # (status, label)
+
+    tree_before = _tree_fingerprint()
+    print(f"\ntree fingerprint (the exact code this run verifies): {tree_before}")
 
     # K7b — the environment invariants run FIRST, before any test.
     #
@@ -849,6 +923,26 @@ def main() -> int:
             print("    -> SKIP (freellmapi proxy unreachable — start the VPS tunnel to run this)")
         results.append((status, label))
 
+    failed = [lbl for s, lbl in results if s == "FAIL"]
+    npass = sum(1 for s, _ in results if s == "PASS")
+    nskip = sum(1 for s, _ in results if s == "SKIP")
+
+    # The run's own integrity, checked before its own verdict is printed. A moved tree makes every
+    # line above a composite of two checkouts, so this says so rather than letting the tally stand.
+    tree_after = _tree_fingerprint()
+    print("\n" + "=" * 60)
+    print(" RUN INTEGRITY")
+    print("=" * 60)
+    if tree_after != tree_before:
+        print("  *** THE TREE CHANGED WHILE THIS RUN WAS IN FLIGHT ***")
+        print(f"      began as {tree_before}, ended as {tree_after}")
+        print("      Every result above is a composite of TWO different checkouts — some tests ran")
+        print("      against the first tree and some against the second. Do not read this tally as")
+        print("      a verdict on either. A concurrent agent, merge or checkout is the usual cause.")
+        results.append(("FAIL", "RUN INTEGRITY: the tree changed during the run"))
+    else:
+        print(f"  tree unchanged for the whole run ({tree_before})")
+
     print("\n" + "=" * 60)
     print(" SUMMARY")
     print("=" * 60)
@@ -857,8 +951,6 @@ def main() -> int:
         print(f"  {icon[status]} {status:4} {label}")
 
     failed = [lbl for s, lbl in results if s == "FAIL"]
-    npass = sum(1 for s, _ in results if s == "PASS")
-    nskip = sum(1 for s, _ in results if s == "SKIP")
     print(f"\n  {npass} passed, {len(failed)} failed, {nskip} skipped")
     return 1 if failed else 0
 

@@ -50,7 +50,7 @@ LABELLED: list[tuple[str, str]] = [
     ("tell me a joke", "chat"),
     ("you're the best", "chat"),
     ("never mind", "chat"),
-    ("goodnight Afon", "chat"),
+    ("goodnight Mushegh", "chat"),
     # -- lookup: he wants to know something -------------------------------------------------
     ("what's on my calendar today", "lookup"),
     ("any unread email", "lookup"),
@@ -93,7 +93,7 @@ LABELLED: list[tuple[str, str]] = [
 
 
 def main() -> None:
-    from afon.brain.intent_router import (
+    from mushegh.brain.intent_router import (
         INTENT_CLASSES,
         _READ_TOOLS,
         _ROUTES,
@@ -149,9 +149,9 @@ def main() -> None:
           classify("cancel the meeting with Anna") != "ambiguous")
 
     print("\n[4] 01.R2 — one clarifying question, and never the same one twice")
-    from afon.brain import agent as A
+    from mushegh.brain import agent as A
 
-    ag = A.AfonAgent.__new__(A.AfonAgent)          # no LLM, no state dir — we only want the memo
+    ag = A.MusheghAgent.__new__(A.MusheghAgent)          # no LLM, no state dir — we only want the memo
     ag._clarified = set()
 
     def nudge_for(text: str) -> str:
@@ -215,14 +215,27 @@ def main() -> None:
           f"{len(hmiss)} wrong out of {len(held)}")
 
     print("\n[6] the classifier stays cheap — it runs on every turn")
+    import statistics
     import time
 
-    t0 = time.perf_counter()
-    for _ in range(200):
-        for t, _want in LABELLED:
-            classify(t)
-    per = (time.perf_counter() - t0) / (200 * len(LABELLED)) * 1e6
-    check(f"~{per:.0f}us per classification (< 500us)", per < 500, f"{per:.0f}us")
+    # Best-of-N, not a single span. Measured 2026-10-10: seven identical runs of this loop returned
+    # 97, 413, 2829, 1299, 1950, 1808 and 1728 us per classification — a 29x spread, with 5 of the 7
+    # failing a 500us budget. One wall-clock span over 8400 calls measures whatever else the machine
+    # was doing, so this check was a coin flip dressed as evidence. The minimum is the standard
+    # estimator for "what does this cost": noise can only ever add time, so the best sample is the
+    # closest to the classifier's real cost. The budget is unchanged at 500us — a genuine regression
+    # still raises the floor, which is the part that matters.
+    per: list[float] = []
+    for _ in range(5):
+        t0 = time.perf_counter()
+        for _ in range(200):
+            for t, _want in LABELLED:
+                classify(t)
+        per.append((time.perf_counter() - t0) / (200 * len(LABELLED)) * 1e6)
+    best = min(per)
+    check(f"~{best:.0f}us per classification, best of {len(per)} (< 500us)",
+          best < 500, f"best={best:.0f}us  median={statistics.median(per):.0f}us  "
+                     f"samples={' '.join(f'{p:.0f}' for p in per)}")
 
     print(f"\n=== {passed}/{passed + failed} checks passed ===")
     if failed:

@@ -39,7 +39,7 @@ def _is_complete_sentence(s: str) -> bool:
 
 
 def main() -> None:
-    from afon.config import settings
+    from mushegh.config import settings
 
     # Unconfigure the credentialed integrations so each read tool takes its empty/degraded path.
     for attr in ("notion_token", "google_refresh_token", "google_client_id", "telegram_api_id",
@@ -51,8 +51,8 @@ def main() -> None:
     settings.jina_api_key = None
 
     print("[1] recall (memory) — all layers empty returns a complete negative")
-    from afon.brain.memory import MemoryStore
-    from afon.brain.tools import memory as mem_tools
+    from mushegh.brain.memory import MemoryStore
+    from mushegh.brain.tools import memory as mem_tools
     # recall is CROSS-LAYER (L1 store + L3 vault + …). Empty the L1 store AND point the vault at an
     # empty dir, else the real vault's fuzzy matches make "empty" impossible to test.
     _saved_vault = settings.vault_path
@@ -68,7 +68,7 @@ def main() -> None:
             settings.vault_path = _saved_vault
 
     print("\n[2] reminders — no reminders set returns a complete negative")
-    from afon.brain.tools import reminders
+    from mushegh.brain.tools import reminders
     r = asyncio.run(reminders.list_reminders({}))
     check("list_reminders: complete sentence", _is_complete_sentence(r), r)
     check("list_reminders: clearly negative", "no reminder" in r.lower(), r)
@@ -77,17 +77,17 @@ def main() -> None:
     check("cancel_reminder(unknown): says couldn't find", "couldn't find" in r.lower(), r)
 
     print("\n[3] calendar — unconfigured returns a complete note (not a blank)")
-    from afon.brain.tools import calendar
+    from mushegh.brain.tools import calendar
     r = asyncio.run(calendar.list_events({"days": 1}))
     check("list_events: complete sentence", _is_complete_sentence(r), r)
 
     print("\n[4] gmail — unconfigured read returns a complete note")
-    from afon.brain.tools import gmail
+    from mushegh.brain.tools import gmail
     r = asyncio.run(gmail.read_email({"query": "invoice"}))
     check("read_email: complete sentence", _is_complete_sentence(r), r)
 
     print("\n[5] tasks — no matching background task returns a complete negative")
-    from afon.brain.tools import tasks
+    from mushegh.brain.tools import tasks
     # `topic`, not `query`. task_status' schema declares `topic` as required, and calling the
     # function directly bypasses schema validation, so passing `query` sent an EMPTY topic -
     # which is the "what is my task status?" path that legitimately lists EVERYTHING. The
@@ -97,12 +97,12 @@ def main() -> None:
     check("task_status(none): complete sentence", _is_complete_sentence(r), r)
 
     print("\n[6] telegram — unconfigured check returns a complete note")
-    from afon.brain.tools import telegram
+    from mushegh.brain.tools import telegram
     r = asyncio.run(telegram.check_telegram({}))
     check("check_telegram: complete sentence", _is_complete_sentence(r), r)
 
     print("\n[7] vault — no match returns a complete negative")
-    from afon.brain.tools import vault
+    from mushegh.brain.tools import vault
     saved_vault = settings.vault_path
     try:
         with tempfile.TemporaryDirectory() as d:
@@ -117,8 +117,8 @@ def main() -> None:
     print("\n[19.F3] an unlinked app is a missing credential, not a failed action")
     import asyncio as _aio
 
-    import afon.brain.tools.composio as cx
-    from afon.brain.tools.base import is_not_configured
+    import mushegh.brain.tools.composio as cx
+    from mushegh.brain.tools.base import is_not_configured
 
     real_configured, real_context, real_post = cx._configured, cx._context, cx._post
     cx._configured = lambda: True
@@ -139,7 +139,7 @@ def main() -> None:
         cx._context = _ctx_slack_missing
         cx._post = _post_unlinked
         r = _aio.run(cx.composio_run_tool({"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {}}))
-        check("an app Afon knows is unlinked types as not-configured", is_not_configured(r), r)
+        check("an app Mushegh knows is unlinked types as not-configured", is_not_configured(r), r)
         check("...and it never claims the send was attempted",
               "didn't go through" not in r, r)
 

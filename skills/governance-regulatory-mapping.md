@@ -33,7 +33,7 @@ Art. 9 special-category processing. Say so plainly; do not soften it.
 
 ## Secrets handling (added 2026-10-09)
 
-Secrets are resolved by `afon/shared/secrets.py`: **environment first, then Infisical, with an
+Secrets are resolved by `Mushegh/shared/secrets.py`: **environment first, then Infisical, with an
 `age`-encrypted file as the offline floor.** Hydration cannot raise — a brain that will not boot
 cannot be diagnosed.
 

@@ -41,9 +41,9 @@ class _SlowTailLLM:
 
 
 async def main() -> None:
-    from afon.brain.agent import AfonAgent
+    from mushegh.brain.agent import MusheghAgent
 
-    agent = AfonAgent()
+    agent = MusheghAgent()
     agent._self_improve = False
     agent._llm = _SlowTailLLM(gap=0.6)
 
@@ -78,7 +78,7 @@ async def main() -> None:
 #
 # 03.R5 (2026-09-14) turned this from an observation into a limit. `agent.CATALOGUE_TOKEN_BUDGET`
 # is now checked BEFORE a lazy group joins the turn, so the catalogue cannot exceed it at all;
-# a group that would breach it is deferred and Afon asks one clarifying question instead of
+# a group that would breach it is deferred and Mushegh asks one clarifying question instead of
 # guessing with half a surface. Before: 13,000 asserted, 12,437 measured, 19,004 possible with
 # every group armed and nothing stopping it. After: 11,000 enforced, 10,929 worst measured.
 # This ceiling stays a hair above the budget on purpose — if the two were equal, a rounding
@@ -100,16 +100,16 @@ class _NoToolLLM:
 
 
 async def catalogue_ceiling() -> None:
-    from afon.brain.agent import AfonAgent
-    from afon.brain import turn_trace as T
+    from mushegh.brain.agent import MusheghAgent
+    from mushegh.brain import turn_trace as T
 
     import os
     import tempfile
 
     with tempfile.TemporaryDirectory() as td:
-        os.environ["AFON_TRACE_DIR"] = td
+        os.environ["MUSHEGH_TRACE_DIR"] = td
         try:
-            agent = AfonAgent()
+            agent = MusheghAgent()
             agent._self_improve = False
             agent._llm = _NoToolLLM()
 
@@ -158,7 +158,7 @@ async def catalogue_ceiling() -> None:
             print(f"    worst: {worst_case} at {worst_tokens:,} tokens / {worst_tools} tools "
                   f"— {over:,} over the {CATALOGUE_TOKEN_TARGET:,} budget (03.R1)")
         finally:
-            os.environ.pop("AFON_TRACE_DIR", None)
+            os.environ.pop("MUSHEGH_TRACE_DIR", None)
 
 
 asyncio.run(main())

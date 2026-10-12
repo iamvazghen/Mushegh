@@ -1,4 +1,4 @@
-"""45.R6 — spatial HUD shell and Afon presentation-control seam (hermetic).
+"""45.R6 — spatial HUD shell and Mushegh presentation-control seam (hermetic).
 
 The gate is deliberately split across both sides of the seam: the brain can only publish bounded,
 validated presentation commands, and the client exposes only the command surface plus the spatial
@@ -16,10 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain.hud import hud_snapshot  # noqa: E402
-from afon.brain.hud_control import CANVAS_IDS, HudCommandError, HudControlBus  # noqa: E402
-from afon.brain.tools import hudui  # noqa: E402
-from afon.brain.tools import group_tool_schemas, groups_for_text, tool_handlers  # noqa: E402
+from mushegh.brain.hud import hud_snapshot  # noqa: E402
+from mushegh.brain.hud_control import CANVAS_IDS, HudCommandError, HudControlBus  # noqa: E402
+from mushegh.brain.tools import hudui  # noqa: E402
+from mushegh.brain.tools import group_tool_schemas, groups_for_text, tool_handlers  # noqa: E402
 
 passed = failed = 0
 
@@ -81,7 +81,7 @@ def main() -> int:
     broken = hud_snapshot(objectives=empty, tasks=empty, approvals=empty, presence=empty, hud_control=_BrokenBus())
     check("a broken display bus cannot sink /hud.json", broken["hud_control"] == {"stream_id": "", "sequence": 0, "commands": []})
 
-    print("\n[3] Afon can discover and call the HUD tool without making it core")
+    print("\n[3] Mushegh can discover and call the HUD tool without making it core")
     schemas = group_tool_schemas("hud")
     check("HUD group advertises exactly control_hud", [s["function"]["name"] for s in schemas] == ["control_hud"])
     check("voice-shaped text activates the HUD group", "hud" in groups_for_text("bring the goals canvas on screen"))

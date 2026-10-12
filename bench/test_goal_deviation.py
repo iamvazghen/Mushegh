@@ -3,7 +3,7 @@
 Three properties, which are the gate:
 
 1. **A deviation from a stated goal emits a signal above the context override (0.85)**, so it is
-   capable of interrupting media. Before this source existed, nothing in Afon could: every companion
+   capable of interrupting media. Before this source existed, nothing in Mushegh could: every companion
    kind is pinned at 0.62 against a 0.85 bar, and the only source that cleared it needed a *calendar
    event*. `14.F3` ("every signal kind is reachable") passes and does not cover this, because a kind
    that only ever fires while he is idle is reachable.
@@ -28,8 +28,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from afon.brain import goal_deviation as gd  # noqa: E402
-from afon.config import settings  # noqa: E402
+from mushegh.brain import goal_deviation as gd  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 PASS = FAIL = 0
 
@@ -196,7 +196,7 @@ def main() -> int:
     # held, and asserts that this one is not.
     import asyncio
 
-    from afon.brain.proactive import ProactiveEngine, Signal
+    from mushegh.brain.proactive import ProactiveEngine, Signal
 
     def engine_for(sig: Signal) -> ProactiveEngine:
         return ProactiveEngine(emit=_emit, sources=[lambda: [sig]], is_busy=lambda: True,
@@ -226,7 +226,7 @@ def main() -> int:
     # Found by mutation: sections 1-7 all passed with `goal_deviation_signals()` returning a signal
     # for a HELD moment, because they exercised judge() and record() but never the source the engine
     # calls. The decision lives here, so it is tested here.
-    from afon.brain import world_model
+    from mushegh.brain import world_model
 
     class FakeWorld:
         def __init__(self, goals):
@@ -310,14 +310,14 @@ async def _emit(message: str, urgency: float, listening: bool) -> str:
 
 
 def _registered() -> bool:
-    from afon.brain.proactive import default_signal_sources
+    from mushegh.brain.proactive import default_signal_sources
 
     return any(getattr(s, "__name__", "") == "goal_deviation_signals"
                for s in default_signal_sources())
 
 
 def _declared() -> bool:
-    from afon.brain import data_classes as dc
+    from mushegh.brain import data_classes as dc
 
     store = dc.classify("goal_deviation_log.jsonl")
     return store is not None and not store.leaves_host

@@ -1,4 +1,4 @@
-"""J5.2 — the README is a feature tour, and nothing stopped it drifting from what Afon can do.
+"""J5.2 — the README is a feature tour, and nothing stopped it drifting from what Mushegh can do.
 
 The graph put README in its own community with almost no edges to code (cohesion 0.09), which is
 the structural way of saying: this file makes claims and nothing checks them. That is not
@@ -62,11 +62,11 @@ def _extras() -> set[str]:
 
 
 def main() -> None:
-    from afon.brain.tools import tool_names
+    from mushegh.brain.tools import tool_names
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     tools = set(tool_names())
-    agent_src = (ROOT / "src" / "afon" / "brain" / "agent.py").read_text(encoding="utf-8")
+    agent_src = (ROOT / "src" / "mushegh" / "brain" / "agent.py").read_text(encoding="utf-8")
     builtins_in_agent = set(re.findall(r'"name":\s*"([a-z_]+)"', agent_src))
     callable_names = tools | builtins_in_agent
     extras = _extras()

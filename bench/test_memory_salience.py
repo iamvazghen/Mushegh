@@ -1,4 +1,4 @@
-"""Memory-util — Afon proactively resurfaces durable commitments, not just recalls them when asked.
+"""Memory-util — Mushegh proactively resurfaces durable commitments, not just recalls them when asked.
 
 Hermetic: seed a temp L1 store with commitment-flavoured and mundane facts, then lock that salient_notes()
 ranks open commitments in the recency sweet spot above fresh/stale/mundane ones, and that the resurface
@@ -34,14 +34,14 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def _seed(store, text: str, created: datetime, tags=None) -> None:
     """Write an L1 note with an explicit created timestamp (remember() always stamps 'now')."""
     store.learned_dir.mkdir(parents=True, exist_ok=True)
-    from afon.brain.memory import _slug
+    from mushegh.brain.memory import _slug
     p = store.learned_dir / f"{created:%Y%m%d-%H%M%S}-{_slug(text)}.md"
     p.write_text(f"---\ncreated: {created.isoformat()}\ntags: {', '.join(tags or [])}\n---\n{text}\n",
                  encoding="utf-8")
 
 
 def main() -> None:
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.memory import MemoryStore
 
     now = datetime(2026, 7, 22, 12, 0, tzinfo=timezone.utc)
     store = MemoryStore(base_dir=Path(tempfile.mkdtemp()))
@@ -69,8 +69,8 @@ def main() -> None:
     check("8-day commitment beats 60-day", score_of("piano") > score_of("passport"), str(sal))
 
     print("\n[3] resurface source raises the top one, then rotates")
-    import afon.brain.memory as memory_mod
-    import afon.brain.proactive_signals as ps
+    import mushegh.brain.memory as memory_mod
+    import mushegh.brain.proactive_signals as ps
 
     saved_store = memory_mod.STORE
     saved_path = ps._RESURFACED_PATH
@@ -100,7 +100,7 @@ def main() -> None:
         ps._RESURFACED_PATH = saved_path
 
     print("\n[4] the source is registered on the live proactive tick")
-    from afon.brain.proactive import default_signal_sources
+    from mushegh.brain.proactive import default_signal_sources
     names = {getattr(s, "__name__", "") for s in default_signal_sources()}
     check("memory_resurface_signals registered", "memory_resurface_signals" in names, str(sorted(names)))
 
@@ -114,12 +114,12 @@ def main() -> None:
 # ── 30.F3: every stored fact carries source, timestamp and confidence ────────────────────────
 # The store mixes three different kinds of claim — what the owner said, what a model inferred from
 # a conversation, and what the pattern detector guessed from behaviour — and until now they were
-# indistinguishable once written. That is how a guess quietly becomes something Afon "knows", and
+# indistinguishable once written. That is how a guess quietly becomes something Mushegh "knows", and
 # it is not recoverable after the fact: a note with no origin cannot be given one later.
 def provenance() -> None:
     import re
 
-    from afon.brain.memory import DEFAULT_SOURCE, SOURCES, MemoryStore, source_rank
+    from mushegh.brain.memory import DEFAULT_SOURCE, SOURCES, MemoryStore, source_rank
 
     print("\n[5] a fact written today carries all three")
     store = MemoryStore(base_dir=Path(tempfile.mkdtemp()))
@@ -167,7 +167,7 @@ def provenance() -> None:
           partial.source)
 
     print("\n[8] a better source upgrades what was already known")
-    # The moment a guess becomes a fact: the owner states outright something Afon had inferred.
+    # The moment a guess becomes a fact: the owner states outright something Mushegh had inferred.
     # Dedup returns early on identical text, so without this the stronger provenance is discarded.
     store2 = MemoryStore(base_dir=Path(tempfile.mkdtemp()))
     store2.remember("He is learning German.", source="inferred")

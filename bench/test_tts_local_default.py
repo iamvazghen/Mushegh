@@ -4,7 +4,7 @@ D-17: "Latency and local privacy dominate cost and personality, every time. Pipe
 the default; ElevenLabs is an opt-in for when quality is worth the egress."
 
 The code disagreed with its own stated intent: `config.py` defaulted `tts_provider` to
-ElevenLabs while `bench/voice_offline_check.py` printed that "the OpenAfon FRAMEWORK default
+ElevenLabs while `bench/voice_offline_check.py` printed that "the OpenMushegh FRAMEWORK default
 is local/BYO-key so a stranger needs no paid accounts." Two documents, one of them a
 comment in the file that decides it. This gate makes the code match the decision, and it
 checks the property that actually matters: **a default that needs no key.**
@@ -40,8 +40,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-_TMP = tempfile.TemporaryDirectory(prefix="afon-tts-")
-os.environ["AFON_STATE_DIR"] = _TMP.name
+_TMP = tempfile.TemporaryDirectory(prefix="mushegh-tts-")
+os.environ["MUSHEGH_STATE_DIR"] = _TMP.name
 
 passed = failed = 0
 
@@ -57,10 +57,10 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def main() -> int:
-    from afon.config import STTProvider, Settings, TTSProvider, settings
-    from afon.edge import stt as stt_mod
-    from afon.edge import tts as tts_mod
-    from afon.edge import voice_health
+    from mushegh.config import STTProvider, Settings, TTSProvider, settings
+    from mushegh.edge import stt as stt_mod
+    from mushegh.edge import tts as tts_mod
+    from mushegh.edge import voice_health
 
     print("[1] the code default is local")
     fresh = Settings(_env_file=None)
@@ -81,10 +81,10 @@ def main() -> int:
     live = settings                      # the module singleton, which read the real .env
     if live.tts_provider in tts_mod._CLOUD:
         print(f"        NO — the live config resolves to '{live.tts_provider.value}', because")
-        print("        AFON_TTS_PROVIDER is set in C:\\Afon\\.env. That is the D-17 OPT-IN")
+        print("        MUSHEGH_TTS_PROVIDER is set in C:\\Mushegh\\.env. That is the D-17 OPT-IN")
         print("        working, not a defect: the code default is local, and the deployment")
         print("        explicitly asks for the cloud voice. To put D-17 in force, comment out")
-        print("        AFON_TTS_PROVIDER (or set it to 'piper') in that file.")
+        print("        MUSHEGH_TTS_PROVIDER (or set it to 'piper') in that file.")
         check("the code default is local even though the deployment overrides it", True)
     else:
         print(f"        YES — the live config resolves to '{live.tts_provider.value}'")
@@ -166,7 +166,7 @@ def main() -> int:
     # The defect that makes Deepgram uncomfortable, asserted as still real. If this ever goes empty
     # the pressure to route by language (18.R7) disappears, and that is exactly when someone should
     # be told rather than a year later.
-    from afon.shared.language import SUPPORTED, stt_gaps
+    from mushegh.shared.language import SUPPORTED, stt_gaps
     six = sorted(SUPPORTED)
     check("the Ukrainian gap is still real for Deepgram", stt_gaps("deepgram", six) == ["uk"],
           str(stt_gaps("deepgram", six)))
@@ -176,7 +176,7 @@ def main() -> int:
           stt_gaps(fresh.stt_provider.value, six) != [], str(fresh.stt_provider.value))
 
     env = (ROOT / ".env.example").read_text(encoding="utf-8")
-    check(".env.example documents the TTS opt-in", "AFON_TTS_PROVIDER" in env)
+    check(".env.example documents the TTS opt-in", "MUSHEGH_TTS_PROVIDER" in env)
     check("...and still carries the ElevenLabs key as an option, now commented as opt-in",
           "ELEVENLABS" in env)
 

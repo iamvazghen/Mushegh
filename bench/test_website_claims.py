@@ -11,7 +11,7 @@ A docs site is a promise to someone who has not cloned the repo yet. They cannot
 has to.
 
 What it holds:
-  * every `AFON_*` setting the site names is real (a `Settings` field, or a declared env-read);
+  * every `MUSHEGH_*` setting the site names is real (a `Settings` field, or a declared env-read);
   * every file path the site cites exists in the tree;
   * the generated tool data matches the live registry, so the tool page cannot silently go stale;
   * the skills the site lists are the skills on disk.
@@ -50,11 +50,11 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 #: Names read straight from the environment rather than through `Settings` — the VPS ticker and the
 #: deploy script own these, and they are real despite not being config fields.
 ENV_ONLY = {
-    "AFON_TICKER_HOST", "AFON_TICKER_PORT", "AFON_TICKER_TZ", "AFON_TICKER_TOKEN",
-    "AFON_VPS", "AFON_VPS_DIR", "AFON_PROTOCOL_", "AFON_STATE_DIR", "AFON_TRACE_DIR",
+    "MUSHEGH_TICKER_HOST", "MUSHEGH_TICKER_PORT", "MUSHEGH_TICKER_TZ", "MUSHEGH_TICKER_TOKEN",
+    "MUSHEGH_VPS", "MUSHEGH_VPS_DIR", "MUSHEGH_PROTOCOL_", "MUSHEGH_STATE_DIR", "MUSHEGH_TRACE_DIR",
 }
 
-_SETTING_RE = re.compile(r"AFON_[A-Z0-9_]+")
+_SETTING_RE = re.compile(r"MUSHEGH_[A-Z0-9_]+")
 _PATH_RE = re.compile(r"<code>([A-Za-z0-9_./\-]+\.(?:py|sh|md|json|ts|tsx|onnx|npy|toml|yml|yaml))</code>")
 
 
@@ -70,9 +70,9 @@ def main() -> None:
     check(f"the site has pages to check ({len(pages)} .tsx files)", len(pages) >= 20, str(len(pages)))
 
     print("\n[1] every setting the site documents is one the code reads")
-    from afon.config import Settings
+    from mushegh.config import Settings
 
-    known = {("AFON_" + n).upper() for n in Settings.model_fields} | ENV_ONLY
+    known = {("MUSHEGH_" + n).upper() for n in Settings.model_fields} | ENV_ONLY
     bad: dict[str, list[str]] = {}
     for p, t in text.items():
         for name in sorted(set(_SETTING_RE.findall(t))):
@@ -89,14 +89,14 @@ def main() -> None:
         for cited in sorted(set(_PATH_RE.findall(t))):
             if "/" not in cited:
                 continue                       # a bare filename is prose, not a path claim
-            if not any((ROOT / (base + cited)).exists() for base in ("", "src/afon/")):
+            if not any((ROOT / (base + cited)).exists() for base in ("", "src/mushegh/")):
                 missing.append(f"{p.name}: {cited}")
     for m in missing:
         print(f"        {m}")
     check("no page cites a file that is not in the tree", not missing, str(missing))
 
     print("\n[3] the generated tool data is the live registry")
-    from afon.brain.tools import tool_names
+    from mushegh.brain.tools import tool_names
 
     gen = ROOT / "website" / "app" / "tools" / "tools.generated.json"
     check("the generated tool file exists", gen.is_file(), str(gen))

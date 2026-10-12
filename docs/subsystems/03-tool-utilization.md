@@ -13,7 +13,7 @@ belongs is a defect, not a shortcut, and only a Pydantic-validated payload reach
 OS. And the belt shrinks (D-06) — unused for 60 days is culled, because adding a handler
 is adding a place this can fail, and 50 subsystems is already one too many.
 
-D-07 is the narrow door. Afon may act **without asking** for exactly five things:
+D-07 is the narrow door. Mushegh may act **without asking** for exactly five things:
 predefined lighting scenes, appends to daily notes, local timers, read-only file and
 system queries, and transit/weather polling. That list is a whitelist, not a starting
 point. A new silent-ok action is a decision, not a feature. Everything else is
@@ -44,13 +44,13 @@ tools/base.py       the contract every handler inherits
 
 | Concern | Where |
 |---|---|
-| Registry, per-turn narrowing, name→handler map | `src/afon/brain/tools/__init__.py` |
-| Handler contract, graceful degradation | `src/afon/brain/tools/base.py` |
-| Argument validation | `src/afon/brain/argcheck.py`, `src/afon/brain/tools/approvals.py` |
+| Registry, per-turn narrowing, name→handler map | `src/mushegh/brain/tools/__init__.py` |
+| Handler contract, graceful degradation | `src/mushegh/brain/tools/base.py` |
+| Argument validation | `src/mushegh/brain/argcheck.py`, `src/mushegh/brain/tools/approvals.py` |
 | Typed failure contract (03.F1) | `tool_failed()`, `is_not_configured()` — no result sentinels |
 | Result size ceiling (03.F4) | `agent.py` appends `str(result)`; a ceiling is applied at the boundary |
 | Per-handler usage and reliability | `tool_usage.py`, `tool_reliability.py` |
-| Catalogue contents and family grouping | `composio_catalog.py`, and the ~50 modules in `src/afon/brain/tools/` |
+| Catalogue contents and family grouping | `composio_catalog.py`, and the ~50 modules in `src/mushegh/brain/tools/` |
 
 **Process ownership:** brain. Every handler runs in the brain process, which is why a
 handler must never be a shell string.
@@ -65,7 +65,7 @@ timestamps — the inputs to the 60-day cull. Confirmation and refusal records g
 153 schemas and 155 handlers against a 90–100 target (D-06) is the problem; no
 repository fixes it. The correct action is deletion, and this document's open
 question 3 — which handlers go first — is the entire job, answered from
-`src/afon/brain/tool_usage.py`.
+`src/mushegh/brain/tool_usage.py`.
 
 The one conditional: if the "core schemas already spend 7418 of 11000 catalogue
 tokens" figure must be **exact** rather than estimated,
@@ -73,7 +73,7 @@ tokens" figure must be **exact** rather than estimated,
 imported in one function behind the budget check in `_tools_for_turn()`. It is not
 proposed now, because no gate is waiting on the precision.
 
-**A narrower belt is a faster, less confidently wrong Afon**, which is the
+**A narrower belt is a faster, less confidently wrong Mushegh**, which is the
 symptom this document names. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
 
 
@@ -99,7 +99,7 @@ symptom this document names. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
 | # | Goal | Tier | Command / drill | Threshold | Last measurement |
 |---|---|---|---|---|---|
 | 1 | Schema validation (D-04) | B4 | Code invariant: `tools/base.py` contract; a raw-string handler is a hard failure | 0 unvalidated paths to execution | not yet measured |
-| 2 | Belt size (D-06) | B5 | Count SCHEMAS and HANDLERS in `src/afon/brain/tools/` | 90–100 handlers; 0 unused ≥60 days | 153 schemas / 155 handlers per the charter — **above the target, shrinking** |
+| 2 | Belt size (D-06) | B5 | Count SCHEMAS and HANDLERS in `src/mushegh/brain/tools/` | 90–100 handlers; 0 unused ≥60 days | 153 schemas / 155 handlers per the charter — **above the target, shrinking** |
 | 3 | Silent-ok list (D-07) | B4 | `bench/test_confirm_tier_documented.py`; the list is a whitelist | exactly 5 categories; any 6th is a test failure | not yet measured |
 | 4 | Blast radius (D-13, M27) | B4 | One refusal test each for locks, breakers, recursive delete, external dispatch | 4/4 refuse, 0 conditional | not yet measured — M27 open |
 | 5 | Missing argument asks | B1 | `bench/test_missing_arg.py` | 0 fabricated arguments; ≤1 repair prompt per turn | not yet measured |

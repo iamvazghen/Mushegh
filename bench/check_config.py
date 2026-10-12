@@ -3,7 +3,7 @@
 import sys
 
 sys.path.insert(0, "src")
-from afon.config import settings  # noqa: E402
+from mushegh.config import settings  # noqa: E402
 
 
 def mask(v: str | None) -> str:

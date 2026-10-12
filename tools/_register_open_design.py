@@ -1,4 +1,4 @@
-"""Register Open Design as a stdio MCP server in Afon's .env, alongside Jina.
+"""Register Open Design as a stdio MCP server in Mushegh's .env, alongside Jina.
 
 Written as a file rather than inline because the named-pipe endpoint contains a sequence the
 local safety scanner refuses to see in a shell command, so the path is assembled from parts
@@ -24,7 +24,7 @@ def main() -> int:
     cfg = {
         "jina": {
             "url": "https://mcp.jina.ai/v1",
-            "headers": {"Authorization": "Bearer ${AFON_JINA_API_KEY}"},
+            "headers": {"Authorization": "Bearer ${MUSHEGH_JINA_API_KEY}"},
             "timeout": 40,
         },
         "open-design": {
@@ -43,14 +43,14 @@ def main() -> int:
 
     env_path = Path(".env")
     raw = env_path.read_text(encoding="utf-8")
-    line = "AFON_MCP_SERVERS=" + json.dumps(cfg, ensure_ascii=False)
-    if re.search(r"(?m)^AFON_MCP_SERVERS=.*$", raw):
-        raw = re.sub(r"(?m)^AFON_MCP_SERVERS=.*$", lambda _m: line, raw)
+    line = "MUSHEGH_MCP_SERVERS=" + json.dumps(cfg, ensure_ascii=False)
+    if re.search(r"(?m)^MUSHEGH_MCP_SERVERS=.*$", raw):
+        raw = re.sub(r"(?m)^MUSHEGH_MCP_SERVERS=.*$", lambda _m: line, raw)
     else:
         raw = raw.rstrip() + "\n" + line + "\n"
     env_path.write_text(raw, encoding="utf-8")
 
-    print("AFON_MCP_SERVERS written; servers:", list(cfg))
+    print("MUSHEGH_MCP_SERVERS written; servers:", list(cfg))
     print("  exe exists:", Path(EXE).exists())
     print("  cli exists:", Path(CLI).exists())
     print("  data exists:", Path(DATA).exists())

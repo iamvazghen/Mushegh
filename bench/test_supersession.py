@@ -50,9 +50,9 @@ def live(store):
 
 
 def main() -> int:
-    from afon.brain.memory import MemoryStore
+    from mushegh.brain.memory import MemoryStore
 
-    with tempfile.TemporaryDirectory(prefix="afon-supersession-") as td:
+    with tempfile.TemporaryDirectory(prefix="mushegh-supersession-") as td:
         base = Path(td)
 
         print("[1] a correction on the same subject leaves ONE live fact")

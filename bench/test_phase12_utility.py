@@ -32,8 +32,8 @@ def approx(a, b, tol=0.01) -> bool:
 
 
 def main() -> None:
-    import afon.brain.tools.utility as u
-    from afon.brain.tools import tool_names
+    import mushegh.brain.tools.utility as u
+    from mushegh.brain.tools import tool_names
 
     print("[1] unit conversion maths (length / mass / temperature)")
     km, err = u.convert_units(100, "km", "mi")
@@ -94,8 +94,8 @@ def main() -> None:
     import time as _time
     from pathlib import Path as _Path
 
-    from afon.brain.presence import Presence
-    from afon.config import settings as _settings
+    from mushegh.brain.presence import Presence
+    from mushegh.config import settings as _settings
 
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         saved_poll, saved_db = _settings.presence_poll_seconds, _settings.presence_db_path
@@ -111,7 +111,7 @@ def main() -> None:
             # in. Timestamps later than now are fine; the day window has no upper clamp.
             from datetime import datetime as _d
 
-            from afon.brain.presence import _tz as _owner_tz
+            from mushegh.brain.presence import _tz as _owner_tz
 
             base = _d.now(_owner_tz()).replace(hour=1, minute=0, second=0,
                                                microsecond=0).timestamp()
