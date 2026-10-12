@@ -8,7 +8,11 @@ Type=simple
 # Adjust User/paths to match your VPS layout. Rewritten by deploy/vps/install-brain.sh.
 User=openclaw
 WorkingDirectory=/home/openclaw/mushegh
-EnvironmentFile=/home/openclaw/mushegh/.env
+# "-": a missing .env must reach the guard below, not stop the unit before it runs.
+EnvironmentFile=-/home/openclaw/mushegh/.env
+# 22.R1 — restore the last .env that started a serving brain if this one cannot load. systemd
+# reads EnvironmentFile again for ExecStart, so a restored file takes effect in this same start.
+ExecStartPre=-/home/openclaw/.local/bin/uv run --no-sync python -m mushegh.shared.config_guard
 # uv runs the brain from the synced project venv (brain + channels extras).
 ExecStart=/home/openclaw/.local/bin/uv run --no-sync python -m mushegh.brain.server
 Restart=always

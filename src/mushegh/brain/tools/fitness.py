@@ -88,15 +88,17 @@ async def activity_summary(args: dict) -> str:
 
 
 async def import_health(args: dict) -> str:
-    """34.F1 — read an Apple Health export the owner already has. No API, no key, no enablement."""
+    """34.F1/34.R4 — read an export the owner already has: a watch .fit file or Apple Health
+    export.xml. No API, no key, no enablement."""
     try:
         from mushegh.brain import vitals
 
         path = (args.get("path") or "").strip()
         if not path:
-            return ("Where's the export, sir? In the Health app: your profile picture, then "
-                    "Export All Health Data — then tell me the path to export.xml.")
-        read = vitals.read_apple_health(path)
+            return ("Where's the export, sir? From the Garmin: plug it in and give me a .fit file "
+                    "from GARMIN/Monitor. From an iPhone: Health app, your profile picture, "
+                    "Export All Health Data — then the path to export.xml.")
+        read = vitals.read_export(path)
         if read.ok and read.readings:
             vitals.save(read)
         return read.spoken()
@@ -121,11 +123,11 @@ async def vitals_trend(args: dict) -> str:
 SCHEMAS = [
     {"type": "function", "function": {
         "name": "import_health",
-        "description": "Read an Apple Health export (export.xml) the owner has saved. Use for "
-                       "'import my health data', 'read my health export'. Works with no API and no "
-                       "account — every iPhone produces this file from the Health app.",
+        "description": "Read a health export the owner has saved: a raw .fit file from the "
+                       "Garmin watch (GARMIN/Monitor over USB) or an Apple Health export.xml. Use "
+                       "for 'import my health data', 'read my watch data'. No API, no account.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Path to export.xml."}},
+            "path": {"type": "string", "description": "Path to the .fit file or export.xml."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "vitals_trend",

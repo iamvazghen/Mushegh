@@ -232,6 +232,8 @@ TESTS = [
      "test_latency_method.py", "offline", ["checks passed ==="]),
     ("Uptime watcher: edge-triggered outage alert (no repeat spam)", "test_uptime_watch.py",
      "offline", ["checks passed ==="]),
+    ("34.R4: a raw FIT file from the watch becomes dated readings (cumulative steps, "
+     "timestamp_16, broken file reported)", "test_health_ingest.py", "offline", ["checks passed ==="]),
     ("Phase 0.1: active self-repair + escalate-on-sustained-red (reliability probe acts, not just logs)",
      "test_self_repair.py", "offline", ["checks passed ==="]),
     ("Phase 0.2: RemoteBrain warm local standby (VPS SPOF — local agent answers during an outage)",

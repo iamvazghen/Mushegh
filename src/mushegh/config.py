@@ -641,6 +641,9 @@ class Settings(BaseSettings):
     owner_phone_number: str | None = None     # the owner's own phone for "call me"
     # Google Maps — live travel times + place search (read-only).
     google_maps_api_key: str | None = None
+    # 23.R1 — outside-in liveness. The brain pings https://hc-ping.com/<uuid> every 5 min;
+    # Healthchecks.io (free) alerts once when the pings stop and once when they resume.
+    healthchecks_uuid: str | None = None
     owner_home_address: str | None = None     # default origin for "how long to X"
     # Wolfram Alpha — exact computation instead of guessed numbers.
     wolfram_app_id: str | None = None

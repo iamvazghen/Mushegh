@@ -23,6 +23,21 @@ async def _fire_reliability_probe() -> None:
         logger.warning(f"reliability probe failed: {type(e).__name__}: {e}")
 
 
+async def _fire_uptime_ping() -> None:
+    """23.R1 — a dead man's switch. Each ping means "the brain, its scheduler and its network are
+    alive"; Healthchecks.io notices from OUTSIDE when they stop (brain, VPS or network dead) and
+    alerts once per transition. Degraded-but-running is the 4-hourly reliability probe's job, not
+    this one's. No-op until MUSHEGH_HEALTHCHECKS_UUID is set. Never raises into the loop."""
+    from mushegh.config import settings
+    if not settings.healthchecks_uuid:
+        return
+    try:
+        from mushegh.brain.tools.base import http_get
+        (await http_get(f"https://hc-ping.com/{settings.healthchecks_uuid.strip()}")).raise_for_status()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"uptime ping failed: {type(e).__name__}: {e}")
+
+
 @ticks("composio-catalog-refresh")
 async def _fire_composio_catalog_refresh() -> None:
     """T12 — refresh the cached Composio catalog so the system prompt picks up new tools

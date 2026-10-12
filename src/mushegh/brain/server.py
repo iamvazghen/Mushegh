@@ -607,6 +607,13 @@ async def serve(host: str | None = None, port: int | None = None) -> None:
     SCHEDULER.start(on_speak=server.speak_reminder)
     logger.info("reminder scheduler started (brain owns the jobstore)")
 
+    # 22.R1 — this .env just started a serving brain: it is the rollback target from now on.
+    try:
+        from mushegh.shared.config_guard import remember_good
+        remember_good(Path.cwd() / ".env")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"config guard: could not keep the last-good .env: {e}")
+
     # Daily consolidated catch-up (past-due tasks + important email), delivered once at this time.
     # Scheduled whenever a briefing time is set — the digest pulls from Notion AND Gmail AND the
     # local task queue, so it's useful even if only one of those is configured. Delivery uses the
@@ -704,6 +711,20 @@ async def serve(host: str | None = None, port: int | None = None) -> None:
         logger.info("reliability health probe scheduled every 4h")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"reliability probe not scheduled: {e}")
+
+    # 23.R1 — outside-in liveness: ping Healthchecks.io every 5 min; it alerts when pings stop.
+    if settings.healthchecks_uuid:
+        try:
+            from apscheduler.triggers.interval import IntervalTrigger
+            from mushegh.brain._scheduled_jobs import _fire_uptime_ping
+
+            SCHEDULER._ensure().add_job(  # noqa: SLF001
+                _fire_uptime_ping, trigger=IntervalTrigger(minutes=5), id="uptime-ping",
+                name="healthchecks.io uptime ping", misfire_grace_time=240, coalesce=True,
+                replace_existing=True, next_run_time=datetime.now())
+            logger.info("uptime ping to healthchecks.io scheduled every 5 min")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"uptime ping not scheduled: {e}")
 
     # D-88/D-89 — the executor toolchain maintains itself: a 24h version check that installs and
     # PROVES each update with a ping, and a 168h Jev-led review of what each CLI is missing. The

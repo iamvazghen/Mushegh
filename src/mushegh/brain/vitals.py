@@ -54,6 +54,7 @@ DIAGNOSTIC = (
     "you're anemic", "you have a deficiency", "indicates that you have", "sign of ",
 )
 
+_FIT_EPOCH = 631065600   # 1989-12-31T00:00:00Z, where FIT time starts
 _APPLE_TS = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})")
 
 
@@ -145,6 +146,79 @@ def read_apple_health(path: str | Path, *, since: float = 0.0, limit: int = 200_
     except OSError as e:
         out.error = f"{type(e).__name__}"
     return out
+
+
+def read_fit(path: str | Path, *, since: float = 0.0, limit: int = 200_000) -> Vitals:
+    """34.R4 — a raw FIT file from the watch (Garmin Instinct 3 over USB), streamed by fitdecode.
+
+    Reads three things and says so: instant heart rate (`monitoring`, `record`), resting heart
+    rate (`monitoring_hr_data`) and steps. Garmin's monitoring `steps` is a running total per
+    activity type that resets each day, so one day is the MAX per type, summed — adding the
+    samples would count the morning again every hour. Most monitoring samples carry only
+    `timestamp_16`, the low 16 bits of the time; it is rebuilt from the last full timestamp.
+    ponytail: sleep lives in separate sleep files (`sleep_level`) and is not read yet.
+    """
+    p = Path(path)
+    out = Vitals(source=str(p))
+    if not p.is_file():
+        out.error = f"no file at {p}"
+        return out
+    try:
+        import fitdecode
+    except ImportError:
+        out.error = "the FIT parser isn't installed (uv sync --extra brain)"
+        return out
+
+    def add(kind: str, value: float, unit: str, at: float) -> None:
+        if at > since and len(out.readings) < limit:
+            out.readings.append(Reading(kind, value, unit, at))
+            out.kinds[kind] = out.kinds.get(kind, 0) + 1
+
+    last = 0          # last full FIT timestamp, as unix seconds
+    steps: dict[tuple[str, str], tuple[float, float]] = {}   # (day, activity) -> (total, at)
+    try:
+        with fitdecode.FitReader(str(p)) as reader:
+            for frame in reader:
+                if not isinstance(frame, fitdecode.FitDataMessage):
+                    continue
+                if frame.name not in ("monitoring", "monitoring_hr_data", "record"):
+                    continue
+                try:
+                    f = {fld.name: fld.value for fld in frame.fields}
+                    if f.get("timestamp") is not None:
+                        last = int(f["timestamp"].timestamp())
+                        at = float(last)
+                    elif f.get("timestamp_16") is not None and last:
+                        # The low 16 bits count from the FIT epoch, not the Unix one.
+                        fit_last = last - _FIT_EPOCH
+                        at = float(last + ((int(f["timestamp_16"]) - fit_last) & 0xFFFF))
+                    else:
+                        out.skipped += 1
+                        continue
+                    if frame.name == "monitoring_hr_data":
+                        if f.get("resting_heart_rate"):
+                            add("resting heart rate", float(f["resting_heart_rate"]), "count/min", at)
+                        continue
+                    if f.get("heart_rate"):
+                        add("heart rate", float(f["heart_rate"]), "count/min", at)
+                    if frame.name == "monitoring" and f.get("steps") is not None:
+                        key = (Reading("steps", 0, at=at).day(), str(f.get("activity_type")))
+                        if float(f["steps"]) >= steps.get(key, (-1.0, 0.0))[0]:
+                            steps[key] = (float(f["steps"]), at)
+                except Exception:  # noqa: BLE001 — one bad message must not lose the file
+                    out.skipped += 1
+    except fitdecode.FitError as e:
+        out.error = f"the file isn't a readable FIT file ({e})"
+    except OSError as e:
+        out.error = f"{type(e).__name__}"
+    for total, at in steps.values():
+        add("steps", total, "count", at)
+    return out
+
+
+def read_export(path: str | Path, **kw) -> Vitals:
+    """One entry point for every export the owner has: `.fit` from the watch, else Apple Health XML."""
+    return read_fit(path, **kw) if str(path).lower().endswith(".fit") else read_apple_health(path, **kw)
 
 
 def _parse_time(raw: str) -> float:

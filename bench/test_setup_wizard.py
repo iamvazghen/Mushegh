@@ -169,8 +169,43 @@ def main() -> None:
     for src, _ in w.PROFILE_SEEDS:
         check(f"{src} ships", (w.MEMORY_DIR / src).exists())
 
+    rollback_drill()
+
     print(f"\n=== {PASS}/{PASS + FAIL} checks passed ===")
     raise SystemExit(0 if FAIL == 0 else 1)
+
+
+def rollback_drill() -> None:
+    """22.R1 — a deliberately broken config is reverted inside one start, in a scratch checkout.
+
+    Never the real .env: the drill builds its own repo-shaped directory, so a failing drill costs a
+    temp folder, not the owner's keys."""
+    import json
+
+    from mushegh.shared import config_guard as g
+
+    with tempfile.TemporaryDirectory() as td:
+        repo, state = Path(td) / "repo", Path(td) / "state"
+        repo.mkdir()
+        env = repo / ".env"
+        good = "MUSHEGH_USER_NAME=Drill\nMUSHEGH_BRAIN_PORT=8765\n"
+        env.write_text(good, encoding="utf-8")
+        check("22.R1: a good .env passes", g.problem(env) is None, str(g.problem(env)))
+        check("22.R1: a good .env is left alone", g.ensure(env, state) == {"rolled_back": False})
+        g.remember_good(env, state)
+
+        env.write_text("MUSHEGH_BRAIN_PORT=not-a-port\n", encoding="utf-8")
+        result = g.ensure(env, state)
+        check("22.R1: a wrong-typed value is detected and rolled back", result.get("rolled_back") is True, str(result))
+        check("22.R1: the last-good config is back", env.read_text(encoding="utf-8") == good)
+        kept = list(repo.glob(".env.broken-*"))
+        check("22.R1: the broken file is kept, not deleted",
+              len(kept) == 1 and "not-a-port" in kept[0].read_text(encoding="utf-8"))
+        audit = (state / "config_rollbacks.jsonl").read_text(encoding="utf-8").splitlines()
+        check("22.R1: exactly one audit line per rollback", len(audit) == 1 and json.loads(audit[0])["rolled_back"])
+
+        env.write_text("INVALID_KEY=value\n", encoding="utf-8")
+        check("22.R1: a file with no MUSHEGH_ setting counts as broken", g.problem(env) is not None)
 
 
 if __name__ == "__main__":

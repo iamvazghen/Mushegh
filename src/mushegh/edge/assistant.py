@@ -321,8 +321,15 @@ async def main() -> None:
         try:
             await asyncio.wait_for(run_task, timeout=15.0)
         except asyncio.TimeoutError:
-            logger.error("edge: pipeline teardown did not finish in 15s — rebuilding anyway rather "
-                         "than staying deaf (stale streams get re-resolved on the way up)")
+            # Do NOT rebuild in this process. A stuck teardown leaves the old pipeline's PyAudio
+            # output and TTS tasks alive on executor threads, and they keep playing: on 2026-10-12 a
+            # dangling Piper voice talked over the new ElevenLabs one (two voices, mic hearing both).
+            # Only process exit closes every stream. Exit non-zero so Task Scheduler's
+            # restart-on-failure (MusheghEdge: 999 x 1 min) starts a clean process.
+            logger.error("edge: pipeline teardown did not finish in 15s — exiting the process so "
+                         "no stale audio stream survives; the scheduled task restarts it")
+            logger.complete()
+            os._exit(75)
         except (asyncio.CancelledError, Exception):  # noqa: BLE001 — teardown, releases the devices
             pass
         if pulse:

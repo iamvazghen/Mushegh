@@ -54,6 +54,7 @@ brain = [
     "sqlalchemy>=2.0",         # SQLite jobstore so reminders survive a restart (Phase 4)
     "yt-dlp>=2024.8",          # resolve a song -> YouTube video for free playback (no Premium)
     "ytmusicapi>=1.7",         # YouTube Music search (music-tuned, free) — the Spotify replacement
+    "fitdecode>=0.11",         # 34.R4 — streaming FIT parser for the Garmin Instinct 3 exports (MIT)
 ]
 # The `postgres` extra was removed on 2026-10-04 (D-02, M02). It held `psycopg[binary]`, which
 # only the staged S30 migration adapters ever imported, and it was never installed by the edge
