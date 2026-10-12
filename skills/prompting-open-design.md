@@ -10,8 +10,8 @@ as `mcp__open-design__<tool>` through `mcp_client.py`.
 **The registration goes stale every time the app restarts.** `OD_SIDECAR_CLIENT_ENDPOINT` names a
 Windows pipe whose hash changes per launch, so a registration written yesterday points at a pipe
 that no longer exists and the whole `mcp__open-design__*` namespace is silently *absent* rather
-than broken. Measured on 2026-10-11: the registration named `...915c57a5`, the live pipes were
-`45933e02`, `3e77c7b6` and `6271be84`, and the route had been dead. The app says it plainly:
+than broken. Measured on 2026-10-11: the registration named one pipe and the live set was three
+others, and the route had been dead. The app says it plainly:
 
 > The Open Design MCP registration is missing its runtime connection. Open the app and refresh the
 > MCP registration, then restart this MCP session.
@@ -24,8 +24,7 @@ uv run python tools/refresh_open_design_mcp.py --check # report only
 ```
 
 then restart the brain, because an MCP session holds its own child process. Never tell Vazghen
-"I can't do design work" without running that first — twice now this project has reported a
-capability missing when it was a stale pointer.
+"I can't do design work" without running that first.
 
 The app also has to be **running**. There is no headless self-bootstrap: without a live endpoint
 the CLI exits with the error above.
@@ -35,22 +34,19 @@ the CLI exits with the error above.
 They fall into four groups, and the division matters because it tells you what *you* do and what
 Open Design does.
 
-**Every name below is an MCP tool and is called with its namespace** —
-`mcp__open-design__<name>`, never the bare name. They are written bare here for readability, and
-that prefix is not optional when you call one. One collision to know about:
-`mcp__open-design__list_skills` lists *Open Design's* recipes, while the native `list_skills`
-lists these playbooks; the namespace is the only thing that tells them apart.
+Names are written bare below for readability; **call them namespaced** —
+`mcp__open-design__list_skills` lists *Open Design's* recipes while the native `list_skills`
+lists these playbooks, and the namespace is the only thing that tells them apart.
 
 **Discover (MCP)**, cheap and read-only, do these first: `list_projects` · `get_project` · `get_active_context` · `list_files` · `list_plugins` · `list_agents`
 
-`get_active_context` is the one to reach for at the start of a design conversation: it returns the
-project and file **Vazghen has open right now**, or `{active:false, hint:...}` when nothing is
-open. Asking him which project he means when this tool would have told you is a wasted turn.
+`get_active_context` first: it returns the project and file **Vazghen has open right now**, or
+`{active:false, hint:...}` when nothing is. Asking him which project when this would have told you
+is a wasted turn.
 
 **Read (MCP)** — `get_artifact` · `get_file` · `search_files`
 
-`get_artifact` says *PREFER THIS over multiple get_file calls* in its own description, and it
-means it: it bundles the entry file plus every sibling it references — HTML `<script>`/`<link>`/
+`get_artifact` bundles the entry file plus every sibling it references — HTML `<script>`/`<link>`/
 `<img>`/srcset, JSX imports, CSS `url()`/`@import` — to depth 3, skipping CDNs. One call instead
 of six, and you see the page as a page rather than as files.
 
@@ -96,8 +92,7 @@ Give it, in this order:
 4. **What good looks like**, in one judgeable sentence. This is the acceptance check in design
    clothing, and it is just as necessary here.
 
-Leave out: pixel values, framework choices, class names, and "make it modern". Those either
-belong to the design system (`get_project` reports the active one) or are noise.
+Leave out: pixel values, framework choices, class names, and "make it modern".
 
 ## Reporting back
 

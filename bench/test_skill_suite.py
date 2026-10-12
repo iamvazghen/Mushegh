@@ -66,6 +66,43 @@ NOT_TOOLS = {
     "http_get": "illustrative name inside adding-a-tool.md prose",
     "http_post": "illustrative name inside adding-a-tool.md prose",
     "node_modules": "a directory, not a tool",
+    # --- added 2026-10-12: the prompting-* and the-fleet playbooks. ------------
+    # These describe OTHER agents, not Mushegh. The four prompting playbooks are
+    # about the coding chain (Claude Code -> mcode -> Mistral Vibe -> Open
+    # Design), so the names they quote are that CLI's or MCP server's surface --
+    # a tool Mushegh cannot call and is not meant to. Declaring them here is what
+    # the list is for; the alternative is to delete accurate prose to satisfy a
+    # grep, which would make the playbook lie about the tool it documents.
+    # Open Design's MCP server surface, namespaced mcp__open-design__* at runtime.
+    "list_projects": "an Open Design MCP tool, not an Mushegh tool",
+    "get_project": "an Open Design MCP tool, not an Mushegh tool",
+    "get_active_context": "an Open Design MCP tool, not an Mushegh tool",
+    "list_files": "an Open Design MCP tool, not an Mushegh tool",
+    "list_plugins": "an Open Design MCP tool, not an Mushegh tool",
+    "list_agents": "an Open Design MCP tool, not an Mushegh tool",
+    "get_artifact": "an Open Design MCP tool, not an Mushegh tool",
+    "get_file": "an Open Design MCP tool, not an Mushegh tool",
+    "search_files": "an Open Design MCP tool, not an Mushegh tool",
+    "start_run": "an Open Design MCP tool, not an Mushegh tool",
+    "get_run": "an Open Design MCP tool, not an Mushegh tool",
+    "cancel_run": "an Open Design MCP tool, not an Mushegh tool",
+    "write_file": "an Open Design MCP tool, not an Mushegh tool",
+    "create_project": "an Open Design MCP tool, not an Mushegh tool",
+    "create_artifact": "an Open Design MCP tool, not an Mushegh tool",
+    "delete_project": "an Open Design MCP tool, not an Mushegh tool",
+    "collect_brief": "an Open Design MCP tool, not an Mushegh tool",
+    "confirm_brief": "an Open Design MCP tool, not an Mushegh tool",
+    "start_vela_login": "an Open Design MCP tool named for internal compatibility, not an Mushegh tool",
+    # Claude Code's own stream protocol -- the playbook tells Mushegh how to READ
+    # that agent's output, not that Mushegh may call it.
+    "is_error": "a Claude Code stream-event field, not an Mushegh tool",
+    "parse_stream_json": "the Claude Code result parser the playbook describes, not a tool",
+    # mcode's JSON event vocabulary.
+    "tests_run": "an mcode event field, not an Mushegh tool",
+    # Mistral Vibe's transcript parser.
+    "parse_vibe_json": "the Mistral Vibe parser the playbook describes, not a tool",
+    # the fleet gate is a setting, and the playbook says so in the same sentence.
+    "fleet_authorized": "the fleet arming switch (a setting), not an Mushegh tool",
 }
 
 # Backticked snake_case tokens are candidate tool names.
