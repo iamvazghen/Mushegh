@@ -115,6 +115,38 @@ STORES: tuple[Store, ...] = (
     # data did its job on the first day it was given something real to find. Same shape as
     # the daily digest's watermark beside it: ordinary operational state that leaves the host.
     _s("day_plan.json", (ORDINARY,), True, "today's plan as Mushegh understands it"),
+    # Thirteen more, found statically rather than by the gate tripping: tools/undeclared_stores.py
+    # greps src/ for the literal filename each store path is built from, and compares it against
+    # this table. Every one below is written by code that already runs, so each is the same failure
+    # day_plan.json was — the file simply never appeared in a state root yet.
+    #
+    # Two names mislead on their own and are classed by what the code actually writes:
+    #   health_probe.json / health_escalation.json are SYSTEM health — consecutive-red counts and
+    #   "already alerted?" per COMPONENT (brain, tools). Nothing here is the owner's body. That is
+    #   a different thing from vitals.json above, and reading the filename alone would file body
+    #   data as operational when the reverse is true.
+    _s("health_probe.json", (ORDINARY,), False,
+       "consecutive-red counts per COMPONENT — brain and tools, not the owner"),
+    _s("health_escalation.json", (ORDINARY,), False,
+       "which components have already paged the owner, so a blip alerts once"),
+    # Derived from durable memory, so it carries whatever memory may carry.
+    _s("resurfaced_memories.json", (MEDICAL, FINANCIAL, ORDINARY), True,
+       "open commitments picked out of durable memory to surface proactively"),
+    _s("documents", (MEDICAL, FINANCIAL, ORDINARY), True,
+       "the document index: what was written where, for addressing and recall"),
+    # Operational state, may leave the host, like the ledger and plan files above.
+    _s("recent_actions.json", (ORDINARY,), True,
+       "the last 8 reversible actions, so undo_last has something to undo"),
+    _s("objectives.json", (ORDINARY,), True, "durable objectives the owner handed Mushegh"),
+    _s("world_model.json", (ORDINARY,), True, "goals, context and time-bounded events"),
+    _s("recommendations.jsonl", (ORDINARY,), True, "what was suggested, why, and what else was running"),
+    _s("routines.json", (ORDINARY,), True, "owner-editable timing rules and standing commitments"),
+    _s("routines_draft.json", (ORDINARY,), True, "drafted routines the owner reads and adopts"),
+    _s("toolchain.json", (ORDINARY,), False,
+       "last known-good versions of the coding executors, for rollback"),
+    _s("portable_drill.json", (ORDINARY,), False, "results of the portable-export read-back drill"),
+    _s("delegated", (ORDINARY,), False,
+       "git worktrees for delegated executor work, deliberately outside the repo"),
     # Two files that were on disk in the live state root with no declaration here, which is
     # the exact failure this table exists to prevent: unclassified owner data. `audio_pref.json`
     # is written by the edge audio device picker; `restore_drill.json` is written by the backup
