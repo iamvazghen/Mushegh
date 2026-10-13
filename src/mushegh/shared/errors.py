@@ -406,7 +406,19 @@ def read(limit: int = 200, since_minutes: int | None = None, subsystem: str = ""
         if cutoff is not None:
             try:
                 if datetime.fromisoformat(e["ts"]).timestamp() < cutoff:
-                    break        # file is append-ordered, so everything older follows
+                    # NOT `break`. That was an optimisation premised on the file being
+                    # append-ordered by time, and the journal is not: entries carry the
+                    # ts of whichever process wrote them, the faked-clock gate used to
+                    # append dates in 2026/2028 straight into the owner's file, and
+                    # rotation keeps a tail rather than a sorted one. On a disordered
+                    # file the break fired at the first old line and threw away
+                    # everything before it -- errors.summary() reported 453 operations
+                    # for a week that actually held ~21,000, which is a health report
+                    # that says "nothing is wrong" precisely when plenty is.
+                    #
+                    # `continue` makes this O(file) instead of O(window), which
+                    # _rotate_if_needed() caps at _MAX_BYTES, so the scan stays bounded.
+                    continue
             except (ValueError, KeyError):
                 pass
         out.append(e)

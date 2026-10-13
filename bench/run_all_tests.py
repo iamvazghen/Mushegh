@@ -163,6 +163,9 @@ TESTS = [
     ("The self-report is REACHABLE (31.R3 wiring): a module that is complete, gated "
      "and unrouted passes every gate that tests the module directly",
      "test_self_report_wiring.py", "offline", ["passed, 0 failed"]),
+    ("Error journal: read() keeps the whole time window on a file that is not "
+     "append-ordered — a health view that under-reports reads as reassurance",
+     "test_error_journal_window.py", "offline", ["passed, 0 failed"]),
     ("weather: 'tomorrow'/'this week' answer the day asked for, not today (H2.11)",
      "test_weather_when.py", "offline", ["checks passed ==="]),
     ("if_then: the parsed comparison operator is actually applied (H2.12)",

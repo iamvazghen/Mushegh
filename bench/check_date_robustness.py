@@ -33,6 +33,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -93,6 +94,22 @@ CLOCKS: list[tuple[str, str]] = [
 
 def run(test: str, when: str = "", zone: str = "", clock: str = "") -> tuple[bool, str]:
     env = dict(os.environ)
+    # SANDBOX. These subprocesses call real code — get_time, the signal sources —
+    # and that code records into ~/.mushegh/errors.jsonl. Inheriting os.environ
+    # put ~6 entries per run into the OWNER'S live journal, dated to the faked
+    # clock (2026-12-31, 2028-02-28), which is three things wrong at once:
+    #
+    #   * the owner's health journal fills with rows about a date that never
+    #     happened, so every windowed query counts them forever;
+    #   * they land wherever the file happened to be, far from the tail, which
+    #     breaks read()'s "the file is append-ordered so everything older
+    #     follows" early-break -- errors.summary() was reporting 453 operations
+    #     for a week that actually contains ~21,000;
+    #   * a test writing into production state is the same disease
+    #     guard_live_state() was written for, one module over.
+    #
+    # A temp state root per run costs nothing and makes this a measurement again.
+    env["MUSHEGH_STATE_DIR"] = tempfile.mkdtemp(prefix="date_robustness_")
     if when or clock:
         env["MUSHEGH_FAKE_TODAY"] = when or DATES[0][0]
         env["PYTHONPATH"] = str(FAKETIME) + os.pathsep + env.get("PYTHONPATH", "")
