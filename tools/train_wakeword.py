@@ -60,43 +60,12 @@ def check_dependencies() -> list[str]:
 
 
 def _scipy_sph_harm_shim() -> str:
-    """Let `acoustics` import on SciPy >= 1.15, without faking a function.
+    """Apply the import-only SciPy shim. See tools/ww_shim.py for why it exists
+    and why it refuses rather than aliasing sph_harm to sph_harm_y."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from ww_shim import apply
 
-    openwakeword.data does `import acoustics` at module level, and acoustics'
-    __init__ pulls in directivity, which does `from scipy.special import sph_harm`.
-    SciPy removed sph_harm in 1.15 (renamed, with a different argument order, to
-    sph_harm_y) -- so on 1.17 the import raises and openwakeword.train cannot load
-    at all.
-
-    Aliasing sph_harm to sph_harm_y would look like a fix and be a lie: the two take
-    (m, n, theta, phi) and (n, m, theta, phi), so every result would be silently
-    wrong. And it does not matter, because nothing on the wake-word training path
-    ever CALLS it -- the only thing openwakeword uses from acoustics is
-    `acoustics.generator.noise(...)` for coloured-noise augmentation
-    (openwakeword/data.py:434).
-
-    So this binds a name that exists and raises when used. If some future code path
-    does call it, the failure is loud and names the cause, instead of a model
-    trained on quietly-wrong room acoustics.
-
-    Returns a note for the caller, or "" when no shim was needed.
-    """
-    import scipy.special as sp
-
-    if hasattr(sp, "sph_harm"):
-        return ""
-
-    def sph_harm(*_args, **_kwargs):
-        raise NotImplementedError(
-            "scipy.special.sph_harm was removed in SciPy 1.15. The wake-word "
-            "training path never calls it (only acoustics.generator.noise is "
-            "used), so this shim exists solely to let `acoustics` import. If you "
-            "reached this, something started using acoustics.directivity and it "
-            "needs scipy.special.sph_harm_y with (n, m, theta, phi) instead."
-        )
-
-    sp.sph_harm = sph_harm
-    return "shimmed scipy.special.sph_harm (import-only; raises if called)"
+    return apply()
 
 
 def clips_for(word: str) -> list[Path]:
