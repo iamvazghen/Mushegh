@@ -150,7 +150,8 @@ async def _transit(o: dict, d: dict) -> str | None:
     its = r.json().get("itineraries") or []
     if not its:
         return None
-    it = its[0]
+    # Earliest arrival, not earliest departure: a bus leaving now can arrive after the next train.
+    it = min(its, key=lambda i: datetime.fromisoformat(i["endTime"].replace("Z", "+00:00")))
     steps = []
     for leg in it.get("legs") or []:
         if leg.get("mode") == "WALK":

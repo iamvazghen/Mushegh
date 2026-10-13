@@ -38,7 +38,11 @@ PHOTON_BER = {"features": [{"properties": {"name": "Flughafen BER"},
                             "geometry": {"coordinates": [13.5082, 52.3643]}}]}
 OSRM_OK = {"code": "Ok", "routes": [{"duration": 1834.7, "distance": 24458.9}]}
 VALHALLA_OK = {"trip": {"summary": {"time": 675.3, "length": 3.245}}}
-TRANSIT_OK = {"itineraries": [{
+TRANSIT_OK = {"itineraries": [
+    {"duration": 3240, "startTime": "2026-10-13T17:05:00Z", "endTime": "2026-10-13T17:59:00Z",
+     "legs": [{"mode": "COACH", "routeShortName": "FlixBus N1389", "duration": 3000,
+               "startTime": "2026-10-13T17:05:00Z", "to": {"name": "BER"}}]},
+    {
     "duration": 2100, "startTime": "2026-10-13T17:09:00Z", "endTime": "2026-10-13T17:44:00Z",
     "legs": [
         {"mode": "WALK", "duration": 240, "to": {"name": "S+U Alexanderplatz Bhf (Berlin)"}},
@@ -169,6 +173,7 @@ def main() -> None:
               out)
         check("leave and arrive times", "leave at 19:09, arrive 19:44" in out and "35 minutes" in out, out)
         check("a short platform change is not read out", out.count("walk ") == 2, out)
+        check("earliest ARRIVAL wins over earliest departure", "FlixBus" not in out, out)
         reply["api.transitous.org"] = {"itineraries": []}
         out = run(om.travel_time, {"origin": "Alexanderplatz", "destination": "BER", "mode": "train"})
         check("no connection -> said plainly", "couldn't find a public transport" in out, out)
