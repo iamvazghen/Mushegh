@@ -411,74 +411,6 @@ async def convert(args: dict) -> str:
     return f"{value:g} {frm} is {result:,.4g} {to}, sir."
 
 
-async def _geocode_one(name: str) -> dict | None:
-    """Resolve a place name to {name, latitude, longitude, country} via Open-Meteo (no key)."""
-    try:
-        geo = await http_get("https://geocoding-api.open-meteo.com/v1/search",
-                             params={"name": name, "count": 1})
-        results = geo.json().get("results") or []
-        return results[0] if results else None
-    except Exception:  # noqa: BLE001
-        return None
-
-
-# OSRM travel profiles (keyless public demo server). Transit/public-transport isn't covered by OSRM;
-# for that Mushegh falls back to the Composio google_maps toolkit via composio_find_tools.
-_TRAVEL_MODES = {"drive": "driving", "driving": "driving", "car": "driving",
-                 "walk": "walking", "walking": "walking", "foot": "walking",
-                 "bike": "cycling", "cycling": "cycling", "cycle": "cycling"}
-
-
-async def osrm_travel_time(args: dict) -> str:
-    """Travel time + distance between two places (driving/walking/cycling). Keyless via OSRM.
-    Not registered directly any more: tools/maps.py exposes the single `travel_time` tool and
-    delegates HERE when no Google Maps key is configured (Google adds live traffic)."""
-    dest = (args.get("to") or args.get("destination") or "").strip()
-    if not dest:
-        # This, not maps.travel_time, is the branch that runs when no Google Maps key is set --
-        # i.e. the default today. Fixing only the Google side would have left the live path broken.
-        return missing_arg("travel_time", args, "to", "destination", "from", "origin", "mode",
-                           ask="Where to, sir?")
-    origin = (args.get("from") or args.get("origin") or "").strip()
-    if not origin:
-        from mushegh.brain import prefs
-        origin = prefs.home_location() or ""
-    if not origin:
-        return ("From where, sir? Give me a starting point, or set your home location "
-                "(say 'set my home to <place>').")
-    mode = _TRAVEL_MODES.get((args.get("mode") or "drive").strip().lower(), "driving")
-
-    async def fetch() -> str:
-        o, d = await _geocode_one(origin), await _geocode_one(dest)
-        if not o:
-            return f"I couldn't find '{origin}', sir."
-        if not d:
-            return f"I couldn't find '{dest}', sir."
-        url = (f"https://router.project-osrm.org/route/v1/{mode}/"
-               f"{o['longitude']},{o['latitude']};{d['longitude']},{d['latitude']}")
-        r = await http_get(url, params={"overview": "false"})
-        data = r.json()
-        routes = data.get("routes") or []
-        if not routes:
-            return (f"I couldn't find a {mode} route from {o.get('name', origin)} to "
-                    f"{d.get('name', dest)}, sir.")
-        secs = routes[0]["duration"]
-        km = routes[0]["distance"] / 1000.0
-        mins = round(secs / 60)
-        if mins >= 60:
-            dur = f"{mins // 60}h {mins % 60}m"
-        else:
-            dur = f"{mins} minute{'s' if mins != 1 else ''}"
-        verb = {"driving": "by car", "walking": "on foot", "cycling": "by bike"}[mode]
-        return (f"About {dur} {verb} from {o.get('name', origin)} to {d.get('name', dest)}, sir — "
-                f"roughly {km:.0f} km.")
-
-    try:
-        return await CACHE.cached("travel", f"{origin}|{dest}|{mode}".lower(), ttl=600, factory=fetch)
-    except Exception as e:  # noqa: BLE001
-        return tool_error("travel time", e)
-
-
 SCHEMAS = [
     {"type": "function", "function": {
         "name": "weather",
@@ -557,8 +489,9 @@ SCHEMAS = [
             "required": ["value", "from", "to"]}}},
 ]
 
-# Back-compat alias (bench/test_phase12_utility drives the OSRM path by this name).
-travel_time = osrm_travel_time
+# Back-compat alias (bench/test_phase12_utility drives the keyless path by this name). The
+# open engine lives in tools/openmaps.py; tools/maps.py owns the one registered travel_time.
+from mushegh.brain.tools.openmaps import travel_time  # noqa: E402
 
 HANDLERS = {
     "weather": weather,

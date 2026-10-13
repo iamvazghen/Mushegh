@@ -485,6 +485,8 @@ TESTS = [
      "test_brain_mode_selection.py", "offline", ["passed, 0 failed"]),
     ("Real-world integrations: Twilio/Maps/Wolfram/Fit registration + degradation + confirm-gating + plan_today",
      "test_new_integrations.py", "offline", ["checks passed ==="]),
+    ("Open maps (keyless): Photon->Nominatim, OSRM->Valhalla, Valhalla walk/bike, Transitous transit, "
+     "Overpass->mirror->Photon places", "test_openmaps.py", "offline", ["checks passed ==="]),
     ("C4 Speed: streaming TTFW — first spoken word reaches the owner before the slow tail finishes",
      "test_speed.py", "offline", ["checks passed ==="]),
     ("Catalogue budget (03.R5): the per-turn tool surface has an ENFORCED ceiling, and an unsure "

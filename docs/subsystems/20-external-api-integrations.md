@@ -37,7 +37,8 @@ boundary, so under D-42 this belongs to the S03 belt and the S36 credential stor
 | `src/mushegh/brain/tools/base.py` | The policy: `not_configured()`, the error taxonomy, the timeout and retry table, `is_not_configured()` | none |
 | `src/mushegh/brain/google.py` | One OAuth app for Gmail and Calendar; `access_token()`, `api_get()`, `api_post()` | `MUSHEGH_GOOGLE_*`, one refresh token |
 | `src/mushegh/brain/tools/gmail.py`, `tools/calendar.py` | Mail and calendar handlers on that one token | shared |
-| `src/mushegh/brain/tools/maps.py` | `travel_time`, `find_place` — read-only | Google Maps key |
+| `src/mushegh/brain/tools/maps.py` | `travel_time`, `find_place` — read-only; Google first when keyed (live traffic, ratings), else the open engine | Optional Google Maps key (Routes API + Places API (New)) |
+| `src/mushegh/brain/tools/openmaps.py` | The keyless engine: Photon→Nominatim geocoding, OSRM→Valhalla driving, Valhalla walk/bike, Transitous public transport, Overpass→mirror→Photon places. No live traffic, no ratings | None |
 | `src/mushegh/brain/tools/web.py` | `web_search` (Tavily), `scrape_url`, `browser` | Tavily key |
 | `src/mushegh/brain/tools/wolfram.py` | `compute` — exact numbers, never guessed | Wolfram app id |
 | `src/mushegh/brain/tools/notion.py` | Read, write, comment on shared pages | Notion internal integration token |

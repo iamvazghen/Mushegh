@@ -50,20 +50,21 @@ def main() -> None:
         from mushegh.brain.tools.base import is_not_configured
         return is_not_configured(out)
     check("place_call degrades", degrades(asyncio.run(phone.place_call({"to": "+491", "message": "x"}))))
-    # travel_time never degrades: with no Google key it must DELEGATE to the keyless OSRM engine.
-    import mushegh.brain.tools.utility as util
+    # Neither maps tool degrades: with no Google key both DELEGATE to the open engine.
+    from mushegh.brain.tools import openmaps
 
-    async def _fake_osrm(args):
-        return "osrm-fallback"
+    async def _open_travel(args):
+        return "open-travel"
 
-    orig_osrm = util.osrm_travel_time
-    util.osrm_travel_time = _fake_osrm
-    try:
-        check("travel_time falls back to keyless OSRM without a Google key",
-              asyncio.run(maps.travel_time({"destination": "airport"})) == "osrm-fallback")
-    finally:
-        util.osrm_travel_time = orig_osrm
-    check("find_place degrades", degrades(asyncio.run(maps.find_place({"query": "sushi"}))))
+    async def _open_place(args):
+        return "open-place"
+
+    orig_open = openmaps.travel_time, openmaps.find_place
+    openmaps.travel_time, openmaps.find_place = _open_travel, _open_place   # restored below
+    check("travel_time uses the open engine without a Google key",
+          asyncio.run(maps.travel_time({"destination": "airport"})) == "open-travel")
+    check("find_place uses the open engine without a Google key",
+          asyncio.run(maps.find_place({"query": "sushi"})) == "open-place")
 
     # With a key: Routes API + Places API (New) — the only ones a post-2025 project can enable.
     import httpx
@@ -102,8 +103,16 @@ def main() -> None:
         replies["routes"] = {}
         check("no route is said plainly", "couldn't find a route" in
               asyncio.run(maps.travel_time({"origin": "a", "destination": "Atlantis"})))
+
+        async def _boom(url, **kw):
+            raise httpx.ConnectError("google down")
+        maps.http_post = _boom
+        check("a failing Google call falls back to the open engine, not to silence",
+              asyncio.run(maps.travel_time({"origin": "a", "destination": "b"})) == "open-travel"
+              and asyncio.run(maps.find_place({"query": "sushi"})) == "open-place")
     finally:
         maps.http_post, settings.google_maps_api_key = orig_post, None
+        openmaps.travel_time, openmaps.find_place = orig_open
 
     check("compute degrades", degrades(asyncio.run(wolfram.compute({"query": "2+2"}))))
     check("sleep_summary degrades", degrades(asyncio.run(fitness.sleep_summary({}))))

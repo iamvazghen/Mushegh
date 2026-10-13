@@ -65,10 +65,12 @@ def main() -> None:
     check("define without word asks", "word" in asyncio.run(u.define_word({})).lower())
     check("convert without number asks", "number" in asyncio.run(u.convert({"from": "km", "to": "mi"})).lower())
     check("travel_time without destination asks", "where" in asyncio.run(u.travel_time({})).lower())
-    # travel mode aliases map to OSRM profiles (pure, no network).
-    check("travel mode 'car' -> driving", u._TRAVEL_MODES.get("car") == "driving")
-    check("travel mode 'walk' -> walking", u._TRAVEL_MODES.get("walk") == "walking")
-    check("travel mode 'bike' -> cycling", u._TRAVEL_MODES.get("bike") == "cycling")
+    # travel mode aliases map to the open engine's modes (pure, no network).
+    from mushegh.brain.tools import openmaps
+    check("travel mode 'car' -> driving", openmaps._MODES.get("car") == "driving")
+    check("travel mode 'walk' -> walking", openmaps._MODES.get("walk") == "walking")
+    check("travel mode 'bike' -> bicycling", openmaps._MODES.get("bike") == "bicycling")
+    check("travel mode 'train' -> transit", openmaps._MODES.get("train") == "transit")
 
     print("\n[5] convert routes 3-letter currency codes to fx (and unit codes to maths)")
     out = asyncio.run(u.convert({"value": 10, "from": "km", "to": "mi"}))

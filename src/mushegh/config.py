@@ -639,7 +639,8 @@ class Settings(BaseSettings):
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None     # the Twilio number, E.164 (+1415...)
     owner_phone_number: str | None = None     # the owner's own phone for "call me"
-    # Google Maps — live travel times + place search (read-only).
+    # Optional Google Maps (Routes + Places New): adds live traffic and ratings. Without it the open
+    # OpenStreetMap engine in tools/openmaps.py answers.
     google_maps_api_key: str | None = None
     # 23.R1 — outside-in liveness. The brain pings https://hc-ping.com/<uuid> every 5 min;
     # Healthchecks.io (free) alerts once when the pings stop and once when they resume.

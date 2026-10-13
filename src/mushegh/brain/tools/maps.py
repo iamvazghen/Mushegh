@@ -1,18 +1,24 @@
-"""Google Maps — live travel times + place lookup (grounds every travel/logistics turn).
+"""Travel times + place lookup (grounds every travel/logistics turn).
 
-``travel_time`` answers "how long to the airport right now" with live traffic;
-``find_place`` answers "a good sushi place near Alexanderplatz". Read-only, so neither is
-confirm-gated. Degrades to a spoken note without MUSHEGH_GOOGLE_MAPS_API_KEY.
+``travel_time`` answers "how long to the airport right now"; ``find_place`` answers "a good
+sushi place near Alexanderplatz". Read-only, so neither is confirm-gated.
+
+Two engines. The default is open and keyless — OpenStreetMap services in tools/openmaps.py,
+including public transport. Google (MUSHEGH_GOOGLE_MAPS_API_KEY) is optional and adds the two
+things open data cannot: live traffic and ratings. A failing Google call falls back to the open
+engine rather than to silence.
 """
 
 from __future__ import annotations
 
+from loguru import logger
+
 from mushegh.config import settings
-from mushegh.brain.tools.base import http_post, missing_arg, not_configured, tool_error
+from mushegh.brain.tools import openmaps
+from mushegh.brain.tools.base import http_post, missing_arg
 
 # The legacy Directions and Places (textsearch) endpoints cannot be enabled on Google Cloud
 # projects created after 2025-03-01, so a fresh key only works against Routes + Places (New).
-_NEEDS = "a Google Maps API key (MUSHEGH_GOOGLE_MAPS_API_KEY, Routes API + Places API (New) enabled)"
 _TRAVEL_MODE = {"driving": "DRIVE", "walking": "WALK", "bicycling": "BICYCLE", "transit": "TRANSIT"}
 
 
@@ -26,12 +32,10 @@ def _configured() -> bool:
 
 
 async def travel_time(args: dict) -> str:
-    """One travel-time tool, two engines: Google Directions (LIVE traffic) when the key is set,
-    else the keyless OSRM route in tools/utility.py (no traffic, but never dark). The registry
-    exposes only THIS one — utility's own schema entry was retired to avoid a duplicate name."""
+    """One travel-time tool, two engines: Google Routes (LIVE traffic) when the key is set, else
+    the open engine (no traffic, but never dark)."""
     if not _configured():
-        from mushegh.brain.tools.utility import osrm_travel_time
-        return await osrm_travel_time(args)
+        return await openmaps.travel_time(args)
     origin = (args.get("origin") or args.get("from") or "").strip()
     dest = (args.get("destination") or args.get("to") or "").strip()
     mode = {"drive": "driving", "walk": "walking", "bike": "bicycling"}.get(
@@ -66,12 +70,13 @@ async def travel_time(args: dict) -> str:
         return (f"{dur} to {dest} right now, sir"
                 + (f" ({dist}" + (f", via {via})" if via else ")") if dist else "") + ".")
     except Exception as e:  # noqa: BLE001
-        return tool_error("travel time", e)
+        logger.warning(f"travel_time: Google failed ({type(e).__name__}), using the open engine")
+        return await openmaps.travel_time(args)
 
 
 async def find_place(args: dict) -> str:
     if not _configured():
-        return not_configured("Google Maps", _NEEDS)
+        return await openmaps.find_place(args)
     query = (args.get("query") or "").strip()
     if not query:
         return missing_arg("find_place", args, "query", "place", "search", "text",
@@ -94,7 +99,8 @@ async def find_place(args: dict) -> str:
             lines.append(", ".join(bits))
         return "Top matches, sir: " + "; ".join(lines) + "."
     except Exception as e:  # noqa: BLE001
-        return tool_error("place search", e)
+        logger.warning(f"find_place: Google failed ({type(e).__name__}), using the open engine")
+        return await openmaps.find_place(args)
 
 
 SCHEMAS = [
@@ -102,8 +108,10 @@ SCHEMAS = [
         "type": "function",
         "function": {
             "name": "travel_time",
-            "description": ("LIVE travel time with current traffic — 'how long to the airport now', "
-                            "'when should I leave for X'. Origin defaults to home if configured."),
+            "description": ("Travel time by car, on foot, by bike or by public transport (with the "
+                            "lines and departure times) — 'how long to the airport now', 'when "
+                            "should I leave for X', 'how do I get there by train'. Origin "
+                            "defaults to home if configured."),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -119,8 +127,8 @@ SCHEMAS = [
         "type": "function",
         "function": {
             "name": "find_place",
-            "description": ("Find real places — restaurants, shops, gyms, addresses — with ratings "
-                            "and opening info. Use for 'find a sushi place near Alexanderplatz', "
+            "description": ("Find real places — restaurants, shops, gyms, addresses — with address, "
+                            "distance and opening hours. Use for 'find a sushi place near Alexanderplatz', "
                             "'gyms around here'. For how long it takes to get there, use "
                             "travel_time."),
             "parameters": {

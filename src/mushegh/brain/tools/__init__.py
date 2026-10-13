@@ -98,7 +98,7 @@ _LAZY_GROUPS: dict[str, list] = {
     "approvals": [approvals],            # approve/reject the outward steps autonomous work deferred — 4.2
     "relationship": [relationship],      # sensitivities / running jokes / how-we-stand — Phase 6.2
     "phone": [phone],                    # real phone calls via Twilio (parked until account) — 2026-07-28
-    "places": [maps],                    # live travel time + place search (Google Maps)
+    "places": [maps],                    # travel time (car/foot/bike/transit) + place search; open by default, Google optional
     "compute": [wolfram],                # exact math/facts via Wolfram Alpha
     "vitals": [fitness],                 # sleep/steps/heart — Apple Health export or Google Fit
     "audioout": [audioout],              # which speaker/headphones Mushegh talks through — H1.3
