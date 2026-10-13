@@ -110,7 +110,10 @@ def main() -> int:
             "augmentation_rounds": 1,
             "augmentation_batch_size": 2,
             "total_length": 32000,
-            "feature_data_files": str(tmp / "features"),
+            # A DICT, not a path: train.py:832 does .keys() on it and then adds
+            # 'positive' and 'adversarial_negative' to it (841-842). A string
+            # here dies with AttributeError on .keys().
+            "feature_data_files": {"negative": str(tmp / "negative_features.npy")},
         }
         cfg_path = tmp / "config.yaml"
         cfg_path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
