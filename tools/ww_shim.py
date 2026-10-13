@@ -41,11 +41,65 @@ def _missing_sph_harm(*_args, **_kwargs):
 
 
 def apply() -> str:
-    """Patch if needed. Returns a note describing what happened, or ''."""
-    if hasattr(_sp, "sph_harm"):
-        return ""
-    _sp.sph_harm = _missing_sph_harm
-    return "shimmed scipy.special.sph_harm (import-only; raises if called)"
+    """Apply both shims. Returns a note describing what happened, or ''."""
+    notes = []
+    if not hasattr(_sp, "sph_harm"):
+        _sp.sph_harm = _missing_sph_harm
+        notes.append("scipy.special.sph_harm (import-only; raises if called)")
+    notes.extend(_stub_k2_fsa())
+    return "; ".join(notes)
+
+
+def _stub_k2_fsa() -> list[str]:
+    """Let speechbrain.processing import without the k2 native extension.
+
+    openwakeword/data.py:33 does `from speechbrain.processing.signal_processing
+    import reverberate`. Importing that module walks speechbrain's whole processing
+    package, which exposes `integrations.k2_fsa` as a LazyModule -- and importing
+    k2_fsa does `import k2` at module level (k2_fsa/__init__.py:12).
+
+    `k2` is a native extension with no Windows wheel: `uv pip install k2` resolves
+    and downloads ~45 MB, and `import k2` then fails on a missing `_k2` module.
+
+    `reverberate` applies room impulse responses and does not use finite-state
+    machinery, so binding an importable module that refuses if touched lets the
+    training path proceed — and if something ever DOES reach for FSA, it raises
+    with this text instead of silently doing something else.
+    """
+    import sys
+    import types
+
+    if "speechbrain.integrations.k2_fsa" in sys.modules:
+        return []
+    try:
+        import speechbrain.integrations.k2_fsa  # noqa: F401
+
+        return []  # k2 really is present; nothing to do
+    except Exception:
+        pass
+
+    mod = types.ModuleType("speechbrain.integrations.k2_fsa")
+
+    def _refuse(*_args, **_kwargs):
+        raise NotImplementedError(
+            "k2 is required for finite-state operations and has no Windows build. "
+            "tools/ww_shim.py stubs it so speechbrain.processing can be imported -- "
+            "reverberate() does not use FSA. If you reached this, something did."
+        )
+
+    def _getattr(name):
+        # Dunders must raise AttributeError, not resolve to the refusal callable.
+        # A __getattr__ that answers everything makes this module look like it has
+        # attributes it does not, and inspect.getmodule() then trips over a
+        # function where it expected a filename -- which is exactly what happened
+        # the first time this shim was written.
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)
+        return _refuse
+
+    mod.__getattr__ = _getattr
+    sys.modules["speechbrain.integrations.k2_fsa"] = mod
+    return ["stubbed speechbrain.integrations.k2_fsa (import-only; raises if called)"]
 
 
 if __name__ == "__main__":

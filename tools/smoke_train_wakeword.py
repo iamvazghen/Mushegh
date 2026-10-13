@@ -132,9 +132,16 @@ def main() -> int:
         if tail:
             print(tail)
         if proc.returncode != 0:
+            # The TAIL of a lazy-import failure is always the same wrapper, so it
+            # hides which package actually broke. Show the head AND the final
+            # lines -- the message itself lands after the last frame.
+            lines = err.splitlines()
             print()
-            print("stderr tail:")
-            print("\n".join(err.splitlines()[-14:]))
+            print("stderr HEAD:")
+            print("\n".join(lines[:12]))
+            print("   ...")
+            print("stderr TAIL:")
+            print("\n".join(lines[-6:]))
 
         produced = sorted(tmp.rglob("*.onnx")) + sorted(tmp.rglob("*.tflite"))
         print()
