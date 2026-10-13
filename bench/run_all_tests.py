@@ -160,6 +160,9 @@ TESTS = [
      "and what needs the owner — and a section it cannot measure is SPOKEN as unknown, never "
      "rendered as all-clear",
      "test_self_report.py", "offline", ["passed, 0 failed"]),
+    ("The self-report is REACHABLE (31.R3 wiring): a module that is complete, gated "
+     "and unrouted passes every gate that tests the module directly",
+     "test_self_report_wiring.py", "offline", ["passed, 0 failed"]),
     ("weather: 'tomorrow'/'this week' answer the day asked for, not today (H2.11)",
      "test_weather_when.py", "offline", ["checks passed ==="]),
     ("if_then: the parsed comparison operator is actually applied (H2.12)",

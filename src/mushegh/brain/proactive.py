@@ -995,6 +995,14 @@ def default_signal_sources() -> list[SignalSource]:
         sources.append(weekly_digest)
     except Exception:  # noqa: BLE001
         pass
+    # 31.R3 — weekly SELF-report, what broke / repaired itself / needs the owner
+    # (Sun 20:05). Its module existed and was gated from the day it was written;
+    # this is the line that makes it reachable.
+    try:
+        from mushegh.brain.proactive_signals import weekly_self_report
+        sources.append(weekly_self_report)
+    except Exception:  # noqa: BLE001
+        pass
     # T4b — anticipatory prep (next 30 min calendar)
     try:
         from mushegh.brain.proactive_signals import anticipatory_prep

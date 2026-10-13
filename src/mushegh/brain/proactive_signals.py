@@ -147,6 +147,41 @@ async def weekly_digest(now: datetime | None = None) -> list[Signal]:
         return []
 
 
+async def weekly_self_report(now: datetime | None = None) -> list[Signal]:
+    """31.R3 — Sunday 20:05 UTC, the WEEKLY SELF-REPORT: what broke, what repaired
+    itself, what needs the owner.
+
+    Wired 2026-10-13. `brain/self_report.py` was complete, gated
+    (`bench/test_self_report.py`) and unreachable: nothing in src/ referenced it,
+    which the code graph showed as one of only four brain modules with no
+    importer at all. A capability the model can see and no one can call is the
+    same defect shape as an unrouted tool, so the fix is a route, not a rewrite.
+
+    Five minutes after `weekly_digest` on purpose. The activity digest answers
+    "what did you get up to"; this answers "what went wrong", and a week where
+    three things broke and self-repair quietly fixed two of them looks perfectly
+    healthy in the first report. Running them in the same minute would speak two
+    paragraphs back to back; adjacent minutes let the owner hear "busy week"
+    and "here is what it cost" as two thoughts.
+
+    Urgency 0.6, matching the digest rather than exceeding it. When this report
+    names a component that needs the owner, that is information — escalation is
+    a separate path through health_escalation.json, and a weekly digest should
+    not become a page.
+    """
+    try:
+        now = now or _utc_now()
+        if now.weekday() != 6 or now.hour != 20 or now.minute < 5:
+            return []
+        from mushegh.brain.self_report import render, self_report
+
+        return [Signal(key="weekly-self-report", message=render(self_report()),
+                       urgency=0.6, kind="weekly-self-report")]
+    except Exception as e:  # noqa: BLE001
+        _swallowed("weekly_self_report", e)
+        return []
+
+
 def wellbeing_signals(now: datetime | None = None) -> list[Signal]:
     """Phase 6.3 — calibrated pushback. When the owner has been heads-down for a long unbroken stretch
     (or is still at it in the small hours), gently suggest a break / wrapping up. Rides the proactive
