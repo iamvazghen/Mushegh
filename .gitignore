@@ -99,6 +99,10 @@ emergency.md
 scripts/deploy_vps.env
 # wake-word training scratch (195MB model, 17GB data, synthetic clips) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never commit
 .wakeword-training/
+# Wake-word MODELS are already covered by *.onnx above. The SAMPLE recordings are the
+# owner's own voice -- biometric data, and hundreds of clips -- so they are never
+# committed either. `*.onnx` on its own would have let these in.
+.wakewords/samples/
 # graphify code-graph output (rebuilt on commit; not versioned)
 /graphify-out/
 ledger.beancount
