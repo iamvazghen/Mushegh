@@ -69,6 +69,25 @@ the trainer's dependencies **by name** rather than through the broken extra.
 (`scipy.special.sph_harm`, `speechbrain.integrations.k2_fsa`); both refuse loudly
 if anything ever actually calls them.
 
+## The background-feature corpus
+
+Training needs precomputed *features* (not audio) from
+`davidscripka/openwakeword_features` on HuggingFace — **CC-BY-NC-SA-4.0**.
+
+| File | Size | Fetched |
+|---|---|---|
+| `validation_set_features.npy` | 176 MB | yes — verified `(481345, 96) float32` |
+| `openwakeword_features_ACAV100M_2000_hrs_16bit.npy` | **16.1 GB** | **not** — left as a decision |
+
+`tools/fetch_wakeword_features.sh` fetches the small one into
+`~/.cache/openwakeword_features/` and deliberately skips the large one.
+
+Two reasons that 16 GB is a decision rather than a background transfer:
+it is a long download, and **CC-BY-NC-SA-4.0 is non-commercial** on data the
+trained model is derived from. This repo is MIT and invites commercial forks,
+so training against an NC corpus puts a constraint on what the resulting model
+can be used for. Worth deciding deliberately rather than discovering later.
+
 ## Samples
 
 `.wakewords/samples/<word>/*.wav` — **16 kHz, mono, under 3 s** — is the
