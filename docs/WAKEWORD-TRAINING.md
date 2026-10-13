@@ -1,72 +1,88 @@
-Wake words: what is configured, and what is actually listening
+# Wake words: what is configured, and what training actually needs
 
     .venv\Scripts\python.exe tools\train_wakeword.py --check mushegh
     .venv\Scripts\python.exe tools\train_wakeword.py mushegh
 
-## What an entry in MUSHEGH_WAKE_WORDS actually means
+## What an entry in MUSHEGH_WAKE_WORDS means
 
-`src/mushegh/edge/wake_word.py` splits the configured list in two, and the split is
-the whole thing to understand:
+`src/mushegh/edge/wake_word.py` splits the list in two:
 
 | Entry | Becomes | Wakes you? |
 |---|---|---|
-| `mushegh`, `hey mushegh` | the pretrained **hey_jarvis** model | Yes — but the words you *say* are "hey jarvis". These are aliases to someone else's model, not a Mushegh model. |
+| `mushegh`, `hey mushegh` | pretrained **hey_jarvis** | Yes — but the words you *say* are "hey jarvis". Aliases to someone else's model. |
 | a path ending `.onnx` / `.tflite` | that file, if it exists | Yes, once trained. |
 | anything else | **pending** | **No.** |
 
-Pending is not an error. The edge logs it by name at startup —
-`wake words pending custom engine (Porcupine/training): [...]` — and then runs with
-whatever did resolve. That is a deliberate design, and it is also a trap: a list of
-names that match nothing looks configured and wakes nothing.
+Pending is not an error. The edge logs it by name at startup
+(`wake words pending custom engine (Porcupine/training): [...]`). It is also a
+trap: a list of names matching nothing looks configured and wakes nothing.
 
 Verified on the current `.env`:
 
     loads    3 : hey_jarvis  .wakewords/afon.onnx  .wakewords/hey_afon.onnx
     pending  4 : mushegh.onnx  gpt.onnx  copilot.onnx  assistant.onnx
 
-## Why .env.example changed
+## Training: the real requirements, from upstream
 
-It shipped `mushegh,alfred,robbin,assist,time to work,wake up,six-one-nine`.
-Resolved against the registry: **1 loads, 6 pending.** Six entries that read as
-settings and could never wake anyone. The default is now `mushegh,hey mushegh`,
-which resolves cleanly, and the comment says why.
+An earlier version of this file said "record 100–300 clips, never use TTS". That
+was my opinion and it **contradicts openWakeWord's own documentation**. The
+authoritative source is `examples/custom_model.yml` in the upstream repo, and its
+shape is:
 
-Only `hey_jarvis` is loaded from the pretrained set. `alexa`, `hey_mycroft` and
-`hey_rhasspy` were false-firing every ~8 seconds on silence, which made the gate
-flap open and closed and chopped real speech.
+| | |
+|---|---|
+| `n_samples` | 10000 (`n_samples_val` 2000) — *"minimum of 20,000 recommended, often 100,000+ is best"* |
+| `piper_sample_generator_path` | a fork of `dscripka/piper-sample-generator` — **the positives are TTS-generated** |
+| `feature_data_files` | a **dict** of precomputed background features, e.g. `"ACAV100M_sample": "...ACAV100M_2000_hrs_16bit.npy"` |
+| `false_positive_validation_data_path` | `validation_set_features.npy` |
+| `rir_paths`, `background_paths` | room impulse responses and background audio |
+| `steps` | 50000 |
+| `model_type` | `"dnn"` (or `"rnn"`) |
 
-## Training a new word
+Both background-feature files come from
+`https://huggingface.co/datasets/davidscripka/openwakeword_features`.
 
-One word per run — `tools/train_wakeword.py` takes exactly one word and errors on
-two, so a run can never quietly become two.
+So upstream's documented path is **generated speech plus a large real background
+corpus**, and a 50 000-step run — hours, not minutes. My earlier "TTS trains
+badly" claim was not wrong about the risk (a model trained only on one
+synthesiser's voice false-accepts) but it was wrong to present hand-recording as
+the supported route when the supported route is Piper.
 
-Samples go in `.wakewords/samples/<word>/*.wav` — **16 kHz, mono, under 3 s.**
-That directory is gitignored: the recordings are the owner's own voice, which is
-biometric data, and there are hundreds of them. `*.onnx` already covered the trained
-models; it would not have covered the audio.
+`batch_n_per_class` keys must match `feature_data_files`, plus `positive` and
+`adversarial_negative`, which the trainer adds itself.
 
-Under 40 clips trains a model that fires on the room. 100–300 across several
-speakers and rooms is a workable personal wake word. Include 20–50 **negative**
-clips — ordinary speech without the word — or it will wake on the television.
+## Where it has to run
 
-Output lands at `.wakewords/<word>.onnx`, which `MUSHEGH_WAKE_WORDS` already points
-at, so a trained model is picked up on the next brain start.
+**Not on Windows, and not on Python 3.12.** Three packaging walls, all confirmed:
 
-## Not TTS
+* `k2` has no Windows wheel — `uv pip install k2` resolves a stub that then fails
+  on a missing `_k2`. speechbrain's processing stack imports it eagerly.
+* `openwakeword[full]` pins `tensorflow-cpu==2.8.1`, wheels for CPython ≤ 3.10.
+  On Windows the resolver "solved" it by downgrading openwakeword to 0.5.1, which
+  has no `train.py`.
+* on Linux, openwakeword needs `tflite-runtime>=2.8.0`, and tflite-runtime ships
+  wheels up to **cp311 only**.
 
-`--allow-synthetic` exists; the default refuses. A model trained on synthetic speech
-of one synthesiser's voice false-accepts badly.
+So: `tools/setup_wsl_wakewords.sh` builds it under WSL on Python 3.11, installing
+the trainer's dependencies **by name** rather than through the broken extra.
+`tools/ww_shim.py` covers two import-only gaps on that venv
+(`scipy.special.sph_harm`, `speechbrain.integrations.k2_fsa`); both refuse loudly
+if anything ever actually calls them.
 
-## Blocked, and it is not a sample problem
+## Samples
 
-`openwakeword[full]` requires `acoustics==0.2.6`, which calls
-`scipy.special.sph_harm`. SciPy **removed that function in 1.15**; this venv is on
-**1.17.1**. `openwakeword.train` therefore does not import.
+`.wakewords/samples/<word>/*.wav` — **16 kHz, mono, under 3 s** — is the
+hand-recording route, for when you want speaker variety that a synthesiser cannot
+give. It is gitignored: those recordings are the owner's own voice, which is
+biometric data. `tools/train_wakeword.py --check <word>` validates format and
+count without training.
 
-Everything else the training stack needs is installed and verified: `torch`,
-`torchinfo`, `torchmetrics`, `audiomentations`, `torch-audiomentations`, `mutagen`.
+`--allow-synthetic` exists and defaults to refusing. That default was written
+before reading `custom_model.yml`; revisit it when you decide which route you
+want.
 
-Clearing it needs one of: SciPy pinned below 1.15 across the whole project venv
-(blast radius is the entire assistant, not just wake words); `acoustics` patched; or
-`acoustics` dropped from the training path. That is an owner's call, not a
-drive-by downgrade.
+## Verified so far
+
+Environment built and the run reaches `openwakeword/train.py:845`
+(`mmap_batch_generator`). It is **not** a passing training run: the smoke test
+still needs a correct config plus real data.
