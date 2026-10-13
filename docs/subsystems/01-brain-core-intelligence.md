@@ -3473,3 +3473,51 @@ right next one, because it decides whether the 9,487 is worth attacking at all.
 
 The honest summary of the latency thread: **it is not a leak, it is prefill, and the prefill is a
 design decision currently measured but not bounded.**
+---
+
+## 01.J28 — 2026-10-13: a module that was complete, gated, and unreachable, and what it said when it finally ran
+
+The code graph (`graphify update`, 7,054 nodes / 12,110 edges / 486 communities) listed four brain
+modules with no importer: `world_model.py`, `locations.py`, `tool_usage.py`, `self_report.py`.
+
+Three of those were a false alarm, and that is the useful part. `graph.json` records MODULE-LEVEL
+imports only — it cannot see a `from X import Y` inside a function body. `agent.py:2672` imports
+`world_model` lazily, `transit.py:229` imports `locations`, `agent.py:2297` imports `tool_usage`. All
+three are live; the graph simply cannot see it. **`self_report.py` had zero references of any kind,
+module-level or lazy.**
+
+It was not dead code. 31.R3 — the weekly self-report answering *what broke, what repaired itself, what
+needs the owner* — had been complete since it was written, with `bench/test_self_report.py` green and
+registered. Every existing gate exercises the MODULE. So a module that is perfectly healthy and
+permanently unreachable passed all of them: the same defect shape as `routine` and the day-planning
+tools that `test_tool_reachability` exists to catch.
+
+The fix is a route, not a rewrite. `proactive_signals.weekly_self_report()` fires Sunday 20:05 UTC —
+five minutes after `weekly_digest`, on purpose. The activity digest answers "what did you get up to";
+this answers "what went wrong". Same minute would speak two paragraphs back to back. Urgency 0.6,
+matching the digest rather than exceeding it: when this names a component that needs the owner, that is
+information, and escalation is a separate path through `health_escalation.json`.
+
+`bench/test_self_report_wiring.py` gates the ROUTE, which nothing did before.
+
+**And the first run, unprompted, on this machine:**
+
+```
+Over the last 7 day(s), sir - 157 of 355 operations failed, worst was pipecat;
+I cannot tell you what I fixed - no escalation record at health_escalation.json -
+the health probe has not run, so nothing is known about repairs or escalations;
+I cannot tell you what needs you - ...
+```
+
+Two things in one line. The wiring found a **44% operation failure rate** that the weekly activity
+digest was reporting as a healthy-looking week — precisely the failure 31.R3 was written to prevent.
+And both unreadable sections were spoken as *"I cannot tell you"*, not rendered as all-clear, which is
+the module's entire design and is now asserted at the route level rather than only in the module.
+
+`health_escalation.json` does not exist because the health probe has not run — the brain is not
+reachable. That is a real finding about this machine, not a defect in the report: the report correctly
+refuses to guess, and says so out loud.
+
+**What this thread is really about:** the graph named four orphans and was wrong about three. Read the
+code before deleting anything — an unrouted module and a dead module look identical until you check
+whether the graph can even see the kind of edge you are looking for.
