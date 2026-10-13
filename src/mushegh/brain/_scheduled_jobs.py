@@ -23,6 +23,7 @@ async def _fire_reliability_probe() -> None:
         logger.warning(f"reliability probe failed: {type(e).__name__}: {e}")
 
 
+@ticks("uptime-ping")
 async def _fire_uptime_ping() -> None:
     """23.R1 — a dead man's switch. Each ping means "the brain, its scheduler and its network are
     alive"; Healthchecks.io notices from OUTSIDE when they stop (brain, VPS or network dead) and

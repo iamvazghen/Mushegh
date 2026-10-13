@@ -25,8 +25,8 @@ engineering log and may not change execution state on its own.
 
 ## Current Snapshot
 
-- 50 systems; 181 of 399 live tasks marked done.
-- States: 181 open, 32 in progress, 181 done,
+- 50 systems; 184 of 399 live tasks marked done.
+- States: 178 open, 32 in progress, 184 done,
   28 cancelled, 5 deferred. Cancelled and deferred
   tasks are listed below rather than deleted: the record is worth more than the count.
 - Runner: 269 entries, 269 distinct scripts,
@@ -34,11 +34,11 @@ engineering log and may not change execution state on its own.
 - Tests on disk: 278, of which 12 are exempt from the
   hermetic suite (live, benchmark or self-referential).
 - Tools: 171 schemas, 173 handlers.
-- Gate readiness: 276 hermetic, 6 exempt,
-  12 outside the suite, 81 planned,
+- Gate readiness: 277 hermetic, 6 exempt,
+  12 outside the suite, 80 planned,
   and 24 manual.
-- Evidence: 114 dated plan notes, 93 unverified imports.
-- Dark: 6 systems are code-complete but control nothing, holding 40 live tasks (14 marked done). Listed separately below; counting dark work as done is how this plan misleads its own author.
+- Evidence: 116 dated plan notes, 93 unverified imports.
+- Dark: 6 systems are code-complete but control nothing, holding 40 live tasks (15 marked done). Listed separately below; counting dark work as done is how this plan misleads its own author.
 
 ## Systems
 
@@ -65,8 +65,8 @@ engineering log and may not change execution state on its own.
 | S19 Composio / MCP Integration | built, not well structured | 3/3 | 0/3 | 0/1 | 19.R1 Catalogue hygiene: only connected apps' tools enter the narrowed family. |
 | S20 External API Integrations | dark — code complete, controls nothing; blocked on credentials for the integrations that are not enabled (D-46: dark work is not progress) | 3/3 | 0/3 | 0/1 | 20.R1 Response caching where the data is slow-moving (weather, fx, maps) with explicit TTLs. |
 | S21 Personal Time Management | built, not well structured | 3/3 | 0/3 | 0/1 | 21.R1 Time-blocking proposals for committed work, offered not imposed. |
-| S22 System Recoverability | complete for now | 4/4 | 0/3 | 0/1 | 22.R1 Config rollback: a bad config change is detected and reverted automatically. |
-| S23 24/7 Reachability | complete for now — **currently parked by design** | 4/4 | 2/4 | 0/1 | 23.R1 Reachability monitoring from outside the VPS, so "up" is not self-reported. |
+| S22 System Recoverability | complete for now | 4/4 | 1/3 | 0/1 | 22.R2 State corruption detection on the memory stores with a repair path. |
+| S23 24/7 Reachability | complete for now — **currently parked by design** | 4/4 | 3/4 | 0/1 | 23.R3 Scheduled maintenance windows announced in advance rather than discovered. |
 | S24 Knowledge & World Model | **removed 2026-10-04 (M04)** — D-26 is carried out, not just decided. `graph.py` and `tools/graphmem.py` are deleted, the `graph` lazy tool group is unregistered, the L5b recall layer is gone from `fused_recall`, the background reviewer no longer writes triples, and `what_i_dont_know` no longer speaks from a store the owner had stopped trusting. `world_model.py` survives: it is goals and events, not relations. Measured: recall p95 improved from 27.0/42.0/28.6 ms to 11.3/15.6/15.5 ms, and the advertised tool count fell to 151 | 1/2 | 0/0 | 0/0 | 24.F1 Entity resolution: one person, one node, regardless of spelling or channel |
 | S25 Personality & Interaction Style | complete for now | 3/3 | 0/3 | 0/1 | 25.R1 Register adapts to channel: a push is not a monologue, a voice answer is not a document. |
 | S26 Multi-Modal Perception | the seam is built and gated, the hardware is not — mock-only evidence, no detector and no camera | 3/3 | 0/5 | 0/1 | 26.R1 Audio scene classification — speech, music, TV, silence — feeding the speaker gate. |
@@ -77,7 +77,7 @@ engineering log and may not change execution state on its own.
 | S31 Self-Monitoring, Diagnostics & Self-Healing | complete for now | 6/6 | 0/9 | 0/1 | 31.R1 Trend detection: degrading before failing (rising p95, rising retry rate) raises a |
 | S32 Redundancy & Failover | **partially missing at the architecture level** — model failover is real; there is one host. Replication, promotion and split-brain prevention are deferred pending an owner decision on whether there is ever a second brain host. | 4/4 | 0/3 | 0/1 | 32.E1 A live drill: pull the VPS for an hour; Mushegh stays usable and reconciles cleanly |
 | S33 Goal & Project Management | built, not well structured | 3/3 | 0/3 | 0/1 | 33.R1 Stall detection and escalation into proactivity. *gate:* new `test_objective_stall.py` |
-| S34 Health & Wellness Monitoring | half-built — tools exist; a data source now exists (a Garmin Instinct 3 exporting raw FIT, 34.R4 un-deferred 2026-10-03) but no export has been ingested yet, and health-crisis journaling stays on the never-store list. | 3/3 | 0/4 | 0/1 | 34.R1 Sleep-pattern tracking feeding S17's adaptive timing. |
+| S34 Health & Wellness Monitoring | half-built — tools exist; a data source now exists (a Garmin Instinct 3 exporting raw FIT, 34.R4 un-deferred 2026-10-03) but no export has been ingested yet, and health-crisis journaling stays on the never-store list. | 3/3 | 1/4 | 0/1 | 34.R1 Sleep-pattern tracking feeding S17's adaptive timing. |
 | S35 Crisis & Emergency Response | half-built — system-level crisis protocols exist, *owner*-level does not | 3/3 | 0/3 | 0/1 | 35.R1 Escalation ladder: notify → call → contact a third party, each with a stop condition. No outbound voice calls:... |
 | S36 Security & Access Control | complete for now | 7/7 | 0/4 | 0/1 | 36.R1 Session-scoped elevation: a confirmed sensitive action does not silently authorise the |
 | S37 Privacy & Data Governance | built, unproven by use — hygiene real, policy now enforced at the write boundary | 3/3 | 1/5 | 0/1 | 37.R1 Sensitivity classification — biometric, financial, medical, ordinary — with rules per |
@@ -132,9 +132,9 @@ wins and why they must not be read as progress.
 
 ## Totals
 
-**Totals: 158 of 165 floor tasks green, 23 of 187 raise tasks, 0 of 47 elite tasks - 181 of 399.**
+**Totals: 158 of 165 floor tasks green, 26 of 187 raise tasks, 0 of 47 elite tasks - 184 of 399.**
 
-Excluding the 6 dark systems: **167 of 359**. That is the honest figure until a credential, a device or a decision unblocks them.
+Excluding the 6 dark systems: **169 of 359**. That is the honest figure until a credential, a device or a decision unblocks them.
 
 ## Evidence Review
 

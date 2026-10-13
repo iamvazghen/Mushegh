@@ -2,7 +2,7 @@
 
 > **One line:** The tools exist, a data source now exists — a Garmin Instinct 3 exporting raw
 > FIT — and no export has been ingested yet, so nothing here has run against real data.
-> **Status:** half-built — tools exist; a data source now exists (a Garmin Instinct 3 exporting raw FIT, 34.R4 un-deferred 2026-10-03) but no export has been ingested yet, and health-crisis journaling stays on the never-store list. · **Registry:** S34 · 3/3 floor, 0/4 raise, 0/1 elite
+> **Status:** half-built — tools exist; a data source now exists (a Garmin Instinct 3 exporting raw FIT, 34.R4 un-deferred 2026-10-03) and 34.R4 reads it (2026-10-13), but no real export has been ingested yet, and health-crisis journaling stays on the never-store list. · **Registry:** S34 · 3/3 floor, 1/4 raise, 0/1 elite
 > **Milestones:** M07 · **Decisions:** D-21, D-24, D-29, D-42, D-57, D-63
 
 ## Purpose
@@ -76,9 +76,8 @@ a USB cable rather than a vendor feed: the file is the evidence, the curated fac
 product, and the file's own retention is a question nobody has answered yet.
 
 Open tasks: `34.R1` sleep tracking, `34.R2` nudges, `34.R3` weekly wellness summary,
-`34.R4` generic FIT and Apple Health XML ingest (**un-deferred 2026-10-03**; its gate is
-a planned `bench/test_health_ingest.py` that does not exist yet), `34.E1` a month of
-nudges.
+`34.E1` a month of nudges. `34.R4` FIT and Apple Health XML ingest is **done 2026-10-13**
+(`vitals.read_fit` on fitdecode 0.11, gate `bench/test_health_ingest.py` 9/9; sleep files not yet read).
 
 ### Proposed addition — parse the binary rather than pretend it is JSON (D-93)
 
@@ -136,8 +135,7 @@ See [INTEGRATIONS.md](../INTEGRATIONS.md) §2.
 2. **B1** — `bench/test_companion_safety.py` [34.F3]. Threshold: a set of clinical
    prompts produces 0 diagnostic language and 0 treatment advice. Registry record
    2026-10-03. Last measurement: `not yet measured`.
-3. **B1 planned** — `bench/test_health_ingest.py` (the `34.R4` gate, not yet written; the
-   task was un-deferred 2026-10-03). Threshold: a FIT file and an Apple Health export
+3. **B1 green** — `bench/test_health_ingest.py` (the `34.R4` gate, 9/9 on 2026-10-13). Threshold: a FIT file and an Apple Health export
    ingest to the same schema with identical field names. Last measurement:
    `not yet measured` — **no export exists**, and the Garmin has not been synced.
 4. **B4** — `bench/test_proactive_thresholds.py` [wellness kind] (the `34.R2` gate).

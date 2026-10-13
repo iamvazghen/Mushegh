@@ -8,9 +8,17 @@ confirm-gated. Degrades to a spoken note without MUSHEGH_GOOGLE_MAPS_API_KEY.
 from __future__ import annotations
 
 from mushegh.config import settings
-from mushegh.brain.tools.base import http_get, missing_arg, not_configured, tool_error
+from mushegh.brain.tools.base import http_post, missing_arg, not_configured, tool_error
 
-_NEEDS = "a Google Maps API key (MUSHEGH_GOOGLE_MAPS_API_KEY, Directions + Places APIs enabled)"
+# The legacy Directions and Places (textsearch) endpoints cannot be enabled on Google Cloud
+# projects created after 2025-03-01, so a fresh key only works against Routes + Places (New).
+_NEEDS = "a Google Maps API key (MUSHEGH_GOOGLE_MAPS_API_KEY, Routes API + Places API (New) enabled)"
+_TRAVEL_MODE = {"driving": "DRIVE", "walking": "WALK", "bicycling": "BICYCLE", "transit": "TRANSIT"}
+
+
+def _headers(field_mask: str) -> dict:
+    # Key in a header, not the query string, so it never lands in an httpx/loguru URL line.
+    return {"X-Goog-Api-Key": settings.google_maps_api_key or "", "X-Goog-FieldMask": field_mask}
 
 
 def _configured() -> bool:
@@ -40,19 +48,22 @@ async def travel_time(args: dict) -> str:
         return ("I need a starting point, sir — or set your home location "
                 "(say 'set my home to <place>').")
     try:
-        r = await http_get(
-            "https://maps.googleapis.com/maps/api/directions/json",
-            params={"origin": origin, "destination": dest, "mode": mode,
-                    "departure_time": "now", "key": settings.google_maps_api_key})
-        data = r.json()
-        routes = data.get("routes") or []
+        travel = _TRAVEL_MODE.get(mode, "DRIVE")
+        body = {"origin": {"address": origin}, "destination": {"address": dest},
+                "travelMode": travel}
+        if travel == "DRIVE":
+            body["routingPreference"] = "TRAFFIC_AWARE"   # duration then includes live traffic
+        r = await http_post(
+            "https://routes.googleapis.com/directions/v2:computeRoutes", json=body,
+            headers=_headers("routes.description,routes.localizedValues"))
+        routes = r.json().get("routes") or []
         if not routes:
-            return f"I couldn't find a route to {dest}, sir ({data.get('status', 'no route')})."
-        leg = routes[0]["legs"][0]
-        dur = (leg.get("duration_in_traffic") or leg.get("duration") or {}).get("text", "unknown")
-        dist = (leg.get("distance") or {}).get("text", "")
-        via = routes[0].get("summary", "")
-        return (f"{dur} to {leg.get('end_address', dest)} right now, sir"
+            return f"I couldn't find a route to {dest}, sir."
+        local = routes[0].get("localizedValues") or {}
+        dur = (local.get("duration") or {}).get("text", "unknown")
+        dist = (local.get("distance") or {}).get("text", "")
+        via = routes[0].get("description", "")
+        return (f"{dur} to {dest} right now, sir"
                 + (f" ({dist}" + (f", via {via})" if via else ")") if dist else "") + ".")
     except Exception as e:  # noqa: BLE001
         return tool_error("travel time", e)
@@ -66,19 +77,20 @@ async def find_place(args: dict) -> str:
         return missing_arg("find_place", args, "query", "place", "search", "text",
                            ask="What should I look for, sir?")
     try:
-        r = await http_get(
-            "https://maps.googleapis.com/maps/api/place/textsearch/json",
-            params={"query": query, "key": settings.google_maps_api_key})
-        results = (r.json().get("results") or [])[:3]
+        r = await http_post(
+            "https://places.googleapis.com/v1/places:searchText",
+            json={"textQuery": query, "pageSize": 3},
+            headers=_headers("places.displayName,places.formattedAddress,places.rating"))
+        results = (r.json().get("places") or [])[:3]
         if not results:
             return f"Nothing found for '{query}', sir."
         lines = []
         for p in results:
-            bits = [p.get("name", "?")]
+            bits = [(p.get("displayName") or {}).get("text", "?")]
             if p.get("rating"):
                 bits.append(f"{p['rating']}★")
-            if p.get("formatted_address"):
-                bits.append(p["formatted_address"])
+            if p.get("formattedAddress"):
+                bits.append(p["formattedAddress"])
             lines.append(", ".join(bits))
         return "Top matches, sir: " + "; ".join(lines) + "."
     except Exception as e:  # noqa: BLE001

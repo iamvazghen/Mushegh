@@ -1,7 +1,7 @@
 # S22 — System Recoverability
 
 > **One line:** Lose anything — a file, a process, a config change, a host — and get it back without the owner having to think about it at 2 AM.
-> **Status:** complete for now · **Registry:** S22 · 4/4 floor, 0/3 raise, 0/1 elite
+> **Status:** complete for now · **Registry:** S22 · 4/4 floor, 1/3 raise, 0/1 elite
 > **Milestones:** M32, M36, M39 · **Decisions:** D-13, D-41, D-55, D-43, D-54
 
 ## Purpose
@@ -18,10 +18,9 @@ uncommitted edits remain in a Git stash — never lost, never committed by the k
 string names a unit the repository has never had, and it recurs across the docs —
 `docs/DECISIONS.md:289` is one of twelve occurrences in seven files, not the only one. The
 units `deploy/vps/` actually holds are `mushegh-brain.service` and `mushegh-ticker.service`. The
-escalation, the 3-second clock and the stash are M36, unstarted. The open raise task is
-config rollback (22.R1), and the only rollback artefact today is the `.env.bak-<stamp>` the
-setup wizard writes before
-overwriting. The handover package does not exist either: `src/mushegh/setup_wizard.py` is an
+escalation, the 3-second clock and the stash are M36, unstarted. Config rollback (22.R1) is done
+2026-10-13: `src/mushegh/shared/config_guard.py` runs as the unit's `ExecStartPre` and restores
+`~/.mushegh/env.last-good` (then the newest `.env.bak-<stamp>`) when `.env` cannot load. The handover package does not exist either: `src/mushegh/setup_wizard.py` is an
 interactive `.env` writer, not a bare-metal setup script, and there is no edge audio tuning
 guide in `docs/`. Until M39 lands, OpenMushegh is a personal system that happens to be open
 source.
@@ -144,8 +143,8 @@ Run `32.E1` instead. See [INTEGRATIONS.md](../INTEGRATIONS.md) §2 and §6.
 - **G2** · B2 · M36's own drill: kill the edge mid-edit. Threshold 0 lost edits, stash
   present after the kill, SIGKILL at 3 s. It cannot be written until the unit and the
   escalation exist. Last: **not yet measured**.
-- **G3** · B1 · `bench/test_setup_wizard.py` extended with the rollback case — the named
-  case does not exist yet (22.R1). Threshold 1 automatic revert. Last: **not yet measured**.
+- **G3** · B1 · `bench/test_setup_wizard.py` extended with the rollback case (22.R1,
+  `rollback_drill()`). Threshold 1 automatic revert. Last: **47/47, 2026-10-13**.
 - **G4** · B1 · `bench/test_self_repair.py`. Threshold: every repair path leaves an audit
   line. Last: **not yet measured**.
 - **G5** · B1 · `bench/test_protocol_drills.py` for the report-not-silence property (22.R3).

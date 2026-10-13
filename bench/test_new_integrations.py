@@ -64,6 +64,47 @@ def main() -> None:
     finally:
         util.osrm_travel_time = orig_osrm
     check("find_place degrades", degrades(asyncio.run(maps.find_place({"query": "sushi"}))))
+
+    # With a key: Routes API + Places API (New) — the only ones a post-2025 project can enable.
+    import httpx
+    sent: list[tuple[str, dict, dict]] = []
+    replies = {
+        "routes": {"routes": [{"description": "A100", "localizedValues": {
+            "duration": {"text": "24 mins"}, "distance": {"text": "18 km"}}}]},
+        "places": {"places": [{"displayName": {"text": "Sushi Ya"}, "rating": 4.6,
+                               "formattedAddress": "Alexanderplatz 1"}]},
+    }
+
+    async def _fake_post(url, json=None, headers=None, **kw):
+        sent.append((url, json or {}, headers or {}))
+        key = "routes" if "routes.googleapis" in url else "places"
+        return httpx.Response(200, json=replies[key], request=httpx.Request("POST", url))
+
+    orig_post = maps.http_post
+    maps.http_post, settings.google_maps_api_key = _fake_post, "test-key"
+    try:
+        out = asyncio.run(maps.travel_time({"origin": "home st 1", "destination": "BER"}))
+        url, body, hdr = sent[-1]
+        check("travel_time calls Routes computeRoutes", url.endswith("/directions/v2:computeRoutes"), url)
+        check("drive is traffic-aware", body.get("travelMode") == "DRIVE"
+              and body.get("routingPreference") == "TRAFFIC_AWARE", str(body))
+        check("key goes in the header, not the URL", hdr.get("X-Goog-Api-Key") == "test-key"
+              and "test-key" not in url and hdr.get("X-Goog-FieldMask"))
+        check("travel_time speaks duration, distance, route", "24 mins" in out and "18 km" in out
+              and "A100" in out, out)
+        asyncio.run(maps.travel_time({"origin": "a", "destination": "b", "mode": "walking"}))
+        check("walking has no routing preference (Routes rejects it)",
+              sent[-1][1].get("travelMode") == "WALK" and "routingPreference" not in sent[-1][1])
+        out = asyncio.run(maps.find_place({"query": "sushi near Alexanderplatz"}))
+        check("find_place calls Places searchText", sent[-1][0].endswith("/v1/places:searchText"))
+        check("find_place speaks name, rating, address",
+              "Sushi Ya" in out and "4.6" in out and "Alexanderplatz 1" in out, out)
+        replies["routes"] = {}
+        check("no route is said plainly", "couldn't find a route" in
+              asyncio.run(maps.travel_time({"origin": "a", "destination": "Atlantis"})))
+    finally:
+        maps.http_post, settings.google_maps_api_key = orig_post, None
+
     check("compute degrades", degrades(asyncio.run(wolfram.compute({"query": "2+2"}))))
     check("sleep_summary degrades", degrades(asyncio.run(fitness.sleep_summary({}))))
     check("activity_summary degrades", degrades(asyncio.run(fitness.activity_summary({}))))

@@ -53,6 +53,7 @@ LOOP_SITES: dict[str, str] = {
     "scheduler.py::_fire_weekly_review": "weekly-memory-review",
     "server.py::_fire_reliability_probe": "reliability-health-probe",
     "server.py::_fire_composio_catalog_refresh": "composio-catalog-refresh",
+    "server.py::_fire_uptime_ping": "uptime-ping",
     "server.py::tg_bridge.run": "telegram-bridge",
     "server.py::_fire_toolchain_update": "toolchain-daily-update",
     "server.py::_fire_toolchain_review": "toolchain-weekly-review",

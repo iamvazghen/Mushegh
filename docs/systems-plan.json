@@ -3908,7 +3908,7 @@
         {
           "id": "22.R1",
           "tier": "R",
-          "state": "open",
+          "state": "done",
           "title": "Config rollback: a bad config change is detected and reverted automatically.",
           "scope": "task",
           "source": "docs/SYSTEMS-DETAILS.md:2614",
@@ -3917,7 +3917,20 @@
             "test_setup_wizard.py"
           ],
           "verification": "hermetic-test",
-          "evidence": []
+          "evidence": [
+            {
+              "kind": "hermetic-green",
+              "date": "2026-10-13",
+              "source": "bench/test_setup_wizard.py",
+              "note": "47/47. rollback_drill(): in a scratch repo, a wrong-typed MUSHEGH_BRAIN_PORT is detected, the last-good .env restored, the broken file kept as .env.broken-<stamp>, one audit line in config_rollbacks.jsonl. Mechanism: src/mushegh/shared/config_guard.py as the unit's ExecStartPre; the brain records env.last-good after the scheduler starts (ac77785)."
+            },
+            {
+              "kind": "recorded-note",
+              "date": "2026-10-13",
+              "source": "deploy/vps/mushegh-brain.service",
+              "note": "Live on the VPS 2026-10-12: guard ran green ({rolled_back: false}), ~/.mushegh/env.last-good mode 600 equals the live .env. A throwaway unit proved systemd re-reads an EnvironmentFile that ExecStartPre replaced. No deliberate break of the real VPS .env was run."
+            }
+          ]
         },
         {
           "id": "22.R2",
@@ -4071,16 +4084,29 @@
         {
           "id": "23.R1",
           "tier": "R",
-          "state": "open",
+          "state": "done",
           "title": "Reachability monitoring from outside the VPS, so \"up\" is not self-reported.",
           "scope": "task",
           "source": "docs/SYSTEMS-DETAILS.md:2672",
-          "gate": "`test_connectivity.py` extended.",
+          "gate": "`test_uptime_watch.py` extended (Healthchecks.io dead man's switch).",
           "test_names": [
-            "test_connectivity.py"
+            "test_uptime_watch.py"
           ],
           "verification": "hermetic-test",
-          "evidence": []
+          "evidence": [
+            {
+              "kind": "hermetic-green",
+              "date": "2026-10-13",
+              "source": "bench/test_uptime_watch.py",
+              "note": "18/18. Section [7]: no UUID means no request; one GET to hc-ping.com/<uuid> every 5 min from the brain scheduler (job uptime-ping); a failing ping is logged, never raised. Gate moved from test_connectivity.py: the outside observer is Healthchecks.io, and the brain's side of it is the ping."
+            },
+            {
+              "kind": "recorded-note",
+              "date": "2026-10-13",
+              "source": "src/mushegh/brain/_scheduled_jobs.py",
+              "note": "Code is deployed; the outside check goes live only when the owner creates the Healthchecks.io check and sets MUSHEGH_HEALTHCHECKS_UUID on the VPS. Until then the job is a no-op."
+            }
+          ]
         },
         {
           "id": "23.R2",
@@ -6344,15 +6370,15 @@
         {
           "id": "34.R4",
           "tier": "R",
-          "state": "open",
+          "state": "done",
           "title": "**Generic FIT and Apple Health XML ingest** — Jev p=0.72, conf 0.66: it works for whatever he wears and removes the blocker permanently, rather than waiting on a device choice.",
           "scope": "task",
           "source": "docs/HARDWARE.md section 6 (H5); un-deferred 2026-10-03: the owner has a Garmin Instinct 3 exporting raw FIT, so the blocking question ('is there a wearable in the house?') is answered",
-          "gate": "new `test_health_ingest.py` — a FIT file and an Apple Health export both ingest to the same normalised records.",
+          "gate": "`test_health_ingest.py` — a FIT file and an Apple Health export both ingest to the same normalised records.",
           "test_names": [
             "test_health_ingest.py"
           ],
-          "verification": "planned-test",
+          "verification": "hermetic-test",
           "evidence": [
             {
               "kind": "recorded-note",
@@ -6363,6 +6389,12 @@
               "kind": "recorded-note",
               "source": "docs/HARDWARE.md",
               "note": "2026-10-03: un-deferred on the owner's hardware inventory. FIT export over a USB sync, no vendor cloud and no proprietary API, which is the shape D-57 wants. The export lands in the vault as a raw file; derived numbers become curated facts under D-21."
+            },
+            {
+              "kind": "hermetic-green",
+              "date": "2026-10-13",
+              "source": "bench/test_health_ingest.py",
+              "note": "9/9 on synthetic FIT files built in the test: daily steps as max per (day, activity type), heart rate from monitoring_hr_data, timestamp_16 rebuilt against the FIT epoch, resting HR, since-filtering, truncated file reported, .xml routed to the Apple Health reader. Parser: fitdecode 0.11 (MIT). Sleep FIT files are not read yet (34.R1)."
             }
           ]
         }

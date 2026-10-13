@@ -1,7 +1,7 @@
 # S23 — 24/7 Reachability
 
 > **One line:** Reachable from any of the owner's devices at 3 AM, over a tailnet, with no inbound port opened anywhere — and parked on purpose when he does not want it.
-> **Status:** complete for now — **currently parked by design** · **Registry:** S23 · 4/4 floor, 2/4 raise, 0/1 elite
+> **Status:** complete for now — **currently parked by design** · **Registry:** S23 · 4/4 floor, 3/4 raise, 0/1 elite
 > **Milestones:** M37 · **Decisions:** D-03, D-01
 
 ## Purpose
@@ -86,8 +86,10 @@ utterances in the edge's offline queue.
   alert per transition. Last: **not yet measured**.
 - **G7** · B2 · M37's own gate: `deploy/uptime_watch.py` running from a second host against
   a live brain, alerting on a real outage. Threshold: **1** external probe on a fixed
-  interval, **1** alert per transition. The mechanism exists; whether it runs anywhere is
-  not recorded. 23.R1 is open. Last: **not yet measured**.
+  interval, **1** alert per transition. 23.R1 is done another way (2026-10-13): the brain pings
+  Healthchecks.io every 5 min and Healthchecks alerts once per transition; gated by
+  `test_uptime_watch.py` [7], 18/18. Live only once `MUSHEGH_HEALTHCHECKS_UUID` is set on the VPS.
+  Last: **not yet measured live**.
 - **23.E1** · B3 · thirty days at ≥99.5% with every interruption explained by a record.
   Threshold: **≥99.5%**, **1** record per gap. Last: **not yet measured**.
 

@@ -50,6 +50,11 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 #: The one module allowed to know where state lives. Everyone else asks it.
 OWNER = "shared/paths.py"
+#: Modules that run BEFORE `mushegh.config` can be trusted to import, so they cannot ask OWNER
+#: (it imports config). Each keeps the same default spelling and honours MUSHEGH_STATE_DIR.
+BOOTSTRAP = {
+    "shared/config_guard.py": "22.R1 ExecStartPre: decides whether .env can load at all",
+}
 
 #: Store basenames that used to be resolved against the repo root. `mushegh_graph.sqlite` is
 #: listed even though the relation layer is gone (D-26, M04): a host that ran the old code may
@@ -70,7 +75,7 @@ def private_state_roots() -> list[str]:
     out: list[str] = []
     for p in sorted(src.rglob("*.py")):
         rel = p.relative_to(src).as_posix()
-        if rel == OWNER:
+        if rel == OWNER or rel in BOOTSTRAP:
             continue
         try:
             tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
